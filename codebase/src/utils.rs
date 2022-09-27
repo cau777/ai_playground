@@ -1,4 +1,4 @@
-use ndarray::{Array, Array1, Array2, Array3, Array4, ArrayView1, ArrayView2, ArrayView3, ArrayView4, azip, IxDyn};
+use ndarray::{Array, Array1, Array2, Array3, Array4, ArrayView1, ArrayView2, ArrayView3, ArrayView4, azip, Dimension, IxDyn};
 
 pub type ArrayF<D> = Array<f32, D>;
 pub type Array1F = Array1<f32>;
@@ -14,4 +14,8 @@ pub type ArrayDynF = Array<f32, IxDyn>;
 
 pub fn arrays_almost_equal<D: ndarray::Dimension>(arr1: &ArrayF<D>, arr2: &ArrayF<D>) -> bool{
     azip!(arr1, arr2).all(|a, b| (a - b).abs() < 0.001)
+}
+
+pub fn lerp_arrays<D: Dimension>(a: &ArrayF<D>, b: &ArrayF<D>, t: f32) -> ArrayF<D> {
+    a + (b - a) * t
 }
