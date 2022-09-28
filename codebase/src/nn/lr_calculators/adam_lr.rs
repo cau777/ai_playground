@@ -1,6 +1,7 @@
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::{ArrayDynF, lerp_arrays};
 
+#[derive(Clone)]
 pub struct AdamConfig {
     alpha: f32,
     decay1: f32,
@@ -18,21 +19,6 @@ impl Default for AdamConfig {
 }
 
 pub struct AdamLrCalc {}
-
-/*
- if self.moment1 is None:
-            self.moment1 = np.zeros(gradients.shape, dtype="float32")
-        if self.moment2 is None:
-            self.moment2 = np.zeros(gradients.shape, dtype="float32")
-
-        self.moment1 = lerp_arrays(gradients, self.moment1, self.decay1)
-        self.moment2 = lerp_arrays(np.square(gradients), self.moment2, self.decay2)
-
-        moment1_b = self.moment1 / (1 - (self.decay1 ** config.epoch))
-        moment2_b = self.moment2 / (1 - (self.decay2 ** config.epoch))
-
-        return self.alpha * moment1_b / (np.sqrt(moment2_b) + epsilon)
- */
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
     fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> ArrayDynF {

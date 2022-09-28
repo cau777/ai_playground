@@ -7,6 +7,7 @@ use crate::utils::{Array1F, Array2F, ArrayDynF};
 use crate::nn::layers::nn_layers::{BackwardData, ForwardData, InitData, LayerOps, TrainableLayerOps, TrainData};
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 
+#[derive(Clone)]
 pub struct DenseLayerConfig {
     pub out_values: usize,
     pub in_values: usize,
@@ -15,6 +16,7 @@ pub struct DenseLayerConfig {
     pub biases_lr_calc: LrCalc,
 }
 
+#[derive(Clone)]
 pub enum DenseLayerInit {
     WeightsAndBiases(Array2F, Array1F),
     Random(),
