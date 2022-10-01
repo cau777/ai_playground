@@ -1,11 +1,11 @@
 use std::ops::AddAssign;
-use ndarray::{Axis, s, ShapeBuilder};
+use ndarray::{Axis, ErrorKind, s, ShapeBuilder, ShapeError};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
-use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::nn_layers::{BackwardData, ForwardData, InitData, LayerOps};
-use crate::nn::lr_calculators::lr_calculator::LrCalc;
-use crate::utils::{Array4F, Array5F, ArrayDynF, get_dims_after_filter_4};
+use crate::nn::generic_storage::{clone_from_storage1, get_mut_from_storage, remove_from_storage1};
+use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult, TrainableLayerOps, TrainData};
+use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
+use crate::utils::{Array4F, Array5F, get_dims_after_filter_4};
 
 #[derive(Clone)]
 pub struct ConvolutionConfig {
@@ -84,7 +84,7 @@ impl ConvolutionLayer {
 }
 
 impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
-    fn init(data: InitData, layer_config: &ConvolutionConfig) {
+    fn init(data: InitData, layer_config: &ConvolutionConfig) -> EmptyLayerResult {
         let InitData { assigner, storage } = data;
         let ConvolutionConfig { in_channels, out_channels, kernel_size, init_mode, .. } = layer_config.clone();
         let key = assigner.get_key(gen_name(layer_config));
@@ -93,29 +93,31 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
             ConvolutionInitMode::Kernel(k) => {
                 let shape = k.shape();
                 if shape[0] != out_channels || shape[1] != in_channels || shape[2] != kernel_size || shape[3] != kernel_size {
-                    panic!("Shape mismatch")
+                    return Err(ShapeError::from_kind(ErrorKind::IncompatibleShape).into());
                 }
                 k
             }
             ConvolutionInitMode::HeNormal() => {
                 let fan_in = in_channels * kernel_size * kernel_size;
                 let std_dev = (2.0 / fan_in as f32).sqrt();
-                let dist = Normal::new(0.0, std_dev).unwrap();
+                let dist = Normal::new(0.0, std_dev)?;
                 Array4F::random((out_channels, in_channels, kernel_size, kernel_size), dist)
             }
         };
 
         storage.insert(key, vec![kernel.into_dyn()]);
+        Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> ArrayDynF {
+    fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
         let ForwardData { inputs, storage, assigner, forward_cache, .. } = data;
         let ConvolutionConfig { padding, stride, kernel_size, .. } = layer_config;
 
-        let inputs: Array4F = inputs.into_dimensionality().unwrap();
+        let inputs: Array4F = inputs.into_dimensionality()?;
         let key = assigner.get_key(gen_name(layer_config));
-        let data = storage.get(&key).unwrap();
-        let kernel: Array4F = (&data[0]).clone().into_dimensionality().unwrap();
+
+        let [kernel] = clone_from_storage1(storage, &key);
+        let kernel: Array4F = kernel.into_dimensionality()?;
 
         let inputs = pad4d(inputs, *padding);
         let [batch_size, _, new_height, new_width] = get_dims_after_filter_4(&inputs, *kernel_size, *stride);
@@ -139,20 +141,23 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         });
 
         forward_cache.insert(key, vec![inputs.into_dyn()]);
-        result.into_dyn()
+        Ok(result.into_dyn())
     }
 
-    fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> ArrayDynF {
+    fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerResult {
         let BackwardData { assigner, forward_cache, storage, grad, backward_cache, .. } = data;
         let ConvolutionConfig { padding, stride, kernel_size, .. } = layer_config;
 
         let key = assigner.get_key(gen_name(layer_config));
-        let data = storage.get(&key).unwrap();
-        let kernel: Array4F = (&data[0]).clone().into_dimensionality().unwrap();
-        let [inputs] = remove_from_storage1(storage, &key).unwrap();
-        let inputs = inputs.into_dimensionality().unwrap();
+
+        let [kernel] = clone_from_storage1(storage, &key);
+        let kernel: Array4F = kernel.into_dimensionality()?;
+
+        let [inputs] = remove_from_storage1(forward_cache, &key);
+        let inputs = inputs.into_dimensionality()?;
         let inputs_shape = inputs.shape();
-        let grad = grad.into_dimensionality().unwrap();
+
+        let grad = grad.into_dimensionality()?;
 
         let kernels_grad = ConvolutionLayer::calc_kernel_grad(&inputs, &grad, layer_config);
         backward_cache.insert(key, vec![kernels_grad.into_dyn()]);
@@ -180,11 +185,24 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         }
 
         let result = remove_padding_4d(padded_result, *padding);
-        result.into_dyn()
+        Ok(result.into_dyn())
     }
 }
 
-// impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer TODO
+impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer
+{
+    fn train(data: TrainData, layer_config: &ConvolutionConfig) -> EmptyLayerResult {
+        let TrainData {storage, backward_cache, assigner, batch_config} = data;
+        let key = assigner.get_key(gen_name(layer_config));
+
+        let [kernel_grad] = remove_from_storage1(backward_cache, &key);
+        let kernel_grad = apply_lr_calc(&layer_config.lr_calc, kernel_grad, LrCalcData {batch_config, storage, assigner})?;
+
+        let kernel = get_mut_from_storage(storage, &key, 0);
+        kernel.add_assign(&kernel_grad);
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -210,7 +228,7 @@ mod tests {
         ConvolutionLayer::init(InitData {
             storage: &mut storage,
             assigner: &mut KeyAssigner::new(),
-        }, &config);
+        }, &config).unwrap();
 
         let result = ConvolutionLayer::forward(ForwardData {
             inputs,
@@ -218,7 +236,7 @@ mod tests {
             storage: &mut storage,
             assigner: &mut KeyAssigner::new(),
             batch_config: &BatchConfig { epoch: 1 },
-        }, &config);
+        }, &config).unwrap();
 
         assert!(arrays_almost_equal(&expected, &result));
     }
@@ -235,7 +253,7 @@ mod tests {
         ConvolutionLayer::init(InitData {
             storage: &mut storage,
             assigner: &mut KeyAssigner::new(),
-        }, &config);
+        }, &config).unwrap();
 
         let mut forward_cache = GenericStorage::new();
         forward_cache.insert("convolution_2_3_0".to_owned(), vec![cache]);
@@ -247,7 +265,7 @@ mod tests {
             forward_cache: &mut forward_cache,
             backward_cache: &mut GenericStorage::new(),
             batch_config: &BatchConfig { epoch: 1 },
-        }, &config);
+        }, &config).unwrap();
         assert!(arrays_almost_equal(&result, &expected));
     }
 

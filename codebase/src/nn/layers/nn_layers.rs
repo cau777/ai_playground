@@ -1,5 +1,5 @@
-use std::any::Any;
 use std::collections::HashMap;
+use std::error;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::layers::dense_layer::{DenseLayer, DenseLayerConfig};
 use crate::nn::key_assigner::KeyAssigner;
@@ -51,19 +51,23 @@ pub struct TrainData<'a> {
 
 pub type GenericStorage = HashMap<String, Vec<ArrayDynF>>;
 
+pub type LayerError = Box<dyn error::Error>;
+pub type EmptyLayerResult = Result<(), LayerError>;
+pub type LayerResult = Result<ArrayDynF, LayerError>;
+
 pub trait LayerOps<T> {
-    fn init(data: InitData, layer_config: &T);
+    fn init(data: InitData, layer_config: &T) -> EmptyLayerResult;
 
-    fn forward(data: ForwardData, layer_config: &T) -> ArrayDynF;
+    fn forward(data: ForwardData, layer_config: &T) -> LayerResult;
 
-    fn backward(data: BackwardData, layer_config: &T) -> ArrayDynF;
+    fn backward(data: BackwardData, layer_config: &T) -> LayerResult;
 }
 
 pub trait TrainableLayerOps<T> {
-    fn train(data: TrainData, layer_config: &T);
+    fn train(data: TrainData, layer_config: &T) -> EmptyLayerResult;
 }
 
-pub fn init_layer(layer: &Layer, data: InitData) {
+pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
     use Layer::*;
     match layer {
         Dense(c) => DenseLayer::init(data, c),
@@ -75,7 +79,7 @@ pub fn init_layer(layer: &Layer, data: InitData) {
     }
 }
 
-pub fn forward_layer(layer: &Layer, data: ForwardData) -> ArrayDynF {
+pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
     use Layer::*;
     match layer {
         Dense(c) => DenseLayer::forward(data, c),
@@ -87,7 +91,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> ArrayDynF {
     }
 }
 
-pub fn backward_layer(layer: &Layer, data: BackwardData) -> ArrayDynF {
+pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
     use Layer::*;
     match layer {
         Dense(c) => DenseLayer::backward(data, c),
@@ -99,11 +103,11 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> ArrayDynF {
     }
 }
 
-pub fn train_layer(layer: &Layer, data: TrainData) {
+pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
     use Layer::*;
     match layer {
         Dense(c) => DenseLayer::train(data, c),
         Sequential(c) => SequentialLayer::train(data, c),
-        _ => {}
+        _ => Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
-use crate::nn::layers::nn_layers::{GenericStorage, TrainData};
+use crate::nn::layers::nn_layers::{GenericStorage, LayerResult, TrainData};
 use crate::nn::lr_calculators::adam_lr::{AdamConfig, AdamLrCalc};
 use crate::nn::lr_calculators::constant_lr::{ConstantLr, ConstantLrConfig};
 use crate::utils::ArrayDynF;
@@ -28,10 +28,10 @@ pub enum LrCalc {
 }
 
 pub trait LrCalcOps<T> {
-    fn apply(target: ArrayDynF, data: LrCalcData, config: &T) -> ArrayDynF;
+    fn apply(target: ArrayDynF, data: LrCalcData, config: &T) -> LayerResult;
 }
 
-pub fn apply_lr_calc(calc: &LrCalc, target: ArrayDynF, data: LrCalcData) -> ArrayDynF {
+pub fn apply_lr_calc(calc: &LrCalc, target: ArrayDynF, data: LrCalcData) -> LayerResult {
     match calc {
         LrCalc::Constant(c) => ConstantLr::apply(target, data, c),
         LrCalc::Adam(c) => AdamLrCalc::apply(target, data, c)

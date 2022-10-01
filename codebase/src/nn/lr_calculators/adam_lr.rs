@@ -1,3 +1,4 @@
+use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::{ArrayDynF, lerp_arrays};
 
@@ -21,7 +22,7 @@ impl Default for AdamConfig {
 pub struct AdamLrCalc {}
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
-    fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> ArrayDynF {
+    fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> LayerResult {
         let LrCalcData {storage, assigner,..} = data;
         let key = assigner.get_key("adam".to_owned());
 
@@ -47,6 +48,6 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
 
         storage.insert(key, vec![moment1, moment2]);
 
-        config.alpha * moment1b / (&moment2b * &moment2b + f32::EPSILON)
+        Ok(config.alpha * moment1b / (&moment2b * &moment2b + f32::EPSILON))
     }
 }

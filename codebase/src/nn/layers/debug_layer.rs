@@ -1,5 +1,4 @@
-use crate::nn::layers::nn_layers::{BackwardData, ForwardData, InitData, LayerOps};
-use crate::utils::ArrayDynF;
+use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 
 pub struct DebugLayer{}
 
@@ -12,29 +11,30 @@ pub struct DebugLayerConfig {
 }
 
 impl LayerOps<DebugLayerConfig> for DebugLayer {
-    fn init(data: InitData, layer_config: &DebugLayerConfig) {
+    fn init(data: InitData, layer_config: &DebugLayerConfig) -> EmptyLayerResult {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.init_callback {
             Some(func) => func(&layer_config.tag, &data, &key),
             None => {}
         }
+        Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &DebugLayerConfig) -> ArrayDynF {
+    fn forward(data: ForwardData, layer_config: &DebugLayerConfig) -> LayerResult {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.forward_callback {
             Some(func) => func(&layer_config.tag, &data, &key),
             None => {}
         }
-        data.inputs
+        Ok(data.inputs)
     }
 
-    fn backward(data: BackwardData, layer_config: &DebugLayerConfig) -> ArrayDynF {
+    fn backward(data: BackwardData, layer_config: &DebugLayerConfig) -> LayerResult {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.backward_callback {
             Some(func) => func(&layer_config.tag, &data, &key),
             None => {}
         }
-        data.grad
+        Ok(data.grad)
     }
 }

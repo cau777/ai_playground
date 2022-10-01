@@ -1,3 +1,4 @@
+use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::ArrayDynF;
 
@@ -17,7 +18,7 @@ impl Default for ConstantLrConfig {
 pub struct ConstantLr {}
 
 impl LrCalcOps<ConstantLrConfig> for ConstantLr {
-    fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> ArrayDynF {
-        target * config.lr
+    fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> LayerResult {
+        Ok(target * config.lr)
     }
 }

@@ -1,5 +1,4 @@
-use crate::nn::layers::nn_layers::{backward_layer, BackwardData, forward_layer, ForwardData, init_layer, InitData, Layer, LayerOps, train_layer, TrainableLayerOps, TrainData};
-use crate::utils::{ArrayDynF};
+use crate::nn::layers::nn_layers::{backward_layer, BackwardData, EmptyLayerResult, forward_layer, ForwardData, init_layer, InitData, Layer, LayerOps, LayerResult, train_layer, TrainableLayerOps, TrainData};
 
 #[derive(Clone)]
 pub struct SequentialLayerConfig {
@@ -9,16 +8,17 @@ pub struct SequentialLayerConfig {
 pub struct SequentialLayer {}
 
 impl LayerOps<SequentialLayerConfig> for SequentialLayer {
-    fn init(data: InitData, layer_config: &SequentialLayerConfig) {
+    fn init(data: InitData, layer_config: &SequentialLayerConfig) -> EmptyLayerResult {
         for layer in layer_config.layers.iter() {
             init_layer(layer, InitData {
                 assigner: data.assigner,
                 storage: data.storage,
-            })
+            })?;
         }
+        Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &SequentialLayerConfig) -> ArrayDynF {
+    fn forward(data: ForwardData, layer_config: &SequentialLayerConfig) -> LayerResult {
         let mut inputs = data.inputs;
         for layer in layer_config.layers.iter() {
             let data = ForwardData {
@@ -28,12 +28,12 @@ impl LayerOps<SequentialLayerConfig> for SequentialLayer {
                 storage: data.storage,
                 batch_config: data.batch_config,
             };
-            inputs = forward_layer(layer, data);
+            inputs = forward_layer(layer, data)?;
         }
-        inputs
+        Ok(inputs)
     }
 
-    fn backward(data: BackwardData, layer_config: &SequentialLayerConfig) -> ArrayDynF {
+    fn backward(data: BackwardData, layer_config: &SequentialLayerConfig) -> LayerResult {
         let mut grad = data.grad;
         for layer in layer_config.layers.iter().rev() {
             let data = BackwardData {
@@ -44,18 +44,19 @@ impl LayerOps<SequentialLayerConfig> for SequentialLayer {
                 batch_config: data.batch_config,
                 storage: data.storage,
             };
-            grad = backward_layer(layer, data)
+            grad = backward_layer(layer, data)?;
         }
-        grad
+        Ok(grad)
     }
 }
 
 impl TrainableLayerOps<SequentialLayerConfig> for SequentialLayer {
-    fn train(data: TrainData, layer_config: &SequentialLayerConfig) {
+    fn train(data: TrainData, layer_config: &SequentialLayerConfig) -> EmptyLayerResult {
         for layer in layer_config.layers.iter() {
             let train_data = TrainData { storage: data.storage, batch_config: data.batch_config, assigner: data.assigner, backward_cache: data.backward_cache };
-            train_layer(layer, train_data);
+            train_layer(layer, train_data)?;
         }
+        Ok(())
     }
 }
 
@@ -106,7 +107,7 @@ mod tests {
             layers: debug_vec(Some(|name, _, _| INIT_COUNTER.lock().unwrap().push(name.to_owned())), None, None)
         };
 
-        SequentialLayer::init(data, &config);
+        SequentialLayer::init(data, &config).unwrap();
         assert_eq!(INIT_COUNTER.lock().unwrap().deref(), &vec!["debug_0", "debug_1", "debug_2", "debug_3"]);
     }
 
@@ -126,7 +127,7 @@ mod tests {
             layers: debug_vec(None, Some(|name, _, _| FORWARD_COUNTER.lock().unwrap().push(name.to_owned())), None)
         };
 
-        SequentialLayer::forward(data, &config);
+        SequentialLayer::forward(data, &config).unwrap();
 
         assert_eq!(FORWARD_COUNTER.lock().unwrap().deref(), &vec!["debug_0", "debug_1", "debug_2", "debug_3"]);
     }
@@ -148,7 +149,7 @@ mod tests {
             layers: debug_vec(None, None, Some(|name, _, _| BACKWARD_COUNTER.lock().unwrap().push(name.to_owned())))
         };
 
-        SequentialLayer::backward(data, &config);
+        SequentialLayer::backward(data, &config).unwrap();
 
         assert_eq!(BACKWARD_COUNTER.lock().unwrap().deref(), &vec!["debug_3", "debug_2", "debug_1", "debug_0"]);
     }

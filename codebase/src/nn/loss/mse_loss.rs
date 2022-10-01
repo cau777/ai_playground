@@ -1,13 +1,14 @@
+use crate::nn::loss::loss_func::LossFuncOps;
 use crate::utils::ArrayDynF;
 
 pub struct MseLossFunc {}
 
-impl MseLossFunc {
-    pub fn calc_loss(&self, expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
+impl LossFuncOps for MseLossFunc {
+    fn calc_loss(expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
         (expected - actual).mapv(|o: f32| o * o)
     }
 
-    pub fn calc_loss_grad(&self, expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
+    fn calc_loss_grad(expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
         expected - actual
     }
 }

@@ -1,8 +1,8 @@
-use std::ops::AddAssign;
 use ndarray::{s};
 use crate::Array4F;
-use crate::nn::layers::nn_layers::{BackwardData, ForwardData, InitData, LayerOps};
-use crate::utils::{ArrayDynF, get_dims_after_filter_4};
+use crate::nn::generic_storage::remove_from_storage1;
+use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
+use crate::utils::{get_dims_after_filter_4};
 
 pub struct MaxPoolConfig {
     size: usize,
@@ -16,13 +16,13 @@ fn gen_name() -> String {
 }
 
 impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
-    fn init(_: InitData, _: &MaxPoolConfig) {}
+    fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult {Ok(())}
 
-    fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> ArrayDynF {
+    fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
         let ForwardData { inputs, forward_cache, assigner, .. } = data;
         let stride = layer_config.stride;
         let size = layer_config.size;
-        let inputs: Array4F = inputs.into_dimensionality().unwrap();
+        let inputs: Array4F = inputs.into_dimensionality()?;
 
         let [batch_size, channels, new_height, new_width] =
             get_dims_after_filter_4(&inputs, size, stride);
@@ -31,19 +31,21 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
             let h_offset = h * stride;
             let w_offset = w * stride;
             let area = inputs.slice(s![b, c, h_offset..(h_offset + size), w_offset..(w_offset + size)]);
-            area.into_iter().copied().reduce(f32::max).unwrap()
+            area.into_iter().copied().reduce(f32::max).unwrap_or(0.0)
         });
 
         let key = assigner.get_key(gen_name());
         forward_cache.insert(key, vec![inputs.into_dyn()]);
-        result.into_dyn()
+        Ok(result.into_dyn())
     }
 
-    fn backward(data: BackwardData, layer_config: &MaxPoolConfig) -> ArrayDynF {
+    fn backward(data: BackwardData, layer_config: &MaxPoolConfig) -> LayerResult {
         let BackwardData { forward_cache, assigner, grad, .. } = data;
+        let grad: Array4F = grad.into_dimensionality()?;
+
         let key = assigner.get_key(gen_name());
-        let inputs = forward_cache.get_mut(&key).unwrap().remove(0);
-        let inputs: Array4F = inputs.into_dimensionality().unwrap();
+        let [inputs] = remove_from_storage1(forward_cache, &key);
+        let inputs: Array4F = inputs.into_dimensionality()?;
 
         let size = layer_config.size;
         let stride = layer_config.stride;
@@ -64,21 +66,19 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
                             .reduce(|accum, item| {
                                 if item.1 > accum.1 { item } else { accum }
                             }).unwrap();
-                        result.slice_mut(s![b, c, h_offset+argmax.0 / size, w_offset+argmax.0 % size])
-                            .add_assign(&grad.slice(s![b, c, h, w]))
+                        result[(b, c, h_offset+argmax.0 / size, w_offset+argmax.0 % size)] += grad[(b, c, h, w)];
                     }
                 }
             })
         });
 
-        result.into_dyn()
+        Ok(result.into_dyn())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use ndarray::{array, Axis, stack};
-    use crate::Array4F;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::max_pool_layer::{MaxPoolConfig, MaxPoolLayer};
@@ -129,7 +129,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
-            }, &MaxPoolConfig { size, stride })
+            }, &MaxPoolConfig { size, stride }).unwrap()
         }
 
         assert_eq!(expected.into_dyn(), forward(inputs, 2, 2));
@@ -162,7 +162,7 @@ mod tests {
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
                 batch_config: &BatchConfig { epoch: 1 },
-            }, &MaxPoolConfig { size, stride })
+            }, &MaxPoolConfig { size, stride }).unwrap()
         }
 
         let result = backward(inputs, grad, 2, 2);
