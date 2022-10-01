@@ -1,7 +1,7 @@
-mod layers;
-mod batch_config;
-mod loss;
-mod controller;
-mod lr_calculators;
-mod key_assigner;
+pub mod layers;
+pub mod batch_config;
+pub mod loss;
+pub mod controller;
+pub mod lr_calculators;
+pub mod key_assigner;
 pub mod generic_storage;

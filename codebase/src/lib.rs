@@ -1,22 +1,26 @@
 extern crate core;
 
-use ndarray::prelude::*;
 use wasm_bindgen::prelude::*;
-use crate::utils::Array4F;
+use crate::integration::proto_loading::save_model_bytes;
+use crate::nn::layers::nn_layers::GenericStorage;
+use crate::utils::{Array4F, ArrayDynF};
 
-mod nn;
-mod utils;
+pub mod nn;
+pub mod utils;
+pub mod integration;
+pub mod compiled_protos;
 
 #[wasm_bindgen]
-pub fn ones() -> String {
-    let mut arr = Array4F::ones((5, 5, 5, 5).f());
-    arr *= &array![5.0];
-    (arr).to_string()
+pub fn test_bytes(b: &[u8]) -> String {
+    format!("{:?}", b)
 }
 
 #[wasm_bindgen]
-pub fn zeros() -> String {
-    let arr = Array4F::zeros((5, 5, 5, 5).f());
-    arr.to_string()
+pub fn test_proto() -> String {
+    let mut storage = GenericStorage::new();
+    storage.insert("test".to_owned(), vec![ArrayDynF::ones(vec![2, 3, 4])]);
+
+    let bytes = save_model_bytes(&storage).unwrap();
+    format!("{} {:?}", bytes.len(), bytes)
 }
 
