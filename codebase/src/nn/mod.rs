@@ -4,3 +4,4 @@ mod loss;
 mod controller;
 mod lr_calculators;
 mod key_assigner;
+pub mod generic_storage;

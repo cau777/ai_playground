@@ -1,9 +1,8 @@
-use std::fs::read_dir;
 use std::ops::AddAssign;
-use ndarray::{array, Array0, AssignElem, Axis, NdProducer, s, ShapeBuilder};
+use ndarray::{s};
 use crate::Array4F;
 use crate::nn::layers::nn_layers::{BackwardData, ForwardData, InitData, LayerOps};
-use crate::utils::{ArrayDynF, get_dims_after_filter_4, get_dims_after_filter_dyn};
+use crate::utils::{ArrayDynF, get_dims_after_filter_4};
 
 pub struct MaxPoolConfig {
     size: usize,

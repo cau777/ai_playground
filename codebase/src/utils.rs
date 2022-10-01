@@ -1,4 +1,4 @@
-use ndarray::{Array, Array0, Array1, Array2, Array3, Array4, ArrayView1, ArrayView2, ArrayView3, ArrayView4, azip, Dimension, IxDyn};
+use ndarray::{Array, Array0, Array1, Array2, Array3, Array4, Array5, ArrayBase, ArrayView1, ArrayView2, ArrayView3, ArrayView4, azip, Dimension, IxDyn, OwnedRepr};
 
 pub type ArrayF<D> = Array<f32, D>;
 pub type Array0F = Array0<f32>;
@@ -6,6 +6,7 @@ pub type Array1F = Array1<f32>;
 pub type Array2F = Array2<f32>;
 pub type Array3F = Array3<f32>;
 pub type Array4F = Array4<f32>;
+pub type Array5F = Array5<f32>;
 pub type ArrayDynF = Array<f32, IxDyn>;
 
 // pub type ArrayView1F<'a> = ArrayView1<'a, f32>;
