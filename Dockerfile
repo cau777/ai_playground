@@ -5,7 +5,6 @@ RUN mkdir codebase
 RUN mkdir server
 
 WORKDIR /app/codebase
-COPY codebase/Cargo.lock .
 COPY codebase/Cargo.toml .
 
 # Download and compile codebase dependencies
@@ -15,7 +14,6 @@ COPY codebase/build.rs .
 COPY codebase/src ./src
 
 WORKDIR /app/server
-COPY server/Cargo.lock .
 COPY server/Cargo.toml .
 
 # Download and compile server dependencies
