@@ -1,17 +1,9 @@
 syntax = "proto3";
 
+import "common.proto";
 package proto_data;
 
-message NdArrayData {
-  repeated uint32 shape = 1;
-  repeated float numbers = 2;
-}
-
-message PairData {
-  string key = 1;
-  repeated NdArrayData arrays = 2;
-}
-
-message ModelStorageData {
-  repeated PairData pairs = 1;
+message ArrayPairData {
+  NdArrayData inputs = 1;
+  NdArrayData expected = 2;
 }

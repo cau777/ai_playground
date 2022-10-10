@@ -1,3 +1,4 @@
+# TODO: production mode
 FROM rust:latest as builder
 WORKDIR /app
 
@@ -30,7 +31,7 @@ WORKDIR /app/build
 
 ENV ROCKET_ADDRESS=0.0.0.0
 EXPOSE 8000
-RUN mkdir /files
-RUN chmod -R 777 /files
+RUN mkdir /app/files
+RUN chmod -R 777 /app/files
 CMD ["./server"]
 #ENTRYPOINT ["tail", "-f", "/dev/null"]

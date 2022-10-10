@@ -4,9 +4,9 @@ use crate::utils::{ArrayDynF, lerp_arrays};
 
 #[derive(Clone)]
 pub struct AdamConfig {
-    alpha: f32,
-    decay1: f32,
-    decay2: f32,
+    pub alpha: f32,
+    pub decay1: f32,
+    pub decay2: f32,
 }
 
 impl Default for AdamConfig {

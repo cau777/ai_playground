@@ -33,23 +33,27 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
     fn init(data: InitData, layer_config: &DenseLayerConfig) -> EmptyLayerResult {
         let InitData { assigner, storage } = data;
         let key = assigner.get_key(gen_name(layer_config));
-        let weights: Array2F;
-        let biases: Array1F;
 
-        match &layer_config.init_mode {
-            DenseLayerInit::WeightsAndBiases(w, b) => {
-                weights = w.clone();
-                biases = b.clone();
+        if !storage.contains_key(&key) {
+            let weights: Array2F;
+            let biases: Array1F;
+
+            match &layer_config.init_mode {
+                DenseLayerInit::WeightsAndBiases(w, b) => {
+                    weights = w.clone();
+                    biases = b.clone();
+                }
+                DenseLayerInit::Random() => {
+                    let std_dev = (layer_config.out_values as f32).powf(-0.5);
+                    let dist = Normal::new(0.0, std_dev)?;
+                    weights = Array2F::random((layer_config.out_values, layer_config.in_values).f(), dist);
+                    biases = Array1F::zeros((layer_config.out_values).f());
+                }
             }
-            DenseLayerInit::Random() => {
-                let std_dev = (layer_config.out_values as f32).powf(-0.5);
-                let dist = Normal::new(0.0, std_dev)?;
-                weights = Array2F::random((layer_config.out_values, layer_config.in_values).f(), dist);
-                biases = Array1F::zeros((layer_config.out_values).f());
-            }
+
+            storage.insert(key, vec![weights.into_dyn(), biases.into_dyn()]);
         }
 
-        storage.insert(key, vec![weights.into_dyn(), biases.into_dyn()]);
         Ok(())
     }
 
@@ -142,9 +146,7 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::dense_layer::{DenseLayer, DenseLayerConfig, DenseLayerInit};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps};
-    use crate::nn::layers::sequential_layer::SequentialLayerConfig;
     use crate::nn::loss::loss_func::LossFunc;
-    use crate::nn::loss::mse_loss::MseLossFunc;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
     use crate::utils::{Array1F, Array2F, arrays_almost_equal};
@@ -216,16 +218,15 @@ mod tests {
             init_mode: DenseLayerInit::Random(),
             weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
             biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-        })).unwrap();
+        }), LossFunc::Mse).unwrap();
         let inputs = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let expected = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
-        let loss = LossFunc::Mse;
         let mut last_loss = 0.0;
         let mut first_loss = None;
 
         for _ in 0..100 {
             let inputs = inputs.clone();
-            last_loss = controller.train_batch(inputs, &expected, &loss).unwrap();
+            last_loss = controller.train_batch(inputs, &expected).unwrap();
             if first_loss.is_none() {
                 first_loss = Some(last_loss);
             }

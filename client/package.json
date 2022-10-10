@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "build:wasm:dev": "npx wasm-pack build ../codebase --target web --out-dir ../client/pkg --dev"
+    "build:wasm:dev": "npx wasm-pack build ../wasm --target web --out-dir ../client/pkg --dev",
+    "build:wasm:release": "npx wasm-pack build ../wasm --target web --out-dir ../client/pkg --release"
   },
   "dependencies": {
-    "codebase": "file:pkg",
+    "@azure/storage-file-share": "^12.11.0",
+    "axios": "^1.1.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "wasm": "file:pkg"
   },
   "devDependencies": {
     "@types/react": "^18.0.17",

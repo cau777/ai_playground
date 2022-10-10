@@ -4,7 +4,7 @@ use crate::utils::ArrayDynF;
 
 #[derive(Clone)]
 pub struct ConstantLrConfig {
-    lr: f32,
+    pub lr: f32,
 }
 
 impl Default for ConstantLrConfig {

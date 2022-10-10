@@ -89,23 +89,26 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         let ConvolutionConfig { in_channels, out_channels, kernel_size, init_mode, .. } = layer_config.clone();
         let key = assigner.get_key(gen_name(layer_config));
 
-        let kernel = match init_mode {
-            ConvolutionInitMode::Kernel(k) => {
-                let shape = k.shape();
-                if shape[0] != out_channels || shape[1] != in_channels || shape[2] != kernel_size || shape[3] != kernel_size {
-                    return Err(ShapeError::from_kind(ErrorKind::IncompatibleShape).into());
+        if !storage.contains_key(&key) {
+            let kernel = match init_mode {
+                ConvolutionInitMode::Kernel(k) => {
+                    let shape = k.shape();
+                    if shape[0] != out_channels || shape[1] != in_channels || shape[2] != kernel_size || shape[3] != kernel_size {
+                        return Err(ShapeError::from_kind(ErrorKind::IncompatibleShape).into());
+                    }
+                    k
                 }
-                k
-            }
-            ConvolutionInitMode::HeNormal() => {
-                let fan_in = in_channels * kernel_size * kernel_size;
-                let std_dev = (2.0 / fan_in as f32).sqrt();
-                let dist = Normal::new(0.0, std_dev)?;
-                Array4F::random((out_channels, in_channels, kernel_size, kernel_size), dist)
-            }
-        };
+                ConvolutionInitMode::HeNormal() => {
+                    let fan_in = in_channels * kernel_size * kernel_size;
+                    let std_dev = (2.0 / fan_in as f32).sqrt();
+                    let dist = Normal::new(0.0, std_dev)?;
+                    Array4F::random((out_channels, in_channels, kernel_size, kernel_size), dist)
+                }
+            };
 
-        storage.insert(key, vec![kernel.into_dyn()]);
+            storage.insert(key, vec![kernel.into_dyn()]);
+        }
+
         Ok(())
     }
 
@@ -192,11 +195,11 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
 impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer
 {
     fn train(data: TrainData, layer_config: &ConvolutionConfig) -> EmptyLayerResult {
-        let TrainData {storage, backward_cache, assigner, batch_config} = data;
+        let TrainData { storage, backward_cache, assigner, batch_config } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
         let [kernel_grad] = remove_from_storage1(backward_cache, &key);
-        let kernel_grad = apply_lr_calc(&layer_config.lr_calc, kernel_grad, LrCalcData {batch_config, storage, assigner})?;
+        let kernel_grad = apply_lr_calc(&layer_config.lr_calc, kernel_grad, LrCalcData { batch_config, storage, assigner })?;
 
         let kernel = get_mut_from_storage(storage, &key, 0);
         kernel.add_assign(&kernel_grad);

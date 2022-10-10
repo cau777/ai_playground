@@ -19,59 +19,52 @@
 #![allow(unused_results)]
 #![allow(unused_mut)]
 
-//! Generated file from `model_storage.proto`
+//! Generated file from `task_result.proto`
 
 /// Generated files are compatible only with the same version
 /// of protobuf runtime.
 const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_2_0;
 
 #[derive(PartialEq,Clone,Default,Debug)]
-// @@protoc_insertion_point(message:proto_data.ArrayPairData)
-pub struct ArrayPairData {
+// @@protoc_insertion_point(message:proto_data.TaskResultData)
+pub struct TaskResultData {
     // message fields
-    // @@protoc_insertion_point(field:proto_data.ArrayPairData.inputs)
-    pub inputs: ::protobuf::MessageField<super::common::NdArrayData>,
-    // @@protoc_insertion_point(field:proto_data.ArrayPairData.expected)
-    pub expected: ::protobuf::MessageField<super::common::NdArrayData>,
+    // @@protoc_insertion_point(field:proto_data.TaskResultData.delta)
+    pub delta: ::protobuf::MessageField<super::common::ModelStorageData>,
     // special fields
-    // @@protoc_insertion_point(special_field:proto_data.ArrayPairData.special_fields)
+    // @@protoc_insertion_point(special_field:proto_data.TaskResultData.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
-impl<'a> ::std::default::Default for &'a ArrayPairData {
-    fn default() -> &'a ArrayPairData {
-        <ArrayPairData as ::protobuf::Message>::default_instance()
+impl<'a> ::std::default::Default for &'a TaskResultData {
+    fn default() -> &'a TaskResultData {
+        <TaskResultData as ::protobuf::Message>::default_instance()
     }
 }
 
-impl ArrayPairData {
-    pub fn new() -> ArrayPairData {
+impl TaskResultData {
+    pub fn new() -> TaskResultData {
         ::std::default::Default::default()
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(2);
+        let mut fields = ::std::vec::Vec::with_capacity(1);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
-        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, super::common::NdArrayData>(
-            "inputs",
-            |m: &ArrayPairData| { &m.inputs },
-            |m: &mut ArrayPairData| { &mut m.inputs },
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, super::common::ModelStorageData>(
+            "delta",
+            |m: &TaskResultData| { &m.delta },
+            |m: &mut TaskResultData| { &mut m.delta },
         ));
-        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, super::common::NdArrayData>(
-            "expected",
-            |m: &ArrayPairData| { &m.expected },
-            |m: &mut ArrayPairData| { &mut m.expected },
-        ));
-        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ArrayPairData>(
-            "ArrayPairData",
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<TaskResultData>(
+            "TaskResultData",
             fields,
             oneofs,
         )
     }
 }
 
-impl ::protobuf::Message for ArrayPairData {
-    const NAME: &'static str = "ArrayPairData";
+impl ::protobuf::Message for TaskResultData {
+    const NAME: &'static str = "TaskResultData";
 
     fn is_initialized(&self) -> bool {
         true
@@ -81,10 +74,7 @@ impl ::protobuf::Message for ArrayPairData {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
                 10 => {
-                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.inputs)?;
-                },
-                18 => {
-                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.expected)?;
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.delta)?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -98,11 +88,7 @@ impl ::protobuf::Message for ArrayPairData {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
-        if let Some(v) = self.inputs.as_ref() {
-            let len = v.compute_size();
-            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
-        }
-        if let Some(v) = self.expected.as_ref() {
+        if let Some(v) = self.delta.as_ref() {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
@@ -112,11 +98,8 @@ impl ::protobuf::Message for ArrayPairData {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
-        if let Some(v) = self.inputs.as_ref() {
+        if let Some(v) = self.delta.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
-        }
-        if let Some(v) = self.expected.as_ref() {
-            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -130,48 +113,45 @@ impl ::protobuf::Message for ArrayPairData {
         &mut self.special_fields
     }
 
-    fn new() -> ArrayPairData {
-        ArrayPairData::new()
+    fn new() -> TaskResultData {
+        TaskResultData::new()
     }
 
     fn clear(&mut self) {
-        self.inputs.clear();
-        self.expected.clear();
+        self.delta.clear();
         self.special_fields.clear();
     }
 
-    fn default_instance() -> &'static ArrayPairData {
-        static instance: ArrayPairData = ArrayPairData {
-            inputs: ::protobuf::MessageField::none(),
-            expected: ::protobuf::MessageField::none(),
+    fn default_instance() -> &'static TaskResultData {
+        static instance: TaskResultData = TaskResultData {
+            delta: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
     }
 }
 
-impl ::protobuf::MessageFull for ArrayPairData {
+impl ::protobuf::MessageFull for TaskResultData {
     fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
         static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
-        descriptor.get(|| file_descriptor().message_by_package_relative_name("ArrayPairData").unwrap()).clone()
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("TaskResultData").unwrap()).clone()
     }
 }
 
-impl ::std::fmt::Display for ArrayPairData {
+impl ::std::fmt::Display for TaskResultData {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
 }
 
-impl ::protobuf::reflect::ProtobufValue for ArrayPairData {
+impl ::protobuf::reflect::ProtobufValue for TaskResultData {
     type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x13model_storage.proto\x12\nproto_data\x1a\x0ccommon.proto\"_\n\rArra\
-    yPairData\x12$\n\x06inputs\x18\x01\x20\x01(\x0b2\x0c.NdArrayDataR\x06inp\
-    uts\x12(\n\x08expected\x18\x02\x20\x01(\x0b2\x0c.NdArrayDataR\x08expecte\
-    db\x06proto3\
+    \n\x11task_result.proto\x12\nproto_data\x1a\x0ccommon.proto\"9\n\x0eTask\
+    ResultData\x12'\n\x05delta\x18\x01\x20\x01(\x0b2\x11.ModelStorageDataR\
+    \x05deltab\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -191,7 +171,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             let mut deps = ::std::vec::Vec::with_capacity(1);
             deps.push(super::common::file_descriptor().clone());
             let mut messages = ::std::vec::Vec::with_capacity(1);
-            messages.push(ArrayPairData::generated_message_descriptor_data());
+            messages.push(TaskResultData::generated_message_descriptor_data());
             let mut enums = ::std::vec::Vec::with_capacity(0);
             ::protobuf::reflect::GeneratedFileDescriptor::new_generated(
                 file_descriptor_proto(),
