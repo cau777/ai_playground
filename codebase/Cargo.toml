@@ -15,6 +15,7 @@ lazy_static = "1.4.0"
 protobuf = "3.2.0"
 getrandom = { version = "0.2.7", features = ["js"] }
 flate2 = "1.0.24"
+xmltree = "0.10.3"
 
 [build-dependencies]
 protobuf-codegen = "3.2.0"

@@ -1,6 +1,6 @@
 use crate::nn::layers::nn_layers::{backward_layer, BackwardData, EmptyLayerResult, forward_layer, ForwardData, init_layer, InitData, Layer, LayerOps, LayerResult, train_layer, TrainableLayerOps, TrainData};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SequentialLayerConfig {
     pub layers: Vec<Layer>,
 }

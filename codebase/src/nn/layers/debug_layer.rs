@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 
 pub struct DebugLayer{}
@@ -8,6 +10,13 @@ pub struct DebugLayerConfig {
     pub init_callback: Option<fn(tag: &str, data: &InitData, name: &str)>,
     pub forward_callback: Option<fn(tag: &str, data: &ForwardData, name: &str)>,
     pub backward_callback: Option<fn(tag: &str, data: &BackwardData, name: &str)>
+}
+
+impl Debug for DebugLayerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tag)?;
+        Ok(())
+    }
 }
 
 impl LayerOps<DebugLayerConfig> for DebugLayer {

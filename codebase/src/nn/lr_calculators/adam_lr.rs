@@ -2,7 +2,7 @@ use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::{ArrayDynF, lerp_arrays};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AdamConfig {
     pub alpha: f32,
     pub decay1: f32,

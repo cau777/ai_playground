@@ -7,18 +7,18 @@ use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, 
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 use crate::utils::{Array4F, Array5F, get_dims_after_filter_4};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
-    in_channels: usize,
-    out_channels: usize,
-    kernel_size: usize,
-    stride: usize,
-    padding: usize,
-    init_mode: ConvolutionInitMode,
-    lr_calc: LrCalc,
+    pub in_channels: usize,
+    pub out_channels: usize,
+    pub kernel_size: usize,
+    pub stride: usize,
+    pub padding: usize,
+    pub init_mode: ConvolutionInitMode,
+    pub lr_calc: LrCalc,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ConvolutionInitMode {
     Kernel(Array4F),
     HeNormal(),

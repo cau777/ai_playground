@@ -4,9 +4,10 @@ use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::utils::{get_dims_after_filter_4};
 
+#[derive(Clone, Debug)]
 pub struct MaxPoolConfig {
-    size: usize,
-    stride: usize,
+    pub size: usize,
+    pub stride: usize,
 }
 
 pub struct MaxPoolLayer {}

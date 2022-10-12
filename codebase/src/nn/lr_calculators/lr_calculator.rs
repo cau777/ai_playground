@@ -21,7 +21,7 @@ impl<'a> LrCalcData<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LrCalc {
     Constant(ConstantLrConfig),
     Adam(AdamConfig)

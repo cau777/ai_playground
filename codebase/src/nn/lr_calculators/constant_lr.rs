@@ -2,7 +2,7 @@ use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::ArrayDynF;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ConstantLrConfig {
     pub lr: f32,
 }
