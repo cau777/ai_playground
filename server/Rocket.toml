@@ -1,0 +1,2 @@
+[global.limits]
+bytes = 10_000_000

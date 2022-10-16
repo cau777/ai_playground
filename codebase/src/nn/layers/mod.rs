@@ -5,4 +5,4 @@ pub mod activation;
 pub mod nn_layers;
 pub mod debug_layer;
 pub mod max_pool_layer;
-
+pub mod flatten_layer;

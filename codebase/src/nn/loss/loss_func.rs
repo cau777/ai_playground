@@ -6,7 +6,7 @@ pub trait LossFuncOps {
     fn calc_loss_grad(expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum LossFunc {
     Mse
 }

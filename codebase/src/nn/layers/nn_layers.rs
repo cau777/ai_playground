@@ -8,6 +8,7 @@ use crate::nn::layers::activation::relu_layer::ReluLayer;
 use crate::nn::layers::activation::sigmoid_layer::SigmoidLayer;
 use crate::nn::layers::activation::tanh_layer::TanhLayer;
 use crate::nn::layers::debug_layer::{DebugLayer, DebugLayerConfig};
+use crate::nn::layers::flatten_layer::FlattenLayer;
 use crate::nn::layers::max_pool_layer::MaxPoolLayer;
 use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialLayerConfig};
 use crate::utils::ArrayDynF;
@@ -23,7 +24,8 @@ pub enum Layer {
     Relu,
     Debug(DebugLayerConfig),
     Convolution(ConvolutionConfig),
-    MaxPool(MaxPoolConfig)
+    MaxPool(MaxPoolConfig),
+    Flatten
 }
 
 pub struct InitData<'a> {
@@ -84,6 +86,7 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         Debug(c) => DebugLayer::init(data, c),
         Convolution(c) => ConvolutionLayer::init(data, c),
         MaxPool(c) => MaxPoolLayer::init(data, c),
+        Flatten => FlattenLayer::init(data, &())
     }
 }
 
@@ -98,6 +101,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         Debug(c) => DebugLayer::forward(data, c),
         Convolution(c) => ConvolutionLayer::forward(data, c),
         MaxPool(c) => MaxPoolLayer::forward(data, c),
+        Flatten => FlattenLayer::forward(data, &())
     }
 }
 
@@ -112,6 +116,7 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         Debug(c) => DebugLayer::backward(data, c),
         Convolution(c) => ConvolutionLayer::backward(data, c),
         MaxPool(c) => MaxPoolLayer::backward(data, c),
+        Flatten => FlattenLayer::backward(data, &())
     }
 }
 

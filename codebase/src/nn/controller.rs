@@ -12,6 +12,8 @@ pub struct NNController {
     epoch: u32,
 }
 
+
+// TODO: Controller assigner backward
 impl NNController {
     pub fn new(main_layer: Layer, loss: LossFunc) -> Result<Self, LayerError> {
         let mut storage = GenericStorage::new();
@@ -83,11 +85,12 @@ impl NNController {
             batch_config: &config,
         })?;
 
-        assigner.reset_keys();
+        assigner.revert();
 
         let mut backward_cache = GenericStorage::new();
         let grad = calc_loss_grad(&self.loss, expected, &output);
         let loss_mean = calc_loss(&self.loss, expected, &output).mean().unwrap();
+        
         backward_layer(&self.main_layer, BackwardData {
             grad,
             batch_config: &config,
@@ -97,8 +100,8 @@ impl NNController {
             assigner: &mut assigner
         })?;
 
-        assigner.reset_keys();
-
+        assigner.revert();
+        
         train_layer(&self.main_layer, TrainData {
             storage: &mut self.storage,
             batch_config: &config,
@@ -139,6 +142,24 @@ impl NNController {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::{fs::OpenOptions, io::Read};
 
+    use crate::{integration::layers_loading::load_model_xml, utils::{Array2F, Array3F}};
+
+    use super::*;
+    
+    #[test]
+    fn test_complete() {
+        let mut file = OpenOptions::new().read(true).open("../config/digits/model.xml").unwrap();
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).unwrap();
+        let config = load_model_xml(&bytes).unwrap();
+        let mut controller = NNController::new(config.main_layer, config.loss_func).unwrap();
+        let result = controller.train_batch(Array3F::ones((256, 28, 28)).into_dyn(), &Array2F::ones((256, 10)).into_dyn()).unwrap();
+        println!("{}", result);
+    }
+}
 
 

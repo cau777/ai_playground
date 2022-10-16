@@ -1,5 +1,5 @@
 pub mod model_source;
-mod path_utils;
+pub mod path_utils;
 mod model_metadata;
 mod task_manager;
 pub mod current_model;

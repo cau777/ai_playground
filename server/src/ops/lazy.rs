@@ -21,4 +21,15 @@ impl<T> Lazy<T> {
             self.cache.as_ref().unwrap()
         }
     }
+    
+    pub fn value_mut(&mut self) -> &mut T {
+        if self.cache.is_some() {
+            self.cache.as_mut().unwrap()
+        } else {
+            let func = self.func;
+            let val = func();
+            self.cache = Some(val);
+            self.cache.as_mut().unwrap()
+        }
+    }
 }

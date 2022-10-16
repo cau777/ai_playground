@@ -40,13 +40,13 @@ impl Error for XmlError {}
 
 type Result<T> = std::result::Result<T, XmlError>;
 
-#[derive(Debug)]
-pub struct ModelXmlData {
+#[derive(Clone, Debug)]
+pub struct ModelXmlConfig {
     pub loss_func: LossFunc,
     pub main_layer: Layer,
 }
 
-pub fn load_model_xml(bytes: &[u8]) -> Result<ModelXmlData> {
+pub fn load_model_xml(bytes: &[u8]) -> Result<ModelXmlConfig> {
     let elements = xmltree::Element::parse_all(bytes).unwrap();
 
     let mut root = None;
@@ -76,7 +76,7 @@ pub fn load_model_xml(bytes: &[u8]) -> Result<ModelXmlData> {
 
             let loss_func = loss_func.ok_or_else(|| XmlError::ElementNotFound("LossFunc"))?;
             let main_layer = main_layer.ok_or_else(|| XmlError::ElementNotFound("Layer"))?;
-            Ok(ModelXmlData {
+            Ok(ModelXmlConfig {
                 loss_func,
                 main_layer,
             })
@@ -149,6 +149,18 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 size: get_usize_attr(element, "size")?,
                 stride: get_usize_attr(element, "stride")?,
             }))
+        }
+        &"Relu" => {
+            Ok(Layer::Relu)
+        }
+        &"Tanh" => {
+            Ok(Layer::Tanh)
+        }
+        &"Sigmoid" => {
+            Ok(Layer::Sigmoid)
+        }
+        &"Flatten" => {
+            Ok(Layer::Flatten)
         }
         _ => Err(XmlError::UnexpectedTag(element.name.clone())),
     }

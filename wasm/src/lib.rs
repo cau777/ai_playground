@@ -1,112 +1,11 @@
 extern crate core;
 
-use std::fmt::format;
 use std::ops::SubAssign;
-use once_cell::sync::Lazy;
-use std::sync::{Arc, RwLock};
-use codebase::integration::array_pair::ArrayPair;
+use codebase::integration::layers_loading::load_model_xml;
 use codebase::integration::compression::{compress_default, decompress_default};
-use codebase::integration::proto_loading::{load_model_from_bytes, load_pair_from_bytes, save_model_bytes};
+use codebase::integration::proto_loading::{load_model_from_bytes, load_pair_from_bytes, save_model_bytes, save_task_result_bytes, TaskResult};
 use codebase::nn::controller::NNController;
-use codebase::nn::layers::dense_layer::{DenseLayerConfig, DenseLayerInit};
-use codebase::nn::layers::nn_layers::{GenericStorage, Layer};
-use codebase::nn::layers::sequential_layer::SequentialLayerConfig;
-use codebase::nn::loss::loss_func::LossFunc;
-use codebase::nn::lr_calculators::constant_lr::ConstantLrConfig;
-use codebase::nn::lr_calculators::lr_calculator::LrCalc;
-use codebase::utils::ArrayDynF;
 use wasm_bindgen::prelude::*;
-
-// #[wasm_bindgen]
-// pub fn test_bytes(b: &[u8]) -> String {
-//     format!("{:?}", b)
-// }
-//
-// #[wasm_bindgen]
-// pub fn test_proto() -> String {
-//     let mut storage = GenericStorage::new();
-//     storage.insert("test".to_owned(), vec![ArrayDynF::ones(vec![2, 3, 4])]);
-//
-//     let bytes = save_model_bytes(&storage).unwrap();
-//     format!("{} {:?}", bytes.len(), bytes)
-// }
-//
-// static INITIAL_MODEL: Lazy<Arc<RwLock<Option<GenericStorage>>>> = Lazy::new(|| Arc::new(RwLock::new(None)));
-// static CONTROLLER: Lazy<Arc<RwLock<Option<NNController>>>> = Lazy::new(|| Arc::new(RwLock::new(None)));
-//
-// #[wasm_bindgen]
-// pub fn load_model(model_bytes: &[u8]) {
-//     // TODO
-//     let main_layer = Layer::Sequential(SequentialLayerConfig {
-//         layers: vec![
-//             Layer::Dense(DenseLayerConfig {
-//                 in_values: 10,
-//                 out_values: 15,
-//                 biases_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-//                 weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-//                 init_mode: DenseLayerInit::Random(),
-//             }),
-//             Layer::Relu,
-//             Layer::Dense(DenseLayerConfig {
-//                 in_values: 15,
-//                 out_values: 10,
-//                 biases_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-//                 weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-//                 init_mode: DenseLayerInit::Random(),
-//             }),
-//         ]
-//     });
-//
-//     let model = load_model_from_bytes(model_bytes);
-//     *CONTROLLER.write().unwrap() = Some(NNController::load(main_layer, LossFunc::Mse, model.unwrap()).unwrap());
-// }
-//
-// #[wasm_bindgen]
-// pub fn train(batch: &[u8]) -> f32 {
-//     let mut controller = CONTROLLER.write().unwrap();
-//     let mut controller = controller.as_mut().unwrap();
-//     let ArrayPair { expected, inputs } = load_pair_from_bytes(batch).unwrap();
-//
-//     // TODO: loss
-//     controller.train_batch(inputs, &expected).unwrap()
-// }
-//
-// #[wasm_bindgen]
-// pub fn test(batch: &[u8]) -> f32 {
-//     let controller = CONTROLLER.read().unwrap();
-//     let controller = controller.as_ref().unwrap();
-//     let ArrayPair { expected, inputs } = load_pair_from_bytes(batch).unwrap();
-//
-//     controller.test_batch(inputs, &expected).unwrap()
-// }
-
-fn main_layer() -> Layer {
-    Layer::Sequential(SequentialLayerConfig {
-        layers: vec![
-            Layer::Dense(DenseLayerConfig {
-                in_values: 10,
-                out_values: 15,
-                biases_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-                weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-                init_mode: DenseLayerInit::Random(),
-            }),
-            Layer::Relu,
-            Layer::Dense(DenseLayerConfig {
-                in_values: 15,
-                out_values: 10,
-                biases_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-                weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
-                init_mode: DenseLayerInit::Random(),
-            }),
-        ]
-    })
-}
-
-// #[wasm_bindgen(getter_with_clone)]
-pub struct Deps {
-    pub model: Option<Vec<u8>>,
-    pub train_data: Option<Vec<u8>>,
-}
 
 #[wasm_bindgen]
 extern "C" {
@@ -114,49 +13,70 @@ extern "C" {
     fn log(s: &str);
 }
 
+type Param = Option<Vec<u8>>;
+
+fn console_log(message: String) {
+    log(&message);
+}
+
+trait LogUnwrap<T> {
+    fn unwrap_log(self) -> T;
+}
+
+impl<T, TErr: std::fmt::Display+std::fmt::Debug> LogUnwrap<T> for Result<T, TErr> {
+    fn unwrap_log(self) -> T {
+        if self.is_err() {
+            console_log(format!("{}", &self.as_ref().err().unwrap()));
+        }
+        self.unwrap()
+    }
+}
+
 #[wasm_bindgen]
-pub fn process_task(name: &str, model: Option<Vec<u8>>, train_data: Option<Vec<u8>>) -> Vec<u8> {
-    let model_bytes = model.unwrap();
-    let model_bytes = decompress_default(&model_bytes).unwrap();
+pub fn process_task(name: &str, model_data: Param, model_config: Param, train_data: Param) -> Vec<u8> {
+    let model_bytes = model_data.unwrap();
+    let model_bytes = decompress_default(&model_bytes).unwrap_log();
     let initial = load_model_from_bytes(&model_bytes).unwrap();
-    let mut controller = NNController::load(main_layer(), LossFunc::Mse, initial.clone()).unwrap();
+    
+    let model_config = model_config.unwrap();
+    let model_config = load_model_xml(&model_config).unwrap_log();
+    
+    let mut controller = NNController::load(model_config.main_layer, model_config.loss_func, initial.clone()).unwrap_log();
 
     let inputs = train_data.unwrap();
-    let inputs = decompress_default(&inputs).unwrap();
+    let inputs = decompress_default(&inputs).unwrap_log();
     let inputs = load_pair_from_bytes(&inputs).unwrap();
 
-    controller.train_batch(inputs.inputs, &inputs.expected).map_err(|o| {
-        log(&format!("{:?}", &o));
-        o
-    }).unwrap();
+    console_log("Start training".to_owned());
+    console_log(format!("Inputs = {:?}, Expected = {:?}", inputs.inputs.shape(), inputs.expected.shape()));
+    
+    let train_result = controller.train_batch(inputs.inputs, &inputs.expected).unwrap_log();
+    console_log(format!("Result = {}", train_result));
     let mut result = controller.export();
+    console_log("After export".to_owned());
 
     for (key, value) in result.iter_mut() {
         for (index, arr) in value.iter_mut().enumerate() {
-            let initial_val = &initial[key][index];
-            arr.sub_assign(initial_val);
+            if initial.get(key).is_none() {
+                console_log(format!("Key {} not found", key))
+            }
+            
+            let initial_val = &initial.get(key).and_then(|o| o.get(index));
+            match initial_val {
+                Some(initial_val) => {
+                    if arr.shape()!=initial_val.shape() {
+                        console_log(format!("Shapes differ {:?} != {:?}", arr.shape(), initial_val.shape()))
+                    }
+                    arr.sub_assign(*initial_val);
+                }
+                _ => console_log(format!("Index {} not found in key {}", index, key))
+            }
+            
         }
     }
+    console_log("After assign".to_owned());
 
-    let result = save_model_bytes(&result).unwrap();
-    compress_default(&result).unwrap()
+    let result = save_task_result_bytes(TaskResult::Train(result)).unwrap_log();
+    console_log("After save".to_owned());
+    compress_default(&result).unwrap_log()
 }
-//
-// #[wasm_bindgen]
-// pub fn export_delta() -> Vec<u8> {
-//     let controller = CONTROLLER.read().unwrap();
-//     let controller = controller.as_ref().unwrap();
-//
-//     let initial = INITIAL_MODEL.read().unwrap();
-//     let initial = initial.as_ref().unwrap();
-//
-//     let mut result = controller.export();
-//     for (key, value) in result.iter_mut() {
-//         for (index, arr) in value.iter_mut().enumerate() {
-//             let initial_val = &initial[key][index];
-//             arr.sub_assign(initial_val);
-//         }
-//     }
-//
-//     save_model_bytes(&result).unwrap()
-// }
