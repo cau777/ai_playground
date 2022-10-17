@@ -1,12 +1,18 @@
+use crate::nn::generic_storage::{
+    clone_from_storage1, clone_from_storage2, get_mut_from_storage, remove_from_storage1,
+    remove_from_storage2,
+};
+use crate::nn::layers::nn_layers::{
+    BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult, TrainData,
+    TrainableLayerOps,
+};
+use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
+use crate::utils::{Array1F, Array2F};
+use ndarray::{s, Axis, ShapeBuilder};
+use ndarray_rand::rand_distr::Normal;
+use ndarray_rand::RandomExt;
 use std::iter::zip;
 use std::ops::AddAssign;
-use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::Normal;
-use ndarray::{Axis, s, ShapeBuilder};
-use crate::nn::generic_storage::{clone_from_storage1, clone_from_storage2, get_mut_from_storage, remove_from_storage1, remove_from_storage2};
-use crate::utils::{Array1F, Array2F};
-use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult, TrainableLayerOps, TrainData};
-use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 
 #[derive(Clone, Debug)]
 pub struct DenseLayerConfig {
@@ -46,7 +52,10 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
                 DenseLayerInit::Random() => {
                     let std_dev = (layer_config.out_values as f32).powf(-0.5);
                     let dist = Normal::new(0.0, std_dev)?;
-                    weights = Array2F::random((layer_config.out_values, layer_config.in_values).f(), dist);
+                    weights = Array2F::random(
+                        (layer_config.out_values, layer_config.in_values).f(),
+                        dist,
+                    );
                     biases = Array1F::zeros((layer_config.out_values).f());
                 }
             }
@@ -58,7 +67,13 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
     }
 
     fn forward(data: ForwardData, layer_config: &DenseLayerConfig) -> LayerResult {
-        let ForwardData { assigner, storage, inputs, forward_cache, .. } = data;
+        let ForwardData {
+            assigner,
+            storage,
+            inputs,
+            forward_cache,
+            ..
+        } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights, biases] = clone_from_storage2(storage, &key);
@@ -70,7 +85,8 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
         let batch_size = inputs.shape()[0];
         let mut result = Array2F::default((batch_size, layer_config.out_values).f());
 
-        inputs.outer_iter()
+        inputs
+            .outer_iter()
             .map(|o| weights.dot(&o))
             .map(|o| o + biases)
             .enumerate()
@@ -81,7 +97,14 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
     }
 
     fn backward(data: BackwardData, layer_config: &DenseLayerConfig) -> LayerResult {
-        let BackwardData { assigner, storage, forward_cache, grad, backward_cache, .. } = data;
+        let BackwardData {
+            assigner,
+            storage,
+            forward_cache,
+            grad,
+            backward_cache,
+            ..
+        } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights] = clone_from_storage1(storage, &key);
@@ -92,17 +115,21 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
 
         let grad: Array2F = grad.into_dimensionality()?;
         let mut weights_error = Array2F::default((layer_config.out_values, layer_config.in_values));
+        let batches = inputs.shape()[0];
 
         zip(inputs.outer_iter(), grad.outer_iter())
             .map(|(i, g)| {
                 let gt = g.insert_axis(Axis(1));
                 let it = i.insert_axis(Axis(0));
-                gt.dot(&it)
+                let result = gt.dot(&it);
+                result
             })
             .for_each(|o| weights_error += &o);
-
-        let weights_grad = weights_error.mean_axis(Axis(0)).unwrap().into_dyn();
+        
         let biases_grad = grad.mean_axis(Axis(0)).unwrap().into_dyn();
+
+        let factor = 1.0 / batches as f32;
+        let weights_grad = (weights_error * factor).into_dyn();
         backward_cache.insert(key, vec![weights_grad, biases_grad]);
 
         let batch_size = inputs.shape()[0];
@@ -111,9 +138,7 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
         grad.outer_iter()
             .map(|o| weights_t.dot(&o))
             .enumerate()
-            .for_each(|(index, o)| {
-                result.slice_mut(s![index, ..]).assign(&o)
-            });
+            .for_each(|(index, o)| result.slice_mut(s![index, ..]).assign(&o));
 
         Ok(result.into_dyn())
     }
@@ -121,13 +146,35 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
 
 impl TrainableLayerOps<DenseLayerConfig> for DenseLayer {
     fn train(data: TrainData, layer_config: &DenseLayerConfig) -> EmptyLayerResult {
-        let TrainData { backward_cache, assigner, storage, batch_config, .. } = data;
+        let TrainData {
+            backward_cache,
+            assigner,
+            storage,
+            batch_config,
+            ..
+        } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights_grad, biases_grad] = remove_from_storage2(backward_cache, &key);
 
-        let weights_grad = apply_lr_calc(&layer_config.weights_lr_calc, weights_grad, LrCalcData { batch_config, storage, assigner })?;
-        let biases_grad = apply_lr_calc(&layer_config.biases_lr_calc, biases_grad, LrCalcData { batch_config, storage, assigner })?;
+        let weights_grad = apply_lr_calc(
+            &layer_config.weights_lr_calc,
+            weights_grad,
+            LrCalcData {
+                batch_config,
+                storage,
+                assigner,
+            },
+        )?;
+        let biases_grad = apply_lr_calc(
+            &layer_config.biases_lr_calc,
+            biases_grad,
+            LrCalcData {
+                batch_config,
+                storage,
+                assigner,
+            },
+        )?;
 
         get_mut_from_storage(storage, &key, 0).add_assign(&weights_grad);
         get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
@@ -138,87 +185,131 @@ impl TrainableLayerOps<DenseLayerConfig> for DenseLayer {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{array};
-    use ndarray_rand::rand_distr::Normal;
-    use ndarray_rand::RandomExt;
-    use crate::nn::batch_config::{BatchConfig};
+    use crate::nn::batch_config::BatchConfig;
     use crate::nn::controller::NNController;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::dense_layer::{DenseLayer, DenseLayerConfig, DenseLayerInit};
-    use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps};
+    use crate::nn::layers::nn_layers::{
+        BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps,
+    };
     use crate::nn::loss::loss_func::LossFunc;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
-    use crate::utils::{Array1F, Array2F, arrays_almost_equal};
+    use crate::utils::{arrays_almost_equal, Array1F, Array2F};
+    use ndarray::array;
+    use ndarray_rand::rand_distr::Normal;
+    use ndarray_rand::RandomExt;
 
     #[test]
     fn test_forward() {
-        let input = array![
-            [1.0, 2.0],
-            [2.0, 3.0]
-        ].into_dyn();
-        let weights = array![
-            [0.7, 0.0],
-            [0.1, 0.4],
-            [0.8, 0.6]
-        ];
-        let expected = array![
-            [0.7, 0.9, 2.0],
-            [1.4, 1.4, 3.4]
-        ].into_dyn();
+        let input = array![[1.0, 2.0], [2.0, 3.0]].into_dyn();
+        let weights = array![[0.7, 0.0], [0.1, 0.4], [0.8, 0.6]];
+        let expected = array![[0.7, 0.9, 2.0], [1.4, 1.4, 3.4]].into_dyn();
 
         let config = get_config(DenseLayerInit::WeightsAndBiases(weights, Array1F::zeros(3)));
 
         let mut storage = GenericStorage::new();
-        DenseLayer::init(InitData { storage: &mut storage, assigner: &mut KeyAssigner::new() }, &config).unwrap();
+        DenseLayer::init(
+            InitData {
+                storage: &mut storage,
+                assigner: &mut KeyAssigner::new(),
+            },
+            &config,
+        )
+        .unwrap();
 
-        let output = DenseLayer::forward(ForwardData {
-            batch_config: &BatchConfig { epoch: 1 },
-            assigner: &mut KeyAssigner::new(),
-            storage: &mut storage,
-            inputs: input,
-            forward_cache: &mut GenericStorage::new(),
-        }, &config).unwrap();
+        let output = DenseLayer::forward(
+            ForwardData {
+                batch_config: &BatchConfig { epoch: 1 },
+                assigner: &mut KeyAssigner::new(),
+                storage: &mut storage,
+                inputs: input,
+                forward_cache: &mut GenericStorage::new(),
+            },
+            &config,
+        )
+        .unwrap();
 
         assert!(arrays_almost_equal(&output, &expected));
     }
 
     #[test]
     fn test_backward() {
-        let inputs: Array2F = array![[0.8, 0.7]];
-        let grad = array![[0.1, 0.2, 0.3]].into_dyn();
-        let weights = array![
-            [0.7, 0.0],
-            [0.1, 0.4],
-            [0.8, 0.6]
+        let inputs: Array2F = array![[0.9, 0.7, 0., 0.5, 0.6], [0.3, 0.2, 0.6, 0.8, 0.2]];
+        let weights: Array2F = array![
+            [0.9, 0.9, 0.2, 0.7, 0.3],
+            [0.5, 0.6, 0.3, 0., 0.1],
+            [0.4, 0.6, 0.3, 0.9, 0.3]
         ];
-
-        let config = get_config(DenseLayerInit::WeightsAndBiases(weights, Array1F::zeros(3)));
+        let biases: Array1F = array![0.8, 0.1, 0.9];
+        let grad: Array2F = array![[-2.37, -0.43, -2.11], [-1.79, -0.37, -1.8]];
+        let expected: Array2F = array![
+            [-3.192, -3.657, -1.236, -3.558, -1.387],
+            [-2.516, -2.913, -1.009, -2.873, -1.114]
+        ];
+        let expected_weights_grad: Array2F = array![
+            [-1.335, -1.0085, -0.537, -1.3085, -0.89],
+            [-0.249, -0.1875, -0.111, -0.2555, -0.166],
+            [-1.2195, -0.9185, -0.54, -1.2475, -0.813]
+        ];
+        let expected_biases_grad: Array1F = array![-2.08, -0.4, -1.955];
+        let config = DenseLayerConfig {
+            in_values: 5,
+            out_values: 3,
+            weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
+            biases_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
+            init_mode: DenseLayerInit::WeightsAndBiases(weights, biases),
+        };
 
         let mut storage = GenericStorage::new();
-        DenseLayer::init(InitData { storage: &mut storage, assigner: &mut KeyAssigner::new() }, &config).unwrap();
+        DenseLayer::init(
+            InitData {
+                storage: &mut storage,
+                assigner: &mut KeyAssigner::new(),
+            },
+            &config,
+        )
+        .unwrap();
 
         let mut forward_cache = GenericStorage::new();
-        forward_cache.insert("dense_2_3_0".to_owned(), vec![inputs.into_dyn()]);
-        DenseLayer::backward(BackwardData {
-            grad,
-            batch_config: &BatchConfig { epoch: 1 },
-            assigner: &mut KeyAssigner::new(),
-            forward_cache: &mut forward_cache,
-            storage: &mut storage,
-            backward_cache: &mut GenericStorage::new(),
-        }, &config).unwrap();
+        forward_cache.insert("dense_5_3_0".to_owned(), vec![inputs.into_dyn()]);
+        let mut backward_cache = GenericStorage::new();
+        let result = DenseLayer::backward(
+            BackwardData {
+                grad: grad.into_dyn(),
+                batch_config: &BatchConfig { epoch: 1 },
+                assigner: &mut KeyAssigner::new(),
+                forward_cache: &mut forward_cache,
+                storage: &mut storage,
+                backward_cache: &mut backward_cache,
+            },
+            &config,
+        )
+        .unwrap();
+        
+        assert!(arrays_almost_equal(
+            &expected,
+            &result.into_dimensionality().unwrap()
+        ));
+        let cache = &backward_cache["dense_5_3_0"];
+        
+        assert!(arrays_almost_equal(&expected_weights_grad, &cache[0].clone().into_dimensionality().unwrap()));
+        assert!(arrays_almost_equal(&expected_biases_grad, &cache[1].clone().into_dimensionality().unwrap()));
     }
 
     #[test]
     fn test_train() {
-        let mut controller = NNController::new(Layer::Dense(DenseLayerConfig {
-            in_values: 10,
-            out_values: 10,
-            init_mode: DenseLayerInit::Random(),
-            weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-            biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-        }), LossFunc::Mse).unwrap();
+        let mut controller = NNController::new(
+            Layer::Dense(DenseLayerConfig {
+                in_values: 10,
+                out_values: 10,
+                init_mode: DenseLayerInit::Random(),
+                weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            }),
+            LossFunc::Mse,
+        )
+        .unwrap();
         let inputs = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let expected = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let mut last_loss = 0.0;

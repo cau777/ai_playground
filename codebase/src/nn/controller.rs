@@ -113,11 +113,11 @@ impl NNController {
         Ok(loss_mean)
     }
 
-    pub fn test_one(&self, inputs: ArrayDynF, expected: ArrayDynF)-> Result<f32, LayerError> {
+    pub fn test_one(&self, inputs: ArrayDynF, expected: ArrayDynF)-> Result<f64, LayerError> {
         self.test_batch(stack![Axis(0), inputs], &stack![Axis(0), expected])
     }
 
-    pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF)-> Result<f32, LayerError> {
+    pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF)-> Result<f64, LayerError> {
         let config = BatchConfig {
             epoch: self.epoch
         };
@@ -132,10 +132,9 @@ impl NNController {
             batch_config: &config,
         })?;
 
-        let loss_mean = calc_loss(&self.loss, expected, &output).mean().unwrap();
-
+        let loss_mean = calc_loss(&self.loss, expected, &output).mapv(|o| o as f64).mean().unwrap();
         Ok(loss_mean)
-    }
+    } 
 
     pub fn export(&self) -> GenericStorage {
         self.storage.clone()

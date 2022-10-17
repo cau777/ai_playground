@@ -21,6 +21,11 @@ pub fn remove_from_storage2(storage: &mut GenericStorage, key: &str) -> [ArrayDy
     [data.remove(0), data.remove(0)]
 }
 
+pub fn remove_from_storage3(storage: &mut GenericStorage, key: &str) -> [ArrayDynF; 3] {
+    let mut data = storage.remove(key).unwrap();
+    [data.remove(0), data.remove(0), data.remove(0)]
+}
+
 pub fn get_mut_from_storage<'a>(storage: &'a mut GenericStorage, key: &str, index: usize) -> &'a mut ArrayDynF {
     let data = storage.get_mut(key).unwrap();
     data.get_mut(index).unwrap()

@@ -1,13 +1,14 @@
-use protobuf::{Message, MessageField};
-use crate::compiled_protos::common::{NdArrayData, ModelStorageData, PairData};
+use crate::compiled_protos::common::{ModelStorageData, NdArrayData, PairData};
 use crate::compiled_protos::model_storage::ArrayPairData;
-use crate::compiled_protos::task_result::TaskResultData;
+use crate::compiled_protos::task_result::{TaskResultData, TestTaskData};
 use crate::integration::array_pair::ArrayPair;
 use crate::nn::layers::nn_layers::GenericStorage;
 use crate::utils::ArrayDynF;
+use protobuf::{Message, MessageField};
 
 pub enum TaskResult {
-    Train(GenericStorage)
+    Train(GenericStorage),
+    Test(u32, u32, f64),
 }
 
 pub fn load_model_from_bytes(bytes: &[u8]) -> Option<GenericStorage> {
@@ -33,7 +34,9 @@ fn load_model(data: ModelStorageData) -> Option<GenericStorage> {
 
 pub fn load_pair_from_bytes(bytes: &[u8]) -> Option<ArrayPair> {
     let data = ArrayPairData::parse_from_bytes(bytes).ok()?;
-    let ArrayPairData { expected, inputs, .. } = data;
+    let ArrayPairData {
+        expected, inputs, ..
+    } = data;
 
     Some(ArrayPair {
         inputs: load_array(inputs.into_option()?)?,
@@ -47,9 +50,13 @@ fn load_array(data: NdArrayData) -> Option<ArrayDynF> {
 }
 
 pub fn load_task_result_from_bytes(bytes: &[u8]) -> Option<TaskResult> {
+    use crate::compiled_protos::task_result::task_result_data::Result::*;
+
     let data = TaskResultData::parse_from_bytes(bytes).ok()?;
-    Some(TaskResult::Train(load_model(data.delta.unwrap())?))
-//     TODO
+    match data.result.unwrap() {
+        Delta(delta) => Some(TaskResult::Train(load_model(delta)?)),
+        TestData(data) => Some(TaskResult::Test(data.version, data.batch, data.accuracy)),
+    }
 }
 
 pub fn save_model_bytes(model: &GenericStorage) -> protobuf::Result<Vec<u8>> {
@@ -91,7 +98,14 @@ pub fn save_task_result_bytes(result: TaskResult) -> protobuf::Result<Vec<u8>> {
 
     match result {
         Train(deltas) => {
-            data.delta = MessageField::some(save_model(&deltas));
+            data.set_delta(save_model(&deltas));
+        }
+        Test(version, batch,  accuracy) => {
+            let mut test_data = TestTaskData::new();
+            test_data.version = version;
+            test_data.accuracy = accuracy;
+            test_data.batch = batch;
+            data.set_test_data(test_data);
         }
     }
 
