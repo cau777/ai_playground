@@ -2,30 +2,33 @@ use std::collections::HashMap;
 use std::error;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::layers::convolution_layer::ConvolutionLayer;
-use crate::nn::layers::dense_layer::{DenseLayer, DenseLayerConfig};
+use crate::nn::layers::dense_layer::{DenseLayer, DenseConfig};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::activation::relu_layer::ReluLayer;
 use crate::nn::layers::activation::sigmoid_layer::SigmoidLayer;
 use crate::nn::layers::activation::tanh_layer::TanhLayer;
 use crate::nn::layers::debug_layer::{DebugLayer, DebugLayerConfig};
+use crate::nn::layers::expand_dim_layer::ExpandDimLayer;
 use crate::nn::layers::flatten_layer::FlattenLayer;
 use crate::nn::layers::max_pool_layer::MaxPoolLayer;
-use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialLayerConfig};
+use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 use crate::utils::ArrayDynF;
 use super::convolution_layer::ConvolutionConfig;
+use super::expand_dim_layer::ExpandDimConfig;
 use super::max_pool_layer::MaxPoolConfig;
 
 #[derive(Clone, Debug)]
 pub enum Layer {
-    Dense(DenseLayerConfig),
-    Sequential(SequentialLayerConfig),
+    Dense(DenseConfig),
+    Sequential(SequentialConfig),
     Tanh,
     Sigmoid,
     Relu,
     Debug(DebugLayerConfig),
     Convolution(ConvolutionConfig),
     MaxPool(MaxPoolConfig),
-    Flatten
+    Flatten,
+    ExpandDim(ExpandDimConfig)
 }
 
 pub struct InitData<'a> {
@@ -86,7 +89,8 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         Debug(c) => DebugLayer::init(data, c),
         Convolution(c) => ConvolutionLayer::init(data, c),
         MaxPool(c) => MaxPoolLayer::init(data, c),
-        Flatten => FlattenLayer::init(data, &())
+        Flatten => FlattenLayer::init(data, &()),
+        ExpandDim(c) => ExpandDimLayer::init(data, c),
     }
 }
 
@@ -101,7 +105,8 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         Debug(c) => DebugLayer::forward(data, c),
         Convolution(c) => ConvolutionLayer::forward(data, c),
         MaxPool(c) => MaxPoolLayer::forward(data, c),
-        Flatten => FlattenLayer::forward(data, &())
+        Flatten => FlattenLayer::forward(data, &()),
+        ExpandDim(c) => ExpandDimLayer::forward(data, c),
     }
 }
 
@@ -116,7 +121,8 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         Debug(c) => DebugLayer::backward(data, c),
         Convolution(c) => ConvolutionLayer::backward(data, c),
         MaxPool(c) => MaxPoolLayer::backward(data, c),
-        Flatten => FlattenLayer::backward(data, &())
+        Flatten => FlattenLayer::backward(data, &()),
+        ExpandDim(c) => ExpandDimLayer::backward(data, c),
     }
 }
 

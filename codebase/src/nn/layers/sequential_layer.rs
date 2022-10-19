@@ -1,14 +1,14 @@
 use crate::nn::layers::nn_layers::{backward_layer, BackwardData, EmptyLayerResult, forward_layer, ForwardData, init_layer, InitData, Layer, LayerOps, LayerResult, train_layer, TrainableLayerOps, TrainData};
 
 #[derive(Clone, Debug)]
-pub struct SequentialLayerConfig {
+pub struct SequentialConfig {
     pub layers: Vec<Layer>,
 }
 
 pub struct SequentialLayer {}
 
-impl LayerOps<SequentialLayerConfig> for SequentialLayer {
-    fn init(data: InitData, layer_config: &SequentialLayerConfig) -> EmptyLayerResult {
+impl LayerOps<SequentialConfig> for SequentialLayer {
+    fn init(data: InitData, layer_config: &SequentialConfig) -> EmptyLayerResult {
         for layer in layer_config.layers.iter() {
             init_layer(layer, InitData {
                 assigner: data.assigner,
@@ -18,7 +18,7 @@ impl LayerOps<SequentialLayerConfig> for SequentialLayer {
         Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &SequentialLayerConfig) -> LayerResult {
+    fn forward(data: ForwardData, layer_config: &SequentialConfig) -> LayerResult {
         let mut inputs = data.inputs;
         for layer in layer_config.layers.iter() {
             let data = ForwardData {
@@ -33,7 +33,7 @@ impl LayerOps<SequentialLayerConfig> for SequentialLayer {
         Ok(inputs)
     }
 
-    fn backward(data: BackwardData, layer_config: &SequentialLayerConfig) -> LayerResult {
+    fn backward(data: BackwardData, layer_config: &SequentialConfig) -> LayerResult {
         let mut grad = data.grad;
         for layer in layer_config.layers.iter().rev() {
             let data = BackwardData {
@@ -50,8 +50,8 @@ impl LayerOps<SequentialLayerConfig> for SequentialLayer {
     }
 }
 
-impl TrainableLayerOps<SequentialLayerConfig> for SequentialLayer {
-    fn train(data: TrainData, layer_config: &SequentialLayerConfig) -> EmptyLayerResult {
+impl TrainableLayerOps<SequentialConfig> for SequentialLayer {
+    fn train(data: TrainData, layer_config: &SequentialConfig) -> EmptyLayerResult {
         for layer in layer_config.layers.iter() {
             let train_data = TrainData { storage: data.storage, batch_config: data.batch_config, assigner: data.assigner, backward_cache: data.backward_cache };
             train_layer(layer, train_data)?;
@@ -68,7 +68,7 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::debug_layer::{DebugLayerConfig};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps};
-    use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialLayerConfig};
+    use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 
     use lazy_static::lazy_static;
 
@@ -103,7 +103,7 @@ mod tests {
 
         INIT_COUNTER.lock().unwrap().clear();
 
-        let config = SequentialLayerConfig {
+        let config = SequentialConfig {
             layers: debug_vec(Some(|name, _, _| INIT_COUNTER.lock().unwrap().push(name.to_owned())), None, None)
         };
 
@@ -123,7 +123,7 @@ mod tests {
 
         FORWARD_COUNTER.lock().unwrap().clear();
 
-        let config = SequentialLayerConfig {
+        let config = SequentialConfig {
             layers: debug_vec(None, Some(|name, _, _| FORWARD_COUNTER.lock().unwrap().push(name.to_owned())), None)
         };
 
@@ -145,7 +145,7 @@ mod tests {
 
         BACKWARD_COUNTER.lock().unwrap().clear();
 
-        let config = SequentialLayerConfig {
+        let config = SequentialConfig {
             layers: debug_vec(None, None, Some(|name, _, _| BACKWARD_COUNTER.lock().unwrap().push(name.to_owned())))
         };
 

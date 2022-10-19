@@ -8,7 +8,7 @@ use std::ops::AddAssign;
 use std::sync::RwLock;
 
 pub type CurrentModelState = State<RwLock<CurrentModel>>;
-const SAVE_AFTER: u32 = 10;
+const SAVE_AFTER: u32 = 50; //TODO: test after
 
 pub struct CurrentModel {
     model: GenericStorage,

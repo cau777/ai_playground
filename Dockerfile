@@ -35,6 +35,9 @@ WORKDIR /app/build
 
 ENV ROCKET_ADDRESS=0.0.0.0
 ENV MODEL_FILE_PATH="/app/files"
+ENV AZURE_FS_URL="https://aiplaygroundmodels.file.core.windows.net"
+ENV AZURE_FS_QUERY_SAS="sv=2021-06-08&ss=f&srt=o&sp=rl&se=2030-10-11T07:34:07Z&st=2022-10-10T23:34:07Z&sip=0.0.0.0-255.255.255.255&spr=https&sig=WqIPvmNfe52nD3KomqyRh9c40ftJHdCSIEMLCtTRxIM%3D"
+ENV IS_LOCAL_SERVER="TRUE"
 
 EXPOSE 8000
 RUN mkdir /app/files

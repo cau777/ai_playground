@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use super::model_metadata::ModelMetadata;
-use super::{model_source::ModelSource, path_utils};
+use super::url_creator::UrlCreator;
+use super::model_source::ModelSource;
 use rand::rngs::StdRng;
 use rand::{self, Rng, SeedableRng};
 use rocket::serde::{Deserialize, Serialize};
@@ -45,11 +46,13 @@ impl VersionToTest {
             self.assigned.push((popped, Instant::now()));
             return Some(popped);
         }
+        // If there's no batch in queue, search for expired tasks
         let expired = self
             .assigned
-            .iter()
-            .position(|(_, instant)| instant.elapsed().as_secs() > 60 * 3)?;
-        Some(self.assigned.swap_remove(expired).0)
+            .iter_mut()
+            .find(|(_, instant)| instant.elapsed().as_secs() > 60 * 3)?;
+        expired.1 = Instant::now();
+        Some(expired.0)
     }
 
     fn complete_batch(&mut self, batch: u32, result: f64) -> Result<(), ()> {
@@ -75,7 +78,8 @@ impl VersionToTest {
 pub struct TaskManager {
     testing: HashMap<u32, VersionToTest>,
     rng: StdRng,
-    initialized: bool
+    initialized: bool,
+    url_creator: Option<UrlCreator>
 }
 
 impl TaskManager {
@@ -83,13 +87,15 @@ impl TaskManager {
         Self {
             testing: HashMap::new(),
             rng: StdRng::seed_from_u64(777),
-            initialized: false
+            initialized: false,
+            url_creator: None
         }
     }
 
     pub fn get_task(&mut self, source: &mut ModelSource) -> Task {
         self.init(source);
         let name = source.name();
+        let url_creator = self.url_creator.as_ref().unwrap();
 
         for (version, batches) in self.testing.iter_mut() {
             let task = batches.get();
@@ -97,9 +103,9 @@ impl TaskManager {
                 let batch = task.unwrap();
                 return Task {
                     task_name: TEST_TASK,
-                    model_config: path_utils::get_model_config_url(name),
-                    model_data: path_utils::get_model_url(name, *version),
-                    data_path: path_utils::get_test_batch_url(name, batch),
+                    model_config: url_creator.gen_model_config(),
+                    model_data: url_creator.gen_model_data(*version),
+                    data_path: url_creator.get_test_batch(batch),
                     version: Some(*version),
                     batch: Some(batch)
                 };
@@ -108,12 +114,9 @@ impl TaskManager {
 
         Task {
             task_name: TRAIN_TASK,
-            model_config: path_utils::get_model_config_url(name),
-            model_data: path_utils::get_model_url(name, source.latest()),
-            data_path: path_utils::get_train_batch_url(
-                name,
-                self.rng.gen_range(0..source.train_count()),
-            ),
+            model_config: url_creator.gen_model_config(),
+            model_data: url_creator.gen_model_data(source.latest()),
+            data_path: url_creator.get_train_batch(self.rng.gen_range(0..source.train_count())),
             version: None,
             batch: None
         }
@@ -128,6 +131,8 @@ impl TaskManager {
     pub fn complete_test_task(&mut self, source: &mut ModelSource, version: u32,
                               batch: u32, accuracy: f64) {
         self.init(source);
+        let url_creator = self.url_creator.as_ref().unwrap();
+        
         let testing = self.testing.get_mut(&version).unwrap();
         testing.complete_batch(batch, accuracy).unwrap();
         let result = testing.get_result();
@@ -145,6 +150,7 @@ impl TaskManager {
             for to_test in source.versions_to_test() {
                 self.add_to_test(to_test, source.test_count());
             }
+            self.url_creator = Some(UrlCreator::new(source.name()))
         }
         self.initialized = true;
     }

@@ -108,7 +108,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
             for e in iter_elements(&element.children) {
                 layers.push(load_layer(e)?)
             }
-            Ok(Layer::Sequential(sequential_layer::SequentialLayerConfig {
+            Ok(Layer::Sequential(sequential_layer::SequentialConfig {
                 layers: layers,
             }))
         }
@@ -121,7 +121,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 .find(|o| o.name == "BiasesLr")
                 .ok_or_else(|| XmlError::ElementNotFound("BiasesLr"))?;
 
-            Ok(Layer::Dense(dense_layer::DenseLayerConfig {
+            Ok(Layer::Dense(dense_layer::DenseConfig {
                 in_values: get_usize_attr(element, "in_values")?,
                 out_values: get_usize_attr(element, "out_values")?,
                 init_mode: dense_layer::DenseLayerInit::Random(),
@@ -161,6 +161,11 @@ fn load_layer(element: &Element) -> Result<Layer> {
         }
         &"Flatten" => {
             Ok(Layer::Flatten)
+        }
+        &"ExpandDim" => {
+            Ok(Layer::ExpandDim(expand_dim_layer::ExpandDimConfig {
+                dim: get_usize_attr(element, "dim")?
+            }))
         }
         _ => Err(XmlError::UnexpectedTag(element.name.clone())),
     }

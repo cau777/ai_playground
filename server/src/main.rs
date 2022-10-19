@@ -119,7 +119,7 @@ fn clear_all_options() -> rocket::response::status::NoContent {
 #[launch]
 fn rocket() -> Rocket<Build> {
     let mut sources = ByModule::new(LazyWithoutArgs::new(|_| {
-        ModelSource::new("digits", 469, 2).unwrap() // TODO: 79
+        ModelSource::new("digits", 469, 79).unwrap() // TODO: 79
     }));
     let model = CurrentModel::new(sources.digits.v_mut());
     let assigners = ByModule::new(TaskManager::new());

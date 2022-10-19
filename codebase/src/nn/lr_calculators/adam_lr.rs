@@ -1,7 +1,6 @@
 use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
 use crate::utils::{ArrayDynF, lerp_arrays, Array0F};
-use crate::nn::generic_storage::remove_from_storage3;
 
 #[derive(Clone, Debug)]
 pub struct AdamConfig {
@@ -52,6 +51,6 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
         
         storage.insert(key, vec![moment1, moment2, Array0F::from_elem((), epoch + 1.0).into_dyn()]);
 
-        Ok(config.alpha * moment1b / (&moment2b * &moment2b + f32::EPSILON))
+        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + f32::EPSILON))
     }
 }

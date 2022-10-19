@@ -1,66 +1,37 @@
-import init, {process_train, process_test} from "wasm";
-import axios from "axios";
-import {logger, ShareDirectoryClient, ShareFileClient} from "@azure/storage-file-share";
-import {TempCache} from "./utils/TempCache";
+import init, {process_train, process_test, e_load, e_train} from "wasm";
+import {assign, provide_data, submit} from "./utils/server_interface";
 
-type Task = {
-    model_config: string,
-    model_data: string,
-    data_path: string,
-} & ({
-    task_name: "train",
-} | {
-    task_name: "test",
-    version: number,
-    batch: number,
-})
-
-//const ServerUrl = "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
-//let url = "https://aiplaygroundmodels.file.core.windows.net/testy?sv=2021-06-08&ss=f&srt=o&sp=rl&se=2030-10-11T07:34:07Z&st=2022-10-10T23:34:07Z&sip=0.0.0.0-255.255.255.255&spr=https&sig=WqIPvmNfe52nD3KomqyRh9c40ftJHdCSIEMLCtTRxIM%3D";
-
-let test_mode = true;
-let ServerUrl = test_mode ? "http://localhost:8000" : "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
-
-async function download(path: string) {
-    path = path.startsWith("/") ? path.substring(1) : path;
-    if (test_mode && path.startsWith("models")) {
-        let response = await axios.get<ArrayBuffer>(path.replace("models", "http://localhost:9900"), {responseType: "arraybuffer"});
-        return new Uint8Array(response.data);
-    } else {
-        let client = mount_client(path);
-        return client.download().then(o => o.blobBody).then(o => o!.arrayBuffer()).then(o => new Uint8Array(o));
-    }
+const mod = await init();
+const mem = mod.memory;
+if (!(mem instanceof WebAssembly.Memory)) {
+    console.log("mod", mod);
+    throw new Error("Maybe exports have changed? Try renaming __wbindgen_export_0 to memory");
 }
-
-function mount_client(path: string) {
-    path = path.startsWith("/") ? path.substring(1) : path;
-
-    let url = "https://aiplaygroundmodels.file.core.windows.net/" + path +
-        "?sv=2021-06-08&ss=f&srt=o&sp=rl&se=2030-10-11T07:34:07Z&st=2022-10-10T23:34:07Z&sip=0.0.0.0-255.255.255.255&spr=https&sig=WqIPvmNfe52nD3KomqyRh9c40ftJHdCSIEMLCtTRxIM%3D";
-
-    console.log(url);
-    return new ShareFileClient(url);
-}
-
-let cache = new TempCache<Promise<Uint8Array>>();
 
 function App() {
     async function btn() {
-        await init();
+        let model_data = await provide_data("local|digits/0.model");
+        let model_config = await provide_data("local|digits/model.xml");
+        
+        e_load(model_data, model_config);
+        for (let i = 0; i < 100; i++) {
+            let data = await provide_data(`azure-fs|https://aiplaygroundmodels.file.core.windows.net/static/digits/train/train.${i}.dat?sv=2021-06-08&ss=f&srt=o&sp=rl&se=2030-10-11T07:34:07Z&st=2022-10-10T23:34:07Z&sip=0.0.0.0-255.255.255.255&spr=https&sig=WqIPvmNfe52nD3KomqyRh9c40ftJHdCSIEMLCtTRxIM%3D`);
+            e_train(data);
+        }
     }
 
-    async function process1() {
+    async function process(count: number) {
         await init();
         let list = [];
 
-        for (let i = 0; i < 100; i++) {
-            let taskResponse = await axios.post<Task>(ServerUrl + "/assign", {});
+        for (let i = 0; i < count; i++) {
+            let taskResponse = await assign();
             let task = taskResponse.data;
             list.push(task);
 
-            let data = await cache.get_or(task.data_path, () => download(task.data_path));
-            let model_config = await cache.get_or(task.model_config, () => download(task.model_config));
-            let model_data = await cache.get_or(task.model_data, () => download(task.model_data));
+            let data = await provide_data(task.data_path);
+            let model_config = await provide_data(task.model_config);
+            let model_data = await provide_data(task.model_data);
 
             let result;
             switch (task.task_name) {
@@ -74,14 +45,7 @@ function App() {
                 }
             }
             
-            await axios.request({
-                method: "post",
-                data: result,
-                url: ServerUrl + "/submit",
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-            })
+            await submit(result);
         }
 
         console.table(list);
@@ -91,7 +55,13 @@ function App() {
         <div>
             Vite
             <button onClick={btn}>Test</button>
-            <button onClick={process1}>Process1</button>
+            <br/>
+            <button onClick={() => process(1)}>Process 1</button>
+            <br/>
+            <button onClick={() => process(100)}>Process 100</button>
+            <br/>
+            <button onClick={() => process(500)}>Process 500</button>
+            <br/>
         </div>
     )
 }

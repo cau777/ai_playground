@@ -26,7 +26,6 @@ impl LayerOps<()> for ReluLayer {
         let key = assigner.get_key(gen_name());
 
         let [cache] = remove_from_storage1(forward_cache, &key);
-        println!("g={:?} c={:?}", grad.shape(), cache.shape());
         Ok(grad * cache)
     }
 }

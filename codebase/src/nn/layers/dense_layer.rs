@@ -15,7 +15,7 @@ use std::iter::zip;
 use std::ops::AddAssign;
 
 #[derive(Clone, Debug)]
-pub struct DenseLayerConfig {
+pub struct DenseConfig {
     pub out_values: usize,
     pub in_values: usize,
     pub init_mode: DenseLayerInit,
@@ -31,12 +31,12 @@ pub enum DenseLayerInit {
 
 pub struct DenseLayer {}
 
-fn gen_name(config: &DenseLayerConfig) -> String {
+fn gen_name(config: &DenseConfig) -> String {
     format!("dense_{}_{}", config.in_values, config.out_values)
 }
 
-impl LayerOps<DenseLayerConfig> for DenseLayer {
-    fn init(data: InitData, layer_config: &DenseLayerConfig) -> EmptyLayerResult {
+impl LayerOps<DenseConfig> for DenseLayer {
+    fn init(data: InitData, layer_config: &DenseConfig) -> EmptyLayerResult {
         let InitData { assigner, storage } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
@@ -66,7 +66,7 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
         Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &DenseLayerConfig) -> LayerResult {
+    fn forward(data: ForwardData, layer_config: &DenseConfig) -> LayerResult {
         let ForwardData {
             assigner,
             storage,
@@ -96,7 +96,7 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
         Ok(result.into_dyn())
     }
 
-    fn backward(data: BackwardData, layer_config: &DenseLayerConfig) -> LayerResult {
+    fn backward(data: BackwardData, layer_config: &DenseConfig) -> LayerResult {
         let BackwardData {
             assigner,
             storage,
@@ -144,8 +144,8 @@ impl LayerOps<DenseLayerConfig> for DenseLayer {
     }
 }
 
-impl TrainableLayerOps<DenseLayerConfig> for DenseLayer {
-    fn train(data: TrainData, layer_config: &DenseLayerConfig) -> EmptyLayerResult {
+impl TrainableLayerOps<DenseConfig> for DenseLayer {
+    fn train(data: TrainData, layer_config: &DenseConfig) -> EmptyLayerResult {
         let TrainData {
             backward_cache,
             assigner,
@@ -188,7 +188,7 @@ mod tests {
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::controller::NNController;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::dense_layer::{DenseLayer, DenseLayerConfig, DenseLayerInit};
+    use crate::nn::layers::dense_layer::{DenseLayer, DenseConfig, DenseLayerInit};
     use crate::nn::layers::nn_layers::{
         BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps,
     };
@@ -253,7 +253,7 @@ mod tests {
             [-1.2195, -0.9185, -0.54, -1.2475, -0.813]
         ];
         let expected_biases_grad: Array1F = array![-2.08, -0.4, -1.955];
-        let config = DenseLayerConfig {
+        let config = DenseConfig {
             in_values: 5,
             out_values: 3,
             weights_lr_calc: LrCalc::Constant(ConstantLrConfig { lr: 0.05 }),
@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn test_train() {
         let mut controller = NNController::new(
-            Layer::Dense(DenseLayerConfig {
+            Layer::Dense(DenseConfig {
                 in_values: 10,
                 out_values: 10,
                 init_mode: DenseLayerInit::Random(),
@@ -327,8 +327,8 @@ mod tests {
         assert!(last_loss < first_loss.unwrap());
     }
 
-    fn get_config(init_mode: DenseLayerInit) -> DenseLayerConfig {
-        DenseLayerConfig {
+    fn get_config(init_mode: DenseLayerInit) -> DenseConfig {
+        DenseConfig {
             init_mode,
             in_values: 2,
             out_values: 3,
