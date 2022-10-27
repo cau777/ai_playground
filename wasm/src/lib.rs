@@ -14,12 +14,12 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+    #[wasm_bindgen(js_namespace = ["window", "bindings"])]
+    fn insertLog(message: String, level: u32);
 }
 
-fn console_log(message: String) {
-    log(&message);
+fn log(message: String, level: u32) {
+    insertLog(message, level)
 }
 
 trait LogUnwrap<T> {
@@ -30,95 +30,11 @@ impl<T, TErr: std::fmt::Display + std::fmt::Debug> LogUnwrap<T> for Result<T, TE
     fn unwrap_log(self) -> T {
         if self.is_err() {
             let e = &self.as_ref().err().unwrap();
-            console_log(format!("{}: {:?}", e, e));
+            log(format!("{}: {:?}", e, e), 2);
         }
         self.unwrap()
     }
 }
-
-/*
-
-#[wasm_bindgen]
-pub fn process_train(model_data: Param, model_config: Param, train_data: Param) -> Vec<u8> {
-    let model_bytes = model_data.unwrap();
-    let model_bytes = decompress_default(&model_bytes).unwrap_log();
-    let initial = load_model_from_bytes(&model_bytes).unwrap();
-
-    let model_config = model_config.unwrap();
-    let model_config = load_model_xml(&model_config).unwrap_log();
-
-    let mut controller = NNController::load(
-        model_config.main_layer,
-        model_config.loss_func,
-        initial.clone(),
-    )
-    .unwrap_log();
-
-    let inputs = train_data.unwrap();
-    let inputs = decompress_default(&inputs).unwrap_log();
-    let inputs = load_pair_from_bytes(&inputs).unwrap();
-    /*
-    for _ in 0..10 {
-        for (key, value) in controller.export() {
-            for (index, value) in value.iter().enumerate() {
-                console_log(format!("{}->{} {:?}", key, index, value.iter().take(15).collect::<Vec<_>>()));
-            }
-        }
-
-        let train_result = controller
-            .train_batch(inputs.inputs.clone(), &inputs.expected)
-            .unwrap_log();
-        console_log(format!("Result = {}", train_result));
-        console_log("-----------------------".to_owned());
-    }
-    */
-    let train_result = controller
-        .train_batch(inputs.inputs.clone(), &inputs.expected)
-        .unwrap_log();
-    console_log(format!("Result = {}", train_result));
-
-    let mut result = controller.export();
-    export_deltas(&initial, &mut result);
-
-    let result = save_task_result_bytes(TaskResult::Train(result)).unwrap_log();
-    compress_default(&result).unwrap_log()
-}
-
-#[wasm_bindgen]
-pub fn process_test(
-    model_data: Param,
-    model_config: Param,
-    test_data: Param,
-    version: u32,
-    batch: u32,
-) -> Vec<u8> {
-    let model_bytes = model_data.unwrap();
-    let model_bytes = decompress_default(&model_bytes).unwrap_log();
-    let initial = load_model_from_bytes(&model_bytes).unwrap();
-
-    let model_config = model_config.unwrap();
-    let model_config = load_model_xml(&model_config).unwrap_log();
-
-    let controller = NNController::load(
-        model_config.main_layer,
-        model_config.loss_func,
-        initial.clone(),
-    )
-    .unwrap_log();
-
-    let inputs = test_data.unwrap();
-    let inputs = decompress_default(&inputs).unwrap_log();
-    let inputs = load_pair_from_bytes(&inputs).unwrap();
-
-    let result = 100.0
-        - controller
-            .test_batch(inputs.inputs, &inputs.expected)
-            .unwrap_log();
-    let result = save_task_result_bytes(TaskResult::Test(version, batch, result as f64)).unwrap();
-    compress_default(&result).unwrap_log()
-}
-
-*/
 
 struct SharedData {
     initial: GenericStorage,
@@ -212,7 +128,7 @@ pub fn train(train_data: &[u8]) {
     let train_result = controller
         .train_batch(inputs.inputs.clone(), &inputs.expected)
         .unwrap_log();
-    console_log(format!("Result = {}", scale_error(train_result)));
+    log(format!("Train result = {}", scale_error(train_result)), 0);
 
     let mut result = controller.export();
     export_deltas(&initial, &mut result);
@@ -234,7 +150,9 @@ pub fn test(test_data: &[u8]) -> f64 {
     let result = controller
         .test_batch(inputs.inputs, &inputs.expected)
         .unwrap();
-    scale_error(result)
+    let result = scale_error(result);
+    log(format!("Test result = {}", result), 0);
+    result
 }
 
 fn scale_error(error: f64) -> f64 {
@@ -244,16 +162,19 @@ fn scale_error(error: f64) -> f64 {
 #[wasm_bindgen]
 pub fn should_push() -> bool {
     let shared = SHARED_DATA.read().unwrap_log();
-    console_log(format!(
-        "Delta = {} Version = {}",
-        shared.accum_mean_delta, shared.accum_versions
-    ));
-    shared.accum_mean_delta > 0.01 || shared.accum_versions > 50
+    let result = shared.accum_mean_delta > 0.01 || shared.accum_versions > 50;
+    
+    log(format!(
+        "Should push query: delta = {}, versions = {} => {}",
+        shared.accum_mean_delta, shared.accum_versions, result
+    ), 0);
+    
+    result
 }
 
 #[wasm_bindgen]
 pub fn export_bytes() -> Vec<u8> {
     let mut shared = SHARED_DATA.write().unwrap_log();
-    console_log(format!("Exporting"));
+    log("Exporting".to_owned(), 0);
     shared.export().unwrap_log()
 }

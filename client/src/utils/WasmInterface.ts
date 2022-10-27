@@ -3,6 +3,13 @@ import init from "wasm";
 import {provideData, submitTest} from "./server_interface";
 import {TrainSocket} from "./TrainSocket";
 import * as serverMethods from "./server_interface";
+import {insertLog} from "./logging";
+
+// Workaround to access js functions from rust
+// @ts-ignore
+window.bindings = {
+    insertLog
+}
 
 enum Mode {
     None, Train, Test
@@ -44,7 +51,7 @@ export class WasmInterface {
         await this.trainSocket.pushIfNecessary();
         this.activeJobs--;
     }
-    
+
     private async clearLastMode() {
         // Wait for any active job to finish
         await new Promise<void>(res => {
@@ -62,20 +69,20 @@ export class WasmInterface {
                 await this.trainSocket.close();
                 break
             }
-        default:
-            break
+            default:
+                break
         }
     }
-    
+
     private async switchTestMode(modelUrl: string) {
         if (this.mode === Mode.Test) return;
         await this.clearLastMode();
         this.mode = Mode.Test;
-        
+
         let initialData = await provideData(modelUrl);
         methods.load_initial(initialData, this.config);
     }
-    
+
     private async switchTrainMode() {
         if (this.mode === Mode.Train) return;
         await this.clearLastMode();
@@ -83,7 +90,7 @@ export class WasmInterface {
         let initialData = await serverMethods.getMostRecent();
         methods.load_initial(initialData, this.config);
     }
-    
+
     private printInfo() {
         console.log("Started task", this.count++, "of type", Mode[this.mode]);
     }

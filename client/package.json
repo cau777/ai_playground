@@ -13,11 +13,13 @@
   "dependencies": {
     "@azure/storage-file-share": "^12.11.0",
     "axios": "^1.1.2",
+    "dateformat": "^5.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "wasm": "file:pkg"
   },
   "devDependencies": {
+    "@types/dateformat": "^5.0.0",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^2.1.0",

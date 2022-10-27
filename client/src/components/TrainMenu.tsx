@@ -3,6 +3,7 @@ import {Slider} from "./Slider";
 import {BtnPrimary} from "./BtnPrimary";
 import {assign} from "../utils/server_interface";
 import {WasmInterface} from "../utils/WasmInterface";
+import {LogsView} from "./LogsView";
 
 let wasmInterface = await WasmInterface.create();
 
@@ -49,6 +50,7 @@ export const TrainMenu: FC = () => {
         <div className={"max-w-3xl p-4"}>
             Training!!!
             <Slider label={"Workers"} disabled={busy} min={1} max={cores} onChange={o => workers.current = o}></Slider>
+            <LogsView></LogsView>
             <div>
                 <BtnPrimary label={"Start"} disabled={busy} onClick={run}></BtnPrimary>
                 <BtnPrimary label={"Stop"} disabled={!busy} onClick={stop}></BtnPrimary>
