@@ -117,6 +117,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let mut weights_error = Array2F::default((layer_config.out_values, layer_config.in_values));
         let batches = inputs.shape()[0];
 
+        let batch_factor = 1.0 / batches as f32;
         zip(inputs.outer_iter(), grad.outer_iter())
             .map(|(i, g)| {
                 let gt = g.insert_axis(Axis(1));
@@ -124,12 +125,11 @@ impl LayerOps<DenseConfig> for DenseLayer {
                 let result = gt.dot(&it);
                 result
             })
-            .for_each(|o| weights_error += &o);
+        .for_each(|o| weights_error += &(o * batch_factor));
         
         let biases_grad = grad.mean_axis(Axis(0)).unwrap().into_dyn();
-
-        let factor = 1.0 / batches as f32;
-        let weights_grad = (weights_error * factor).into_dyn();
+        
+        let weights_grad = weights_error.into_dyn();
         backward_cache.insert(key, vec![weights_grad, biases_grad]);
 
         let batch_size = inputs.shape()[0];
@@ -156,6 +156,8 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights_grad, biases_grad] = remove_from_storage2(backward_cache, &key);
+        // println!("weights_grad = {:?}", weights_grad.iter().take(10).collect::<Vec<_>>());
+        // println!("biases_grad = {:?}", biases_grad.iter().take(10).collect::<Vec<_>>());
 
         let weights_grad = apply_lr_calc(
             &layer_config.weights_lr_calc,
@@ -175,9 +177,13 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 assigner,
             },
         )?;
+        // 
+        // println!("lr calc");
+        // println!("weights_grad = {:?}", weights_grad.iter().take(10).collect::<Vec<_>>());
+        // println!("biases_grad = {:?}", biases_grad.iter().take(10).collect::<Vec<_>>());
 
         get_mut_from_storage(storage, &key, 0).add_assign(&weights_grad);
-        get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
+        //get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
 
         Ok(())
     }
@@ -301,7 +307,7 @@ mod tests {
     fn test_train() {
         let mut controller = NNController::new(
             Layer::Dense(DenseConfig {
-                in_values: 10,
+                in_values: 12,
                 out_values: 10,
                 init_mode: DenseLayerInit::Random(),
                 weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
@@ -310,7 +316,7 @@ mod tests {
             LossFunc::Mse,
         )
         .unwrap();
-        let inputs = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
+        let inputs = Array2F::random((2, 12), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let expected = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let mut last_loss = 0.0;
         let mut first_loss = None;

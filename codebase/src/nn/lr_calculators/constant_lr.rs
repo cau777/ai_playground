@@ -10,13 +10,14 @@ pub struct ConstantLrConfig {
 impl Default for ConstantLrConfig {
     fn default() -> Self {
         Self {
-            lr: 0.05
+            lr: 0.005
         }
     }
 }
 
 pub struct ConstantLr {}
 
+// TODO: exploding numbers in first epochs for giant networks
 impl LrCalcOps<ConstantLrConfig> for ConstantLr {
     fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> LayerResult {
         Ok(target * config.lr)
