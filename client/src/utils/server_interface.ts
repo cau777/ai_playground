@@ -32,7 +32,7 @@ export type Task = {
     type: "Train",
     url: string,
 } | {
-    type: "Test",
+    type: "Validate",
     version: number,
     batch: number,
     model_url: string,
@@ -40,7 +40,7 @@ export type Task = {
 };
 
 export function assign() {
-    return axios.get<Task>(ServerUrl + "/assign");
+    return axios.get<Task>(ServerUrl + "/assign").then(o => o.data);
 }
 
 export function submitTest(version: number, batch: number, accuracy: number) {

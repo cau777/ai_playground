@@ -1,8 +1,7 @@
 use crate::data::model_metadata::ModelMetadata;
 use crate::data::path_utils;
-use codebase::integration::compression::{compress_default, decompress_default};
 use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
-use codebase::integration::proto_loading::save_model_bytes;
+use codebase::integration::serialization::serialize_storage;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
 use std::error::Error;
@@ -101,7 +100,7 @@ impl ModelSource {
             .open(path_utils::get_model_version_path(self.name, version))?;
         let mut result = Vec::new();
         file.read_to_end(&mut result)?;
-        decompress_default(&result).map_err(invalid_data_err)
+        Ok(result)
     }
 
     pub fn clear_all(&mut self) -> io::Result<()> {
@@ -140,8 +139,7 @@ impl ModelSource {
             .write(true)
             .create_new(true)
             .open(path_utils::get_model_version_path(self.name, version))?;
-        let bytes = save_model_bytes(data).map_err(invalid_data_err)?;
-        let bytes = compress_default(&bytes)?;
+        let bytes = serialize_storage(data);
         file.write_all(&bytes)?;
         self.most_recent = Some(self.most_recent.unwrap_or(0).max(version));
         Ok(())

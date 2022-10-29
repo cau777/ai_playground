@@ -1,9 +1,7 @@
-use codebase::integration::{compression::compress_default, proto_loading::save_model_bytes};
 use serde::{Deserialize, Serialize};
 use warp::{
-    hyper::StatusCode,
     reply::{self},
-    Reply,
+    Reply
 };
 
 use crate::{utils::EndpointResult, CurrentModelDep, ModelsSourcesDep, TaskManagerDep};

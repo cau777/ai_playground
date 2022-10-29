@@ -1,20 +1,17 @@
 extern crate core;
 
-use codebase::integration::compression::{compress_default, decompress_default};
+use codebase::integration::joining::{join_as_bytes, split_bytes_3};
 use codebase::integration::layers_loading::load_model_xml;
 use codebase::integration::model_deltas::{export_deltas, import_deltas};
-use codebase::integration::proto_loading::{
-    load_model_from_bytes, load_pair_from_bytes, save_model_bytes,
-};
+use codebase::integration::serialization::{deserialize_pairs, deserialize_storage, serialize_storage};
 use codebase::nn::controller::NNController;
-use codebase::nn::layers::nn_layers::{GenericStorage, Layer, LayerError};
-use codebase::nn::loss::loss_func::LossFunc;
+use codebase::nn::layers::nn_layers::GenericStorage;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "bindings"])]
+    #[wasm_bindgen(js_namespace = ["bindings"])]
     fn insertLog(message: String, level: u32);
 }
 
@@ -36,33 +33,25 @@ impl<T, TErr: std::fmt::Display + std::fmt::Debug> LogUnwrap<T> for Result<T, TE
     }
 }
 
-struct SharedData {
+struct SharedStorage {
     initial: GenericStorage,
     storage: GenericStorage,
-    layer: Layer,
-    loss: LossFunc,
     accum_mean_delta: f64,
     accum_versions: u32,
 }
 
-impl SharedData {
+impl SharedStorage {
     fn empty() -> Self {
-        Self::new(Layer::Relu, LossFunc::Mse, GenericStorage::new())
+        Self::new(GenericStorage::new())
     }
 
-    fn new(layer: Layer, loss: LossFunc, storage: GenericStorage) -> Self {
+    fn new(storage: GenericStorage) -> Self {
         Self {
             initial: storage.clone(),
             storage,
-            layer,
-            loss,
             accum_mean_delta: 0.0,
             accum_versions: 0,
         }
-    }
-
-    fn build(&self) -> Result<NNController, LayerError> {
-        NNController::load(self.layer.clone(), self.loss.clone(), self.storage.clone())
     }
 
     fn import(&mut self, deltas: GenericStorage, internal_input: bool) {
@@ -83,72 +72,92 @@ impl SharedData {
     fn export(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let mut current = self.storage.clone();
         export_deltas(&self.initial, &mut current);
-        let bytes = save_model_bytes(&current)?;
-        let compressed = compress_default(&bytes)?;
+        let bytes = serialize_storage(&current);
+
         self.accum_mean_delta = 0.0;
         self.accum_versions = 0;
         self.storage.clone_into(&mut self.initial);
-        Ok(compressed)
+
+        Ok(bytes)
     }
 }
 
-static SHARED_DATA: once_cell::sync::Lazy<Arc<RwLock<SharedData>>> =
-    once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(SharedData::empty())));
+static SHARED_STORAGE: once_cell::sync::Lazy<Arc<RwLock<SharedStorage>>> =
+    once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(SharedStorage::empty())));
+
+static SHARED_CONFIG: once_cell::sync::Lazy<Arc<RwLock<Vec<u8>>>> =
+    once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(Vec::new())));
 
 #[wasm_bindgen]
-pub fn load_initial(model_data: &[u8], model_config: &[u8]) {
-    let model_data = decompress_default(&model_data).unwrap_log();
-    let storage = load_model_from_bytes(&model_data).unwrap();
-    let model_config = load_model_xml(&model_config).unwrap_log();
-    *SHARED_DATA.write().unwrap() =
-        SharedData::new(model_config.main_layer, model_config.loss_func, storage);
+pub fn load_config(config: &[u8]) {
+    let mut shared = SHARED_CONFIG.write().unwrap();
+    config.clone_into(&mut shared);
 }
 
 #[wasm_bindgen]
-pub fn load_deltas(deltas: &[u8]) {
-    let mut shared = SHARED_DATA.write().unwrap_log();
+pub fn load_initial(model_data: &[u8]) {
+    let storage = deserialize_storage(model_data).unwrap_log();
+    *SHARED_STORAGE.write().unwrap() = SharedStorage::new(storage);
+}
 
-    let deltas = decompress_default(deltas).unwrap_log();
-    let deltas = load_model_from_bytes(&deltas).unwrap();
+#[wasm_bindgen]
+pub fn load_server_deltas(deltas: &[u8]) {
+    let deltas = deserialize_storage(deltas).unwrap_log();
+    let mut shared = SHARED_STORAGE.write().unwrap_log();
     shared.import(deltas, false)
 }
 
 #[wasm_bindgen]
-pub fn train(train_data: &[u8]) {
-    let inputs = decompress_default(&train_data).unwrap_log();
-    let inputs = load_pair_from_bytes(&inputs).unwrap();
+pub fn load_train_deltas(deltas: &[u8]) {
+    let deltas = deserialize_storage(deltas).unwrap_log();
+    let mut shared = SHARED_STORAGE.write().unwrap_log();
+    shared.import(deltas, true);
+}
 
-    let mut controller = {
-        let shared = SHARED_DATA.read().unwrap_log();
-        shared.build().unwrap_log()
-    };
+#[wasm_bindgen]
+pub fn prepare_train_job(pairs: &[u8]) -> Vec<u8> {
+    let shared = SHARED_STORAGE.read().unwrap();
+    let config = &SHARED_CONFIG.read().unwrap();
+    let storage = &serialize_storage(&shared.storage);
+    join_as_bytes(&[config, storage, pairs])
+}
 
+#[wasm_bindgen]
+pub fn prepare_validate_job(pairs: &[u8], storage: &[u8]) -> Vec<u8> {
+    let config = &SHARED_CONFIG.read().unwrap();
+    join_as_bytes(&[config, storage, pairs])
+}
+
+#[wasm_bindgen]
+pub fn train_job(data: &[u8]) -> Vec<u8> {
+    let [config, storage, pairs] = split_bytes_3(data).unwrap();
+    
+    let config = load_model_xml(&config).unwrap_log();
+    let storage = deserialize_storage(&storage).unwrap_log();
+    let mut controller = NNController::load(config.main_layer, config.loss_func, storage).unwrap();
+    let pairs = deserialize_pairs(&pairs).unwrap();
     let initial = controller.export();
-
     let train_result = controller
-        .train_batch(inputs.inputs.clone(), &inputs.expected)
+        .train_batch(pairs.inputs.clone(), &pairs.expected)
         .unwrap_log();
     log(format!("Train result = {}", scale_error(train_result)), 0);
 
     let mut result = controller.export();
     export_deltas(&initial, &mut result);
-
-    let mut shared = SHARED_DATA.write().unwrap_log();
-    shared.import(result, true);
+    serialize_storage(&result)
 }
 
 #[wasm_bindgen]
-pub fn test(test_data: &[u8]) -> f64 {
-    let inputs = decompress_default(&test_data).unwrap_log();
-    let inputs = load_pair_from_bytes(&inputs).unwrap();
-
-    let controller = {
-        let shared = SHARED_DATA.read().unwrap_log();
-        shared.build().unwrap_log()
-    };
-
+pub fn validate_job(data: &[u8]) -> f64 {
+    let [config, storage, pairs] = split_bytes_3(data).unwrap();
+    
+    let config = load_model_xml(&config).unwrap_log();
+    let storage = deserialize_storage(&storage).unwrap_log();
+    let controller =
+        NNController::load(config.main_layer, config.loss_func, storage).unwrap();
+    let pairs = deserialize_pairs(&pairs).unwrap();
     let result = controller
-        .test_batch(inputs.inputs, &inputs.expected)
+        .test_batch(pairs.inputs, &pairs.expected)
         .unwrap();
     let result = scale_error(result);
     log(format!("Test result = {}", result), 0);
@@ -161,20 +170,18 @@ fn scale_error(error: f64) -> f64 {
 
 #[wasm_bindgen]
 pub fn should_push() -> bool {
-    let shared = SHARED_DATA.read().unwrap_log();
+    let shared = SHARED_STORAGE.read().unwrap_log();
     let result = shared.accum_mean_delta > 0.01 || shared.accum_versions > 50;
-    
-    log(format!(
-        "Should push query: delta = {}, versions = {} => {}",
-        shared.accum_mean_delta, shared.accum_versions, result
-    ), 0);
-    
+
+    log(format!("Should push query: delta = {}, versions = {} => {}",
+        shared.accum_mean_delta, shared.accum_versions, result), 0);
+
     result
 }
 
 #[wasm_bindgen]
 pub fn export_bytes() -> Vec<u8> {
-    let mut shared = SHARED_DATA.write().unwrap_log();
+    let mut shared = SHARED_STORAGE.write().unwrap_log();
     log("Exporting".to_owned(), 0);
     shared.export().unwrap_log()
 }

@@ -15,7 +15,7 @@ export class TrainSocket {
             if (!(e.data instanceof ArrayBuffer))
                 throw new TypeError("Invalid type for socket message");
             let buffer = e.data as ArrayBuffer;
-            methods.load_deltas(new Uint8Array(buffer));
+            methods.load_server_deltas(new Uint8Array(buffer));
         });
     }
     

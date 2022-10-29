@@ -1,8 +1,6 @@
 use crate::{TaskManagerDep, ClientsDep};
 use crate::{utils::EndpointResult, CurrentModelDep, ModelsSourcesDep};
-use codebase::integration::compression::{compress_default, decompress_default};
-use codebase::integration::proto_loading::load_model_from_bytes;
-use futures::SinkExt;
+use codebase::integration::serialization::deserialize_storage;
 use futures::{
     channel::mpsc,
     FutureExt, StreamExt,
@@ -74,8 +72,7 @@ async fn client_connection(socket: WebSocket, deps: Deps) {
 async fn handle_message_receive(msg: Message, deps: &Deps) -> Result<(), String> {
     println!("Start handle receive");
     let bytes = msg.as_bytes();
-    let bytes = decompress_default(bytes).map_err(|e| format!("Error decompressing: {}", e))?;
-    let deltas = load_model_from_bytes(&bytes).ok_or("Error parsing proto")?;
+    let deltas = deserialize_storage(&bytes).map_err(|_|"Error parsing storage bytes".to_owned())?;
     let Deps {current_model, sources, task_manager, clients} = deps;
 
     let mut current_model = current_model.write().await;

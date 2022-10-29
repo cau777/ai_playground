@@ -11,7 +11,7 @@ use serde::{Serialize, Deserialize};
 #[serde(tag = "type")]
 pub enum Task {
     Train {url: String},
-    Test {version: u32, batch: u32, url: String, model_url: String}
+    Validate {version: u32, batch: u32, url: String, model_url: String}
 }
 
 struct VersionToTest {
@@ -95,7 +95,7 @@ impl TaskManager {
             let task = batches.get();
             if task.is_some() {
                 let batch = task.unwrap();
-                return Task::Test {
+                return Task::Validate {
                     version: *version,
                     batch,
                     url: url_creator.get_test_batch(batch),

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error};
 
-use futures::{channel::mpsc::{UnboundedSender, SendError}, SinkExt};
+use futures::{channel::mpsc::{UnboundedSender}, SinkExt};
 use warp::ws::Message;
 
 type Sender = UnboundedSender<Result<Message, warp::Error>>;
