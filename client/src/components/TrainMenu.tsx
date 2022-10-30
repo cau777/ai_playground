@@ -5,7 +5,7 @@ import {assign, submitTest} from "../utils/server_interface";
 import {LogsView} from "./LogsView";
 import {TrainSocket} from "../utils/TrainSocket";
 import {WorkersCoordinator} from "../utils/workers/WorkersCoordinator";
-import {WasmMainInterface} from "../utils/WasmMainInterface";
+import {WasmMain, WasmMainInterface} from "../utils/WasmMainInterface";
 import {sleep} from "../utils/promises";
 
 export const TrainMenu: FC = () => {
@@ -54,7 +54,7 @@ export const TrainMenu: FC = () => {
         canRepeatWork.current = true;
         socket.current = new TrainSocket();
         let coord = new WorkersCoordinator(workers.current);
-        let main = await WasmMainInterface.create(socket.current);
+        let main = await WasmMain;
         await createTasks(coord, main);
     }
     

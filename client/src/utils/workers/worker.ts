@@ -1,5 +1,5 @@
 import {WorkerRequest, WorkerResponse} from "./messages";
-import init, {train_job, validate_job} from "wasm";
+import init, {eval_job, train_job, validate_job} from "wasm";
 // importScripts("/pkg/wasm");
 
 // console.log(wasm);
@@ -34,6 +34,9 @@ onmessage = async function (message) {
                     break
                 case "Train":
                     result = train_job(request.arg);
+                    break
+                case "Eval":
+                    result = eval_job(request.arg);
                     break
             }
             

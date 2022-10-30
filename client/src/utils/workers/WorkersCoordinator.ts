@@ -1,8 +1,7 @@
-import {WorkerRequest, WorkerResponse} from "./messages";
-import {Task} from "../server_interface";
+import {WorkerRequest, WorkerResponse, WorkerTasks} from "./messages";
 import {insertLog} from "../logging";
 
-type Job = { task: Task["type"], arg: Uint8Array, callback: (data: unknown) => void };
+type Job = { task: WorkerTasks, arg: Uint8Array, callback: (data: unknown) => void };
 
 export class WorkersCoordinator {
     private queue: Job[] = [];
@@ -48,6 +47,15 @@ export class WorkersCoordinator {
         this.enqueue({
             task: "Validate", arg, callback: (value) => {
                 if (typeof value === "number") return callback(value);
+                throw new TypeError("Validate function didn't return number " + JSON.stringify(value));
+            }
+        });
+    }
+    
+    public enqueueEval(arg: Uint8Array, callback: (data: Float32Array) => void) {
+        this.enqueue({
+            task: "Eval", arg, callback: (value) => {
+                if (value instanceof Float32Array) return callback(value);
                 throw new TypeError("Validate function didn't return number " + JSON.stringify(value));
             }
         });

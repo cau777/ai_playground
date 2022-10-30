@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
-use warp::{
-    reply::{self},
-    Reply
-};
+use warp::{reply, Reply};
+use crate::data::url_creator;
 
-use crate::{utils::EndpointResult, CurrentModelDep, ModelsSourcesDep, TaskManagerDep};
+use crate::{utils::EndpointResult, CurrentModelDep, ModelsSourcesDep, TaskManagerDep, EnvConfigDep};
+
+pub async fn get_best(sources: ModelsSourcesDep, config: EnvConfigDep) -> EndpointResult<reply::Json> {
+    let sources = sources.read().await;
+    let best = sources.best();
+    Ok(reply::json(&url_creator::get_model_data(&config, "digits",  best)))
+}
 
 pub async fn assign_handler(
     task_manager: TaskManagerDep,
@@ -14,7 +18,7 @@ pub async fn assign_handler(
     let sources = sources.read().await;
 
     let result = task_manager.get_task(&sources);
-    Ok(warp::reply::json(&result))
+    Ok(reply::json(&result))
 }
 
 pub async fn submit_test(

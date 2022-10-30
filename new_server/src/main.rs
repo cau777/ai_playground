@@ -5,7 +5,10 @@ mod ws_handlers;
 
 use std::{convert::Infallible, sync::Arc};
 
-use data::{current_model::CurrentModel, model_source::ModelSource, task_manager::TaskManager, clients::Clients};
+use data::{
+    clients::Clients, current_model::CurrentModel, model_source::ModelSource,
+    task_manager::TaskManager, env_config::EnvConfig,
+};
 use tokio::{self, sync::RwLock};
 use warp::{self, Filter};
 
@@ -13,11 +16,14 @@ pub type TaskManagerDep = Arc<RwLock<TaskManager>>;
 pub type ModelsSourcesDep = Arc<RwLock<ModelSource>>;
 pub type CurrentModelDep = Arc<RwLock<CurrentModel>>;
 pub type ClientsDep = Arc<RwLock<Clients>>;
+pub type EnvConfigDep = Arc<EnvConfig>;
 
 #[tokio::main]
 async fn main() {
+    let config = Arc::new(EnvConfig::new());
+    
     let mut models_sources = ModelSource::new("digits", 469, 79).unwrap(); // TODO 469 79
-    let task_manager = TaskManager::new(&models_sources);
+    let task_manager = TaskManager::new(&models_sources, config.clone());
     let current_model = CurrentModel::new(&mut models_sources);
     let clients = Clients::new();
 
@@ -62,11 +68,18 @@ async fn main() {
         .and(warp::get())
         .and_then(rest_handlers::register);
 
+    let best_route = warp::path!("best")
+        .and(warp::get())
+        .and(with_models_sources(&models_sources_dep))
+        .and(with_env_config(&config))
+        .and_then(rest_handlers::get_best);
+
     let routes = ws_train_route
         .or(assign_route)
         .or(submit_test_route)
         .or(recent_route)
         .or(register_route)
+        .or(best_route)
         .with(cors);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
@@ -94,6 +107,11 @@ fn with_current_model(instance: &CurrentModelDep) -> dep_filter![CurrentModelDep
 }
 
 fn with_clients(instance: &ClientsDep) -> dep_filter![ClientsDep] {
+    let instance = instance.clone();
+    warp::any().map(move || instance.clone())
+}
+
+fn with_env_config(instance: &EnvConfigDep) -> dep_filter![EnvConfigDep] {
     let instance = instance.clone();
     warp::any().map(move || instance.clone())
 }

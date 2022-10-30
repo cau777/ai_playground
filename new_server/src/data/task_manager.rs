@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::time::Instant;
+use crate::EnvConfigDep;
 use super::model_metadata::ModelMetadata;
-use super::url_creator::UrlCreator;
 use super::model_source::ModelSource;
 use rand::rngs::StdRng;
 use rand::{self, Rng, SeedableRng};
 use serde::{Serialize, Deserialize};
+use crate::data::url_creator;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -69,15 +70,17 @@ impl VersionToTest {
 pub struct TaskManager {
     testing: HashMap<u32, VersionToTest>,
     rng: StdRng,
-    url_creator: UrlCreator
+    config: EnvConfigDep,
+    name: &'static str,
 }
 
 impl TaskManager {
-    pub fn new(source: &ModelSource) -> Self {
+    pub fn new(source: &ModelSource, config: EnvConfigDep) -> Self {
         let mut result = Self {
             testing: HashMap::new(),
             rng: StdRng::seed_from_u64(777),
-            url_creator: UrlCreator::new(source.name()),
+            config,
+            name: source.name(),
         };
         
         // Load versions that are not tested yet
@@ -89,8 +92,6 @@ impl TaskManager {
     }
 
     pub fn get_task(&mut self, source: &ModelSource) -> Task {
-        let url_creator = &self.url_creator;
-
         for (version, batches) in self.testing.iter_mut() {
             let task = batches.get();
             if task.is_some() {
@@ -98,14 +99,14 @@ impl TaskManager {
                 return Task::Validate {
                     version: *version,
                     batch,
-                    url: url_creator.get_test_batch(batch),
-                    model_url: url_creator.get_model_data(*version),
+                    url: url_creator::get_test_batch(&self.config, &self.name, batch),
+                    model_url: url_creator::get_model_data(&self.config, &self.name, *version),
                 };
             }
         }
 
         Task::Train {
-            url: url_creator.get_train_batch(self.rng.gen_range(0..source.train_count())),
+            url: url_creator::get_train_batch(&self.config, &self.name, self.rng.gen_range(0..source.train_count())),
         }
     }
     

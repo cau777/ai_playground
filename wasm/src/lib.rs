@@ -3,9 +3,10 @@ extern crate core;
 use codebase::integration::joining::{join_as_bytes, split_bytes_3};
 use codebase::integration::layers_loading::load_model_xml;
 use codebase::integration::model_deltas::{export_deltas, import_deltas};
-use codebase::integration::serialization::{deserialize_pairs, deserialize_storage, serialize_storage};
+use codebase::integration::serialization::*;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
+use codebase::utils::{Array2F, Array3F};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 
@@ -125,13 +126,25 @@ pub fn prepare_train_job(pairs: &[u8]) -> Vec<u8> {
 #[wasm_bindgen]
 pub fn prepare_validate_job(pairs: &[u8], storage: &[u8]) -> Vec<u8> {
     let config = &SHARED_CONFIG.read().unwrap();
+    // log(format!("{:?}", deserialize_storage(storage)), 0);
     join_as_bytes(&[config, storage, pairs])
+}
+
+#[wasm_bindgen]
+pub fn prepare_eval_job(data: &[f32], storage: &[u8]) -> Vec<u8> {
+    let inputs = Array3F::from_shape_vec(
+        (1, 28, 28),
+        data.iter().copied().map(|o| o / 255.0).collect(),
+    ).unwrap();
+    let inputs = &serialize_array(&inputs.into_dyn());
+    let config = &SHARED_CONFIG.read().unwrap();
+    join_as_bytes(&[config, storage, inputs])
 }
 
 #[wasm_bindgen]
 pub fn train_job(data: &[u8]) -> Vec<u8> {
     let [config, storage, pairs] = split_bytes_3(data).unwrap();
-    
+
     let config = load_model_xml(&config).unwrap_log();
     let storage = deserialize_storage(&storage).unwrap_log();
     let mut controller = NNController::load(config.main_layer, config.loss_func, storage).unwrap();
@@ -150,11 +163,10 @@ pub fn train_job(data: &[u8]) -> Vec<u8> {
 #[wasm_bindgen]
 pub fn validate_job(data: &[u8]) -> f64 {
     let [config, storage, pairs] = split_bytes_3(data).unwrap();
-    
+
     let config = load_model_xml(&config).unwrap_log();
     let storage = deserialize_storage(&storage).unwrap_log();
-    let controller =
-        NNController::load(config.main_layer, config.loss_func, storage).unwrap();
+    let controller = NNController::load(config.main_layer, config.loss_func, storage).unwrap();
     let pairs = deserialize_pairs(&pairs).unwrap();
     let result = controller
         .test_batch(pairs.inputs, &pairs.expected)
@@ -162,6 +174,18 @@ pub fn validate_job(data: &[u8]) -> f64 {
     let result = scale_error(result);
     log(format!("Test result = {}", result), 0);
     result
+}
+
+#[wasm_bindgen]
+pub fn eval_job(data: &[u8]) -> Vec<f32> {
+    let [config, storage, inputs] = split_bytes_3(data).unwrap();
+    
+    let config = load_model_xml(&config).unwrap_log();
+    let storage = deserialize_storage(&storage).unwrap_log();
+    let controller = NNController::load(config.main_layer, config.loss_func, storage).unwrap();
+    let inputs = deserialize_array(inputs).unwrap();
+    let result = controller.eval_batch(inputs).unwrap();
+    result.into_iter().collect()
 }
 
 fn scale_error(error: f64) -> f64 {
@@ -173,8 +197,13 @@ pub fn should_push() -> bool {
     let shared = SHARED_STORAGE.read().unwrap_log();
     let result = shared.accum_mean_delta > 0.01 || shared.accum_versions > 50;
 
-    log(format!("Should push query: delta = {}, versions = {} => {}",
-        shared.accum_mean_delta, shared.accum_versions, result), 0);
+    log(
+        format!(
+            "Should push query: delta = {}, versions = {} => {}",
+            shared.accum_mean_delta, shared.accum_versions, result
+        ),
+        0,
+    );
 
     result
 }

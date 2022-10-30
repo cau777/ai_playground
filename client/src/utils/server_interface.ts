@@ -57,3 +57,7 @@ export async function getMostRecent() {
     let response = await axios.get<ArrayBuffer>(ServerUrl + "/recent", {responseType: "arraybuffer"});
     return new Uint8Array(response.data);
 }
+
+export async function getBest() {
+    return axios.get<string>(ServerUrl + "/best").then(o => o.data)
+}

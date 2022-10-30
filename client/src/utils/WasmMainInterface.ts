@@ -37,6 +37,12 @@ export class WasmMainInterface {
         return methods.prepare_validate_job(pairs, storage);
     }
     
+    public async prepareEval(data: Float32Array) {
+        let bestUrl = await serverMethods.getBest();
+        let storage = await provideData(bestUrl);
+        return methods.prepare_eval_job(data, storage);
+    }
+    
     public async loadDeltas(deltas: Uint8Array) {
         methods.load_train_deltas(deltas);
         await this.trainSocket.pushIfNecessary();
@@ -48,6 +54,8 @@ export class WasmMainInterface {
         methods.load_initial(storage);
     }
 }
+
+export const WasmMain = WasmMainInterface.create(new TrainSocket());
 
 // export class WasmInterface {
 //     public static async create() {

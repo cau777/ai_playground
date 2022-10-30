@@ -12,7 +12,7 @@ pub struct AdamConfig {
 impl Default for AdamConfig {
     fn default() -> Self {
         Self {
-            alpha: 0.02,
+            alpha: 0.001,
             decay1: 0.9,
             decay2: 0.999,
         }

@@ -46,11 +46,7 @@ impl NNController {
         })
     }
 
-    pub fn eval_one(&mut self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
-        self.eval_batch(stack![Axis(0), inputs]).map(|o| o.remove_axis(Axis(0)))
-    }
-
-    pub fn eval_batch(&mut self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
+    pub fn eval_batch(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let config = BatchConfig {
@@ -60,7 +56,7 @@ impl NNController {
         forward_layer(&self.main_layer, ForwardData {
             inputs,
             assigner: &mut assigner,
-            storage: &mut self.storage,
+            storage: &self.storage,
             forward_cache: &mut forward_cache,
             batch_config: &config,
         })

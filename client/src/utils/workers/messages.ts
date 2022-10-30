@@ -1,8 +1,7 @@
-import {Task} from "../server_interface";
-
+export type WorkerTasks = "Train"|"Validate"|"Eval";
 export type WorkerRequest = {
     type: "process",
-    task: Task["type"],
+    task: WorkerTasks,
     arg: Uint8Array,
 } | {
     type: "init"
