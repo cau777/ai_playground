@@ -22,7 +22,6 @@ impl Default for AdamConfig {
 pub struct AdamLrCalc {}
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
-    // TODO: updating epoch twice
     fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> LayerResult {
         let LrCalcData {storage, assigner,..} = data;
         let key = assigner.get_key("adam".to_owned());
@@ -51,6 +50,6 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
         
         storage.insert(key, vec![moment1, moment2, Array0F::from_elem((), epoch + 1.0).into_dyn()]);
 
-        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + f32::EPSILON))
+        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + 0.000001))
     }
 }

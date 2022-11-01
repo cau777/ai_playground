@@ -105,7 +105,7 @@ impl ConvolutionLayer {
             }
         }
 
-        kernels_grad
+        kernels_grad / (layer_config.kernel_size.pow(2) as f32)
     }
 }
 

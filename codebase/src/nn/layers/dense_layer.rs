@@ -9,10 +9,10 @@ use crate::nn::layers::nn_layers::{
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 use crate::utils::{Array1F, Array2F};
 use ndarray::{s, Axis, ShapeBuilder};
-use ndarray_rand::rand_distr::Normal;
+use ndarray_rand::rand_distr::{Normal, Uniform};
 use ndarray_rand::RandomExt;
 use std::iter::zip;
-use std::ops::AddAssign;
+use std::ops::{AddAssign, SubAssign};
 
 #[derive(Clone, Debug)]
 pub struct DenseConfig {
@@ -77,6 +77,8 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights, biases] = clone_from_storage2(storage, &key);
+        // println!("mean input = {}", inputs.iter().copied().map(|o| o as f64).sum::<f64>() / inputs.len() as f64);
+        // println!("Mean weights = {}", weights.iter().copied().map(|o| o as f64).sum::<f64>() / weights.len() as f64);
         let weights: Array2F = weights.into_dimensionality()?;
         let biases: &Array1F = &biases.into_dimensionality()?;
 
@@ -93,6 +95,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
             .for_each(|(index, o)| result.slice_mut(s![index, ..]).assign(&o));
 
         forward_cache.insert(key, vec![inputs.into_dyn()]);
+        // println!("Mean output = {}", result.iter().copied().map(|o| o as f64).sum::<f64>() / result.len() as f64);
         Ok(result.into_dyn())
     }
 
@@ -105,6 +108,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
             backward_cache,
             ..
         } = data;
+        // println!("Mean grad = {}", grad.iter().copied().map(|o| o as f64).sum::<f64>() / grad.len() as f64);
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights] = clone_from_storage1(storage, &key);
@@ -117,7 +121,8 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let mut weights_error = Array2F::default((layer_config.out_values, layer_config.in_values));
         let batches = inputs.shape()[0];
 
-        let batch_factor = 1.0 / batches as f32;
+        // Divide by number of weights to avoid exploding weights
+        let factor = 1.0 / (batches * layer_config.out_values  * layer_config.in_values) as f32;
         zip(inputs.outer_iter(), grad.outer_iter())
             .map(|(i, g)| {
                 let gt = g.insert_axis(Axis(1));
@@ -125,7 +130,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
                 let result = gt.dot(&it);
                 result
             })
-        .for_each(|o| weights_error += &(o * batch_factor));
+        .for_each(|o| weights_error += &(o * factor));
         
         let biases_grad = grad.mean_axis(Axis(0)).unwrap().into_dyn();
         
@@ -156,9 +161,8 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights_grad, biases_grad] = remove_from_storage2(backward_cache, &key);
-        // println!("weights_grad = {:?}", weights_grad.iter().take(10).collect::<Vec<_>>());
-        // println!("biases_grad = {:?}", biases_grad.iter().take(10).collect::<Vec<_>>());
 
+        // println!("Mean weights err = {}", weights_grad.iter().copied().map(|o| o as f64).sum::<f64>() / weights_grad.len() as f64);
         let weights_grad = apply_lr_calc(
             &layer_config.weights_lr_calc,
             weights_grad,
@@ -168,6 +172,7 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 assigner,
             },
         )?;
+        // println!("Mean weights_grad = {}", weights_grad.iter().copied().map(|o| o as f64).sum::<f64>() / weights_grad.len() as f64);
         let biases_grad = apply_lr_calc(
             &layer_config.biases_lr_calc,
             biases_grad,
@@ -177,13 +182,9 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 assigner,
             },
         )?;
-        // 
-        // println!("lr calc");
-        // println!("weights_grad = {:?}", weights_grad.iter().take(10).collect::<Vec<_>>());
-        // println!("biases_grad = {:?}", biases_grad.iter().take(10).collect::<Vec<_>>());
 
         get_mut_from_storage(storage, &key, 0).add_assign(&weights_grad);
-        //get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
+        get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
 
         Ok(())
     }

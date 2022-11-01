@@ -14,7 +14,7 @@ export const LogsView: FC = () => {
     
     useEffect(() => {
         function callback(log: Log) {
-            setState(s => [...keepAtMost(s, 100), log]);
+            setState(s => [...keepAtMost(s, 500), log]);
         }
         
         addLogListener(callback);

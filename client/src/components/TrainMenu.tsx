@@ -3,7 +3,6 @@ import {Slider} from "./Slider";
 import {BtnPrimary} from "./BtnPrimary";
 import {assign, submitTest} from "../utils/server_interface";
 import {LogsView} from "./LogsView";
-import {TrainSocket} from "../utils/TrainSocket";
 import {WorkersCoordinator} from "../utils/workers/WorkersCoordinator";
 import {WasmMain, WasmMainInterface} from "../utils/WasmMainInterface";
 import {sleep} from "../utils/promises";
@@ -14,7 +13,6 @@ export const TrainMenu: FC = () => {
     let canRepeatWork = useRef(false);
     let [busy, setBusy] = useState(false);
     let running = useRef(0);
-    let socket = useRef<TrainSocket>();
     
     async function createTasks(coord: WorkersCoordinator, main: WasmMainInterface) {
         while (canRepeatWork.current && coord.queueSize < 4) {
@@ -52,7 +50,6 @@ export const TrainMenu: FC = () => {
         setBusy(true);
         
         canRepeatWork.current = true;
-        socket.current = new TrainSocket();
         let coord = new WorkersCoordinator(workers.current);
         let main = await WasmMain;
         await createTasks(coord, main);
@@ -69,7 +66,6 @@ export const TrainMenu: FC = () => {
                 }
             }, 50);
         });
-        socket.current?.close();
         setBusy(false);
     }
     

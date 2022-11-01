@@ -10,7 +10,7 @@ pub struct ConstantLrConfig {
 impl Default for ConstantLrConfig {
     fn default() -> Self {
         Self {
-            lr: 0.005
+            lr: 0.05
         }
     }
 }

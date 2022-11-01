@@ -6,7 +6,7 @@ use codebase::integration::model_deltas::{export_deltas, import_deltas};
 use codebase::integration::serialization::*;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
-use codebase::utils::{Array2F, Array3F};
+use codebase::utils::Array3F;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 

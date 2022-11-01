@@ -1,7 +1,6 @@
 import * as methods from "wasm";
 import init from "wasm";
 import {provideData} from "./server_interface";
-import {TrainSocket} from "./TrainSocket";
 import * as serverMethods from "./server_interface";
 import {insertLog} from "./logging";
 
@@ -12,21 +11,20 @@ window.bindings = {
 }
 
 export class WasmMainInterface {
-    public static async create(trainSocket: TrainSocket) {
+    public static async create() {
         let config = await provideData("local|digits/model.xml"); // TODO: release
         await init();
         methods.load_config(config);
-        return new WasmMainInterface(trainSocket);
+        return new WasmMainInterface();
     }
     
     private loadingTrain?: Promise<void>;
     
-    public constructor(private trainSocket: TrainSocket) {
+    public constructor() {
     }
     
     public async prepareTrain(url: string) {
         await (this.loadingTrain ??= this.loadTrain());
-        await this.trainSocket.assertConnected();
         let pairs = await provideData(url);
         
         return methods.prepare_train_job(pairs);
@@ -45,7 +43,10 @@ export class WasmMainInterface {
     
     public async loadDeltas(deltas: Uint8Array) {
         methods.load_train_deltas(deltas);
-        await this.trainSocket.pushIfNecessary();
+        if (methods.should_push()) {
+            let totalDeltas = methods.export_bytes();
+            await serverMethods.submitTrain(totalDeltas);
+        }
         console.log("loaded deltas")
     }
     
@@ -55,7 +56,7 @@ export class WasmMainInterface {
     }
 }
 
-export const WasmMain = WasmMainInterface.create(new TrainSocket());
+export const WasmMain = WasmMainInterface.create();
 
 // export class WasmInterface {
 //     public static async create() {

@@ -61,3 +61,7 @@ export async function getMostRecent() {
 export async function getBest() {
     return axios.get<string>(ServerUrl + "/best").then(o => o.data)
 }
+
+export function submitTrain(bytes: Uint8Array) {
+    return axios.post(ServerUrl + "/submit_train", bytes);
+}

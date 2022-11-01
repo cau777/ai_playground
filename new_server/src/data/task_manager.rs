@@ -1,18 +1,25 @@
-use std::collections::HashMap;
-use std::time::Instant;
-use crate::EnvConfigDep;
 use super::model_metadata::ModelMetadata;
 use super::model_source::ModelSource;
+use crate::data::url_creator;
+use crate::EnvConfigDep;
 use rand::rngs::StdRng;
 use rand::{self, Rng, SeedableRng};
-use serde::{Serialize, Deserialize};
-use crate::data::url_creator;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::Instant;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Task {
-    Train {url: String},
-    Validate {version: u32, batch: u32, url: String, model_url: String}
+    Train {
+        url: String,
+    },
+    Validate {
+        version: u32,
+        batch: u32,
+        url: String,
+        model_url: String,
+    },
 }
 
 struct VersionToTest {
@@ -49,10 +56,7 @@ impl VersionToTest {
     }
 
     fn complete_batch(&mut self, batch: u32, result: f64) -> Option<()> {
-        let completed = self
-            .assigned
-            .iter()
-            .position(|(b, _)| *b == batch)?;
+        let completed = self.assigned.iter().position(|(b, _)| *b == batch)?;
         self.assigned.swap_remove(completed);
         self.accumulated += result / self.count as f64;
         Some(())
@@ -82,12 +86,12 @@ impl TaskManager {
             config,
             name: source.name(),
         };
-        
+
         // Load versions that are not tested yet
         for to_test in source.versions_to_test() {
             result.add_to_test(to_test, source.test_count());
         }
-        
+
         result
     }
 
@@ -106,26 +110,39 @@ impl TaskManager {
         }
 
         Task::Train {
-            url: url_creator::get_train_batch(&self.config, &self.name, self.rng.gen_range(0..source.train_count())),
+            url: url_creator::get_train_batch(
+                &self.config,
+                &self.name,
+                self.rng.gen_range(0..source.train_count()),
+            ),
         }
     }
-    
+
     pub fn add_to_test(&mut self, version: u32, count: u32) {
+        println!("adding {}", version);
         if !self.testing.contains_key(&version) {
             self.testing.insert(version, VersionToTest::new(count));
         }
     }
 
-    pub fn complete_test_task(&mut self, source: &mut ModelSource, version: u32,
-                              batch: u32, accuracy: f64) -> Option<()> {
+    pub fn complete_test_task(
+        &mut self,
+        source: &mut ModelSource,
+        version: u32,
+        batch: u32,
+        accuracy: f64,
+    ) -> Option<()> {
         let testing = self.testing.get_mut(&version)?;
         testing.complete_batch(batch, accuracy)?;
         let result = testing.get_result();
         match result {
             Some(accuracy) => {
-                println!("{}", accuracy);
-                source.save_model_meta(version, &ModelMetadata { accuracy }).unwrap();
-            },
+                println!("{} => {}", version, accuracy);
+                source
+                    .save_model_meta(version, &ModelMetadata { accuracy })
+                    .unwrap();
+                self.testing.remove(&version);
+            }
             None => {}
         }
         Some(())

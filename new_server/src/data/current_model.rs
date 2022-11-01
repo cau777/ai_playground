@@ -4,7 +4,7 @@ use codebase::nn::layers::nn_layers::GenericStorage;
 use std::io;
 use std::ops::AddAssign;
 
-const SAVE_AFTER: u32 = 10;
+const SAVE_AFTER: u32 = 50;
 
 pub struct CurrentModel {
     storage: GenericStorage,

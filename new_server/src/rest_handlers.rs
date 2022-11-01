@@ -1,13 +1,21 @@
-use serde::{Deserialize, Serialize};
-use warp::{reply, Reply};
 use crate::data::url_creator;
+use codebase::integration::serialization::deserialize_storage;
+use serde::{Deserialize, Serialize};
+use warp::{reject, reply, Reply, hyper::{StatusCode}};
 
-use crate::{utils::EndpointResult, CurrentModelDep, ModelsSourcesDep, TaskManagerDep, EnvConfigDep};
+use crate::{
+    utils::EndpointResult, CurrentModelDep, EnvConfigDep, ModelsSourcesDep, TaskManagerDep,
+};
 
-pub async fn get_best(sources: ModelsSourcesDep, config: EnvConfigDep) -> EndpointResult<reply::Json> {
+pub async fn get_best(
+    sources: ModelsSourcesDep,
+    config: EnvConfigDep,
+) -> EndpointResult<reply::Json> {
     let sources = sources.read().await;
     let best = sources.best();
-    Ok(reply::json(&url_creator::get_model_data(&config, "digits",  best)))
+    Ok(reply::json(&url_creator::get_model_data(
+        &config, "digits", best,
+    )))
 }
 
 pub async fn assign_handler(
@@ -19,6 +27,32 @@ pub async fn assign_handler(
 
     let result = task_manager.get_task(&sources);
     Ok(reply::json(&result))
+}
+
+pub async fn submit_train(
+    task_manager: TaskManagerDep,
+    sources: ModelsSourcesDep,
+    current_model: CurrentModelDep,
+    body: warp::hyper::body::Bytes,
+) -> EndpointResult<impl Reply> {
+    match deserialize_storage(&body) {
+        Ok(deltas) => {
+            let mut current_model = current_model.write().await;
+            current_model.increment(1, deltas);
+            if current_model.should_save() {
+                let mut sources = sources.write().await;
+                current_model.save_to(&mut sources).unwrap();
+
+                let mut task_manager = task_manager.write().await;
+                task_manager.add_to_test(current_model.version(), sources.test_count());
+                
+                // TODO: broadcast updates
+            }
+
+            Ok(StatusCode::OK)
+        }
+        Err(_) => Ok(StatusCode::BAD_REQUEST),
+    }
 }
 
 pub async fn submit_test(
