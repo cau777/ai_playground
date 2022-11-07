@@ -1,6 +1,6 @@
 use crate::nn::layers::nn_layers::LayerResult;
 use crate::nn::lr_calculators::lr_calculator::{LrCalcData, LrCalcOps};
-use crate::utils::{ArrayDynF, lerp_arrays, Array0F};
+use crate::utils::{lerp_arrays, Array0F, ArrayDynF, EPSILON};
 
 #[derive(Clone, Debug)]
 pub struct AdamConfig {
@@ -23,7 +23,13 @@ pub struct AdamLrCalc {}
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
     fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> LayerResult {
-        let LrCalcData {storage, assigner,..} = data;
+        let LrCalcData {
+            storage,
+            assigner,
+            batch_config,
+        } = data;
+        let workers = batch_config.train_config.as_ref().map(|o| o.workers).unwrap();
+
         let key = assigner.get_key("adam".to_owned());
 
         let mut moment1: ArrayDynF;
@@ -44,12 +50,20 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
 
         moment1 = lerp_arrays(&target, &moment1, config.decay1);
         moment2 = lerp_arrays(&(&target * &target), &moment2, config.decay2);
-        
+
         let moment1b = &moment1 / (1.0 - (config.decay1.powf(epoch)));
         let moment2b = &moment2 / (1.0 - (config.decay2.powf(epoch)));
-        
-        storage.insert(key, vec![moment1, moment2, Array0F::from_elem((), epoch + 1.0).into_dyn()]);
 
-        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + 0.000001))
+        storage.insert(
+            key,
+            vec![
+                moment1,
+                moment2,
+                Array0F::from_elem((), epoch + 1.0).into_dyn(),
+            ],
+        );
+
+        let factor = config.alpha / workers as f32;
+        Ok(factor * moment1b / (moment2b.mapv(f32::sqrt) + EPSILON))
     }
 }

@@ -1,7 +1,8 @@
 import {WorkerRequest, WorkerResponse, WorkerTasks} from "./messages";
 import {insertLog} from "../logging";
 
-type Job = { task: WorkerTasks, arg: Uint8Array, callback: (data: unknown) => void };
+type Param = Uint8Array;
+type Job = { task: WorkerTasks, args: unknown[], callback: (data: unknown) => void };
 
 export class WorkersCoordinator {
     private queue: Job[] = [];
@@ -34,31 +35,35 @@ export class WorkersCoordinator {
         return this.workers.length - this.availableWorkers.size;
     }
     
-    public enqueueTrain(arg: Uint8Array, callback: (data: Uint8Array) => void) {
+    public enqueueTrain(config: Param, storage: Param, pairs: Param, workers: number, callback: (data: Uint8Array) => void) {
         this.enqueue({
-            task: "Train", arg, callback: (value) => {
+            task: "Train", args: [config, storage, pairs, workers], callback: (value) => {
                 if (value instanceof Uint8Array) return callback(value);
                 throw new TypeError("Train function didn't return Uint8Array");
             }
         });
     }
     
-    public enqueueValidate(arg: Uint8Array, callback: (data: number) => void) {
+    public enqueueValidate(config: Param, storage: Param, pairs: Param, callback: (data: number) => void) {
         this.enqueue({
-            task: "Validate", arg, callback: (value) => {
+            task: "Validate", args: [config, storage, pairs], callback: (value) => {
                 if (typeof value === "number") return callback(value);
                 throw new TypeError("Validate function didn't return number " + JSON.stringify(value));
             }
         });
     }
     
-    public enqueueEval(arg: Uint8Array, callback: (data: Float32Array) => void) {
+    public enqueueEval(config: Param, storage: Param, inputs: Param, callback: (data: Float32Array) => void) {
         this.enqueue({
-            task: "Eval", arg, callback: (value) => {
+            task: "Eval", args: [config, storage, inputs], callback: (value) => {
                 if (value instanceof Float32Array) return callback(value);
-                throw new TypeError("Validate function didn't return number " + JSON.stringify(value));
+                throw new TypeError("Validate function didn't return Float32Array " + JSON.stringify(value));
             }
         });
+    }
+    
+    public close() {
+        this.workers.forEach(o => o.terminate());
     }
     
     private enqueue(job: Job) {
@@ -114,6 +119,6 @@ export class WorkersCoordinator {
     }
     
     private assignJob(job: Job, worker: Worker) {
-        this.assign({type: "process", task: job.task, arg: job.arg}, worker, job.callback);
+        this.assign({type: "process", task: job.task, args: job.args}, worker, job.callback);
     }
 }

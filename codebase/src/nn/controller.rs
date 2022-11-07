@@ -8,6 +8,8 @@ use crate::nn::loss::loss_func::{calc_loss, calc_loss_grad, LossFunc};
 use crate::utils::ArrayDynF;
 use ndarray::{stack, Axis};
 
+use super::train_config::TrainConfig;
+
 pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
@@ -60,7 +62,7 @@ impl NNController {
     pub fn eval_batch(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
-        let config = BatchConfig { epoch: self.epoch };
+        let config = BatchConfig::new_not_train();
 
         forward_layer(
             &self.main_layer,
@@ -74,16 +76,26 @@ impl NNController {
         )
     }
 
-    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF) -> Result<f64, LayerError> {
-        self.train_batch(stack![Axis(0), inputs], &stack![Axis(0), expected])
+    pub fn train_one(
+        &mut self,
+        inputs: ArrayDynF,
+        expected: ArrayDynF,
+        config: TrainConfig,
+    ) -> Result<f64, LayerError> {
+        self.train_batch(
+            stack![Axis(0), inputs],
+            &stack![Axis(0), expected],
+            config,
+        )
     }
 
     pub fn train_batch(
         &mut self,
         inputs: ArrayDynF,
         expected: &ArrayDynF,
+        config: TrainConfig,
     ) -> Result<f64, LayerError> {
-        let config = BatchConfig { epoch: self.epoch };
+        let config = BatchConfig::new_train(config);
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
 
@@ -140,7 +152,7 @@ impl NNController {
     }
 
     pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF) -> Result<f64, LayerError> {
-        let config = BatchConfig { epoch: self.epoch };
+        let config = BatchConfig::new_not_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
 
@@ -175,10 +187,8 @@ mod tests {
 
     use crate::{
         integration::layers_loading::load_model_xml,
-        nn::lr_calculators::{
-            adam_lr::AdamConfig, constant_lr::ConstantLrConfig, lr_calculator::LrCalc,
-        },
-        utils::{Array2F, Array3F, Array4F},
+        nn::lr_calculators::{constant_lr::ConstantLrConfig, lr_calculator::LrCalc},
+        utils::{Array2F, Array3F},
     };
 
     use super::*;
@@ -197,6 +207,7 @@ mod tests {
             .train_batch(
                 Array3F::ones((256, 28, 28)).into_dyn(),
                 &Array2F::ones((256, 10)).into_dyn(),
+                TrainConfig::default(),
             )
             .unwrap();
         println!("{}", result);
@@ -230,21 +241,21 @@ mod tests {
                     //    biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     //}),
                     //Layer::Relu,
-                     Layer::Dense(dense_layer::DenseConfig {
-                         in_values: 512*d,
-                         out_values: 256*d,
-                         init_mode: dense_layer::DenseLayerInit::Random(),
-                         weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                         biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                     }),
-                     Layer::Relu,
-                     Layer::Dense(dense_layer::DenseConfig {
-                         in_values: 256*d,
-                         out_values: 10*d,
-                         init_mode: dense_layer::DenseLayerInit::Random(),
-                         weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                         biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                     }),
+                    Layer::Dense(dense_layer::DenseConfig {
+                        in_values: 512 * d,
+                        out_values: 256 * d,
+                        init_mode: dense_layer::DenseLayerInit::Random(),
+                        weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                        biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    }),
+                    Layer::Relu,
+                    Layer::Dense(dense_layer::DenseConfig {
+                        in_values: 256 * d,
+                        out_values: 10 * d,
+                        init_mode: dense_layer::DenseLayerInit::Random(),
+                        weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                        biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    }),
                 ],
             }),
             LossFunc::Mse,
@@ -253,10 +264,10 @@ mod tests {
 
         let dist = Normal::new(0.0, 1.0).unwrap();
 
-        let inputs = Array2F::random((1, 512*d), dist).into_dyn();
-        let expected = Array2F::random((1, 10*d), dist).into_dyn();
+        let inputs = Array2F::random((1, 512 * d), dist).into_dyn();
+        let expected = Array2F::random((1, 10 * d), dist).into_dyn();
         for _ in 0..100 {
-            let result = controller.train_batch(inputs.clone(), &expected).unwrap();
+            let result = controller.train_batch(inputs.clone(), &expected, TrainConfig::default()).unwrap();
             println!("{}", result);
         }
     }

@@ -1,9 +1,5 @@
-import {WorkerRequest, WorkerResponse} from "./messages";
+import {WorkerRequest, WorkerResponse, WorkerTasks} from "./messages";
 import init, {eval_job, train_job, validate_job} from "wasm";
-// importScripts("/pkg/wasm");
-
-// console.log(wasm);
-// const init, {train_job, validate_job} = wasm;
 
 // @ts-ignore
 self.bindings = {
@@ -13,9 +9,19 @@ self.bindings = {
     }
 }
 
-
 function respond(response: WorkerResponse) {
     postMessage(response)
+}
+
+function findWasmFunc(task: WorkerTasks): (...args: any) => any {
+    switch (task) {
+        case "Eval":
+            return eval_job;
+        case "Train":
+            return train_job;
+        case "Validate":
+            return validate_job;
+    }
 }
 
 onmessage = async function (message) {
@@ -26,20 +32,7 @@ onmessage = async function (message) {
             respond({type: "response", data: null});
             break
         case "process":
-            let result;
-            
-            switch (request.task) {
-                case "Validate":
-                    result = validate_job(request.arg);
-                    break
-                case "Train":
-                    result = train_job(request.arg);
-                    break
-                case "Eval":
-                    result = eval_job(request.arg);
-                    break
-            }
-            
+            let result = findWasmFunc(request.task)(...request.args);
             respond({type: "response", data: result});
             break
     }

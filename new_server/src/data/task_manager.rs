@@ -103,7 +103,7 @@ impl TaskManager {
                 return Task::Validate {
                     version: *version,
                     batch,
-                    url: url_creator::get_test_batch(&self.config, &self.name, batch),
+                    url: url_creator::get_validate_batch(&self.config, &self.name, batch),
                     model_url: url_creator::get_model_data(&self.config, &self.name, *version),
                 };
             }

@@ -22,7 +22,7 @@ pub type EnvConfigDep = Arc<EnvConfig>;
 async fn main() {
     let config = Arc::new(EnvConfig::new());
 
-    let mut models_sources = ModelSource::new("digits", 469, 79).unwrap(); // TODO 469 79
+    let mut models_sources = ModelSource::new("digits", 938, 40).unwrap(); // TODO 938, 40
     let task_manager = TaskManager::new(&models_sources, config.clone());
     let current_model = CurrentModel::new(&mut models_sources);
     let clients = Clients::new();
@@ -74,12 +74,18 @@ async fn main() {
         .and(with_env_config(&config))
         .and_then(rest_handlers::get_best);
 
+    let config_route = warp::path!("config")
+        .and(warp::get())
+        .and(with_env_config(&config))
+        .and_then(rest_handlers::get_config);
+
     let routes = submit_train_route
         .or(assign_route)
         .or(submit_test_route)
         .or(recent_route)
         .or(register_route)
         .or(best_route)
+        .or(config_route)
         .with(cors);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;

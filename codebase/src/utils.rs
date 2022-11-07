@@ -45,6 +45,8 @@ pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [
     ]
 }
 
+pub const EPSILON: f32 = 0.0000001;
+
 #[cfg(test)]
 mod tests {
     use crate::utils::get_dims_after_filter_dyn;

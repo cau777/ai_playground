@@ -17,6 +17,9 @@ pub async fn get_best(
         &config, "digits", best,
     )))
 }
+pub async fn get_config(config: EnvConfigDep) -> EndpointResult<reply::Json> {
+    Ok(reply::json(&url_creator::get_model_config(&config, "digits")))
+}
 
 pub async fn assign_handler(
     task_manager: TaskManagerDep,

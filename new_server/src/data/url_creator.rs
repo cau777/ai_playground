@@ -32,9 +32,9 @@ pub fn get_train_batch(config: &EnvConfig, name: &str, batch: u32) -> String {
     )
 }
 
-pub fn get_test_batch(config: &EnvConfig, name: &str, batch: u32) -> String {
+pub fn get_validate_batch(config: &EnvConfig, name: &str, batch: u32) -> String {
     format!(
-        "{}|{}/static/{}/test/test.{}.dat?{}",
+        "{}|{}/static/{}/validate/validate.{}.dat?{}",
         AZURE_FS_PREFIX, config.azure_fs_url, name, batch, config.azure_fs_query
     )
 }

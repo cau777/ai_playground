@@ -2,7 +2,7 @@ export type WorkerTasks = "Train"|"Validate"|"Eval";
 export type WorkerRequest = {
     type: "process",
     task: WorkerTasks,
-    arg: Uint8Array,
+    args: unknown[],
 } | {
     type: "init"
 }

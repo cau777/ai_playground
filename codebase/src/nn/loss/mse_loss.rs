@@ -1,9 +1,9 @@
 use crate::nn::loss::loss_func::LossFuncOps;
 use crate::utils::ArrayDynF;
 
-pub struct MseLossFunc {}
+pub struct MseLoss {}
 
-impl LossFuncOps for MseLossFunc {
+impl LossFuncOps for MseLoss {
     fn calc_loss(expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
         (expected - actual).mapv(|o: f32| o * o)
     }

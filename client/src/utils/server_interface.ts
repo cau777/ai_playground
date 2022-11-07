@@ -65,3 +65,7 @@ export async function getBest() {
 export function submitTrain(bytes: Uint8Array) {
     return axios.post(ServerUrl + "/submit_train", bytes);
 }
+
+export function getConfigUrl() {
+    return axios.get<string>(ServerUrl + "/config").then(o => o.data)
+}

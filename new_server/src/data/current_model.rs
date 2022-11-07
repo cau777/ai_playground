@@ -2,9 +2,9 @@ use crate::data::model_source::ModelSource;
 use codebase::integration::serialization::{deserialize_storage, serialize_storage};
 use codebase::nn::layers::nn_layers::GenericStorage;
 use std::io;
-use std::ops::AddAssign;
+use codebase::integration::model_deltas;
 
-const SAVE_AFTER: u32 = 50;
+const SAVE_AFTER: u32 = 20;
 
 pub struct CurrentModel {
     storage: GenericStorage,
@@ -27,21 +27,7 @@ impl CurrentModel {
     }
 
     pub fn increment(&mut self, versions: u32, deltas: GenericStorage) {
-        for (key, value) in deltas.into_iter() {
-            if !self.storage.contains_key(&key) {
-                self.storage.insert(key, value);
-            } else {
-                let current_item = self.storage.get_mut(&key).unwrap();
-                for (index, delta_arr) in value.into_iter().enumerate() {
-                    if current_item.len() <= index {
-                        current_item.insert(index, delta_arr);
-                    } else {
-                        current_item.get_mut(index).unwrap().add_assign(&delta_arr);
-                    }
-                }
-            }
-        }
-
+        model_deltas::import_deltas(&mut self.storage, deltas);
         self.version += versions;
     }
 
