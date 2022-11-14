@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-import "common.proto";
-package proto_data;
-
-message ArrayPairData {
-  NdArrayData inputs = 1;
-  NdArrayData expected = 2;
-}

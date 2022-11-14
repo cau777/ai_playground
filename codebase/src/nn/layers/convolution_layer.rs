@@ -311,6 +311,7 @@ mod tests {
     use crate::utils::{arrays_almost_equal, ArrayDynF};
     use crate::Array4F;
     use ndarray::{array, stack, Axis};
+    use crate::nn::train_config::TrainConfig;
 
     #[test]
     fn test_forward() {
@@ -334,7 +335,7 @@ mod tests {
                 forward_cache: &mut GenericStorage::new(),
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
             },
             &config,
         )
@@ -371,7 +372,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
             },
             &config,
         )

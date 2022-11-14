@@ -1,20 +1,18 @@
 [package]
-name = "codebase"
+name = "train_server"
 version = "0.1.0"
 edition = "2021"
-
-[lib]
-crate_type = ["rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ndarray = "0.15.6"
-ndarray-rand = "0.14.0"
-lazy_static = "1.4.0"
-getrandom = { version = "0.2.7", features = ["js"] }
-flate2 = "1.0.24"
-xmltree = "0.10.3"
+codebase = { path = "../codebase" }
+http = "0.2.8"
+reqwest = { version="0.11.12", features=["blocking"] }
+rand = "0.8.5"
+
+[profile.dev]
+opt-level = 2
 
 [profile.release]
 lto = true

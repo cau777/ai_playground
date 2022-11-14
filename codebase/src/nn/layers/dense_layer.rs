@@ -12,7 +12,7 @@ use ndarray::{s, Axis, ShapeBuilder};
 use ndarray_rand::rand_distr::{Normal, Uniform};
 use ndarray_rand::RandomExt;
 use std::iter::zip;
-use std::ops::{AddAssign, SubAssign};
+use std::ops::{AddAssign};
 
 #[derive(Clone, Debug)]
 pub struct DenseConfig {
@@ -206,6 +206,7 @@ mod tests {
     use ndarray::array;
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
+    use crate::nn::train_config::TrainConfig;
 
     #[test]
     fn test_forward() {
@@ -227,7 +228,7 @@ mod tests {
 
         let output = DenseLayer::forward(
             ForwardData {
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut storage,
                 inputs: input,
@@ -284,7 +285,7 @@ mod tests {
         let result = DenseLayer::backward(
             BackwardData {
                 grad: grad.into_dyn(),
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
                 assigner: &mut KeyAssigner::new(),
                 forward_cache: &mut forward_cache,
                 storage: &mut storage,
@@ -324,7 +325,7 @@ mod tests {
 
         for _ in 0..100 {
             let inputs = inputs.clone();
-            last_loss = controller.train_batch(inputs, &expected).unwrap();
+            last_loss = controller.train_batch(inputs, &expected, TrainConfig::default()).unwrap();
             if first_loss.is_none() {
                 first_loss = Some(last_loss);
             }

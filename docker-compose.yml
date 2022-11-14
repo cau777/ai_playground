@@ -1,0 +1,14 @@
+version: "3"
+services:
+  trainer:
+    build:
+      context: .
+      dockerfile: ./trainer/Dockerfile
+    image: cau777/aipg-trainer
+  versions:
+    build:
+      context: .
+      dockerfile: ./versions_server/Dockerfile
+    ports:
+      - "8000:80"
+    image: cau777/aipg-versions-controller
