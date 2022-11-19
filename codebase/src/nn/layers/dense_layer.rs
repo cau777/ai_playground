@@ -7,12 +7,12 @@ use crate::nn::layers::nn_layers::{
     TrainableLayerOps,
 };
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
-use crate::utils::{Array1F, Array2F};
-use ndarray::{s, Axis, ShapeBuilder};
-use ndarray_rand::rand_distr::{Normal, Uniform};
+use crate::utils::{Array1F, Array2F, GetBatchSize};
+use ndarray::{Axis, ShapeBuilder, stack, Zip};
+use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
-use std::iter::zip;
 use std::ops::{AddAssign};
+use ndarray::parallel::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DenseConfig {
@@ -77,25 +77,25 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights, biases] = clone_from_storage2(storage, &key);
-        // println!("mean input = {}", inputs.iter().copied().map(|o| o as f64).sum::<f64>() / inputs.len() as f64);
-        // println!("Mean weights = {}", weights.iter().copied().map(|o| o as f64).sum::<f64>() / weights.len() as f64);
         let weights: Array2F = weights.into_dimensionality()?;
         let biases: &Array1F = &biases.into_dimensionality()?;
 
         let inputs: Array2F = inputs.into_dimensionality()?;
 
-        let batch_size = inputs.shape()[0];
-        let mut result = Array2F::default((batch_size, layer_config.out_values).f());
-
+        let mut dot_prod = Vec::with_capacity(inputs.batch_size());
         inputs
             .outer_iter()
+            .into_par_iter()
             .map(|o| weights.dot(&o))
             .map(|o| o + biases)
-            .enumerate()
-            .for_each(|(index, o)| result.slice_mut(s![index, ..]).assign(&o));
+            .collect_into_vec(&mut dot_prod);
+
+        let mut views = Vec::with_capacity(inputs.batch_size());
+        views.extend(dot_prod.iter().map(|o| o.view()));
+
+        let result = stack(Axis(0), &views)?;
 
         forward_cache.insert(key, vec![inputs.into_dyn()]);
-        // println!("Mean output = {}", result.iter().copied().map(|o| o as f64).sum::<f64>() / result.len() as f64);
         Ok(result.into_dyn())
     }
 
@@ -108,7 +108,6 @@ impl LayerOps<DenseConfig> for DenseLayer {
             backward_cache,
             ..
         } = data;
-        // println!("Mean grad = {}", grad.iter().copied().map(|o| o as f64).sum::<f64>() / grad.len() as f64);
         let key = assigner.get_key(gen_name(layer_config));
 
         let [weights] = clone_from_storage1(storage, &key);
@@ -118,34 +117,37 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let inputs: Array2F = inputs.into_dimensionality()?;
 
         let grad: Array2F = grad.into_dimensionality()?;
-        let mut weights_error = Array2F::default((layer_config.out_values, layer_config.in_values));
-        let batches = inputs.shape()[0];
 
+        let batches = inputs.shape()[0];
         // Divide by number of weights to avoid exploding weights
-        let factor = 1.0 / (batches * layer_config.out_values  * layer_config.in_values) as f32;
-        zip(inputs.outer_iter(), grad.outer_iter())
+        let factor = 1.0 / (batches * layer_config.out_values * layer_config.in_values) as f32;
+
+        let weights_error = Zip::from(inputs.outer_iter()).and(grad.outer_iter())
+            .into_par_iter()
             .map(|(i, g)| {
                 let gt = g.insert_axis(Axis(1));
                 let it = i.insert_axis(Axis(0));
-                let result = gt.dot(&it);
-                result
+                gt.dot(&it)
             })
-        .for_each(|o| weights_error += &(o * factor));
-        
+            .map(|o| o * factor)
+            .reduce(|| Array2F::default((layer_config.out_values, layer_config.in_values)),
+                    |acc, val| acc + val);
+
         let biases_grad = grad.mean_axis(Axis(0)).unwrap().into_dyn();
-        
+
         let weights_grad = weights_error.into_dyn();
         backward_cache.insert(key, vec![weights_grad, biases_grad]);
 
-        let batch_size = inputs.shape()[0];
-        let mut result = Array2F::default((batch_size, layer_config.in_values));
         let weights_t = weights.t();
+        let mut dot_prod = Vec::with_capacity(inputs.batch_size());
         grad.outer_iter()
+            .into_par_iter()
             .map(|o| weights_t.dot(&o))
-            .enumerate()
-            .for_each(|(index, o)| result.slice_mut(s![index, ..]).assign(&o));
+            .collect_into_vec(&mut dot_prod);
 
-        Ok(result.into_dyn())
+        let mut views = Vec::with_capacity(inputs.batch_size());
+        views.extend(dot_prod.iter().map(|o| o.view()));
+        Ok(stack(Axis(0), &views)?.into_dyn())
     }
 }
 
@@ -162,7 +164,6 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
 
         let [weights_grad, biases_grad] = remove_from_storage2(backward_cache, &key);
 
-        // println!("Mean weights err = {}", weights_grad.iter().copied().map(|o| o as f64).sum::<f64>() / weights_grad.len() as f64);
         let weights_grad = apply_lr_calc(
             &layer_config.weights_lr_calc,
             weights_grad,
@@ -172,7 +173,7 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 assigner,
             },
         )?;
-        // println!("Mean weights_grad = {}", weights_grad.iter().copied().map(|o| o as f64).sum::<f64>() / weights_grad.len() as f64);
+
         let biases_grad = apply_lr_calc(
             &layer_config.biases_lr_calc,
             biases_grad,
@@ -195,10 +196,7 @@ mod tests {
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::controller::NNController;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::dense_layer::{DenseLayer, DenseConfig, DenseLayerInit};
-    use crate::nn::layers::nn_layers::{
-        BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps,
-    };
+    use crate::nn::layers::nn_layers::*;
     use crate::nn::loss::loss_func::LossFunc;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
@@ -206,6 +204,7 @@ mod tests {
     use ndarray::array;
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
+    use crate::nn::layers::dense_layer::{DenseConfig, DenseLayer, DenseLayerInit};
     use crate::nn::train_config::TrainConfig;
 
     #[test]
@@ -224,7 +223,7 @@ mod tests {
             },
             &config,
         )
-        .unwrap();
+            .unwrap();
 
         let output = DenseLayer::forward(
             ForwardData {
@@ -236,7 +235,7 @@ mod tests {
             },
             &config,
         )
-        .unwrap();
+            .unwrap();
 
         assert!(arrays_almost_equal(&output, &expected));
     }
@@ -256,9 +255,9 @@ mod tests {
             [-2.516, -2.913, -1.009, -2.873, -1.114]
         ];
         let expected_weights_grad: Array2F = array![
-            [-1.335, -1.0085, -0.537, -1.3085, -0.89],
-            [-0.249, -0.1875, -0.111, -0.2555, -0.166],
-            [-1.2195, -0.9185, -0.54, -1.2475, -0.813]
+            [-0.089, -0.06723334, -0.0358, -0.0872, -0.059],
+            [-0.0166, -0.0125, -0.0074, -0.01703, -0.011],
+            [-0.0813, -0.0612, -0.036, -0.08316, -0.0542]
         ];
         let expected_biases_grad: Array1F = array![-2.08, -0.4, -1.955];
         let config = DenseConfig {
@@ -277,7 +276,7 @@ mod tests {
             },
             &config,
         )
-        .unwrap();
+            .unwrap();
 
         let mut forward_cache = GenericStorage::new();
         forward_cache.insert("dense_5_3_0".to_owned(), vec![inputs.into_dyn()]);
@@ -293,14 +292,14 @@ mod tests {
             },
             &config,
         )
-        .unwrap();
-        
+            .unwrap();
+
         assert!(arrays_almost_equal(
             &expected,
-            &result.into_dimensionality().unwrap()
+            &result.into_dimensionality().unwrap(),
         ));
         let cache = &backward_cache["dense_5_3_0"];
-        
+
         assert!(arrays_almost_equal(&expected_weights_grad, &cache[0].clone().into_dimensionality().unwrap()));
         assert!(arrays_almost_equal(&expected_biases_grad, &cache[1].clone().into_dimensionality().unwrap()));
     }
@@ -317,7 +316,7 @@ mod tests {
             }),
             LossFunc::Mse,
         )
-        .unwrap();
+            .unwrap();
         let inputs = Array2F::random((2, 12), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let expected = Array2F::random((2, 10), Normal::new(0.0, 0.5).unwrap()).into_dyn();
         let mut last_loss = 0.0;

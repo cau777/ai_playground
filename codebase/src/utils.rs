@@ -15,14 +15,28 @@ pub type ArrayDynF = Array<F, IxDyn>;
 // pub type ArrayView3F<'a> = ArrayView3<'a, f32>;
 // pub type ArrayView4F<'a> = ArrayView4<'a, f32>;
 
+pub trait GetBatchSize {
+    fn batch_size(&self) -> usize;
+}
+
+impl<T, D: Dimension> GetBatchSize for Array<T, D> {
+    #[inline]
+    fn batch_size(&self) -> usize {
+        self.shape()[0]
+    }
+}
+
+#[inline]
 pub fn arrays_almost_equal<D: ndarray::Dimension>(arr1: &ArrayF<D>, arr2: &ArrayF<D>) -> bool {
     azip!(arr1, arr2).all(|a, b| (a - b).abs() < 0.001)
 }
 
+#[inline]
 pub fn lerp_arrays<D: Dimension>(a: &ArrayF<D>, b: &ArrayF<D>, t: F) -> ArrayF<D> {
     a + (b - a) * t
 }
 
+#[inline]
 pub fn get_dims_after_filter_dyn(shape: &[usize], size: usize, stride: usize) -> Vec<usize> {
     let len = shape.len();
     let mut result = Vec::with_capacity(len);
@@ -35,6 +49,7 @@ pub fn get_dims_after_filter_dyn(shape: &[usize], size: usize, stride: usize) ->
     result
 }
 
+#[inline]
 pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [usize; 4] {
     let shape = array.shape();
     [
