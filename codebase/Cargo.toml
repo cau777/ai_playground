@@ -26,5 +26,5 @@ codegen-units = 1
 panic = "abort"
 
 [[bench]]
-name = "dense_layer"
+name = "conv_layer"
 harness = false
