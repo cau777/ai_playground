@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "gh-pages": "npm run build"
+    "gh-pages": "tsc && vite build --base=/ai_playground/"
   },
   "dependencies": {
     "@azure/storage-file-share": "^12.11.0",
