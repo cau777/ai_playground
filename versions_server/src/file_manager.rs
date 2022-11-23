@@ -9,8 +9,6 @@ use codebase::integration::serialization::serialize_storage;
 use codebase::nn::layers::nn_layers::GenericStorage;
 use crate::EnvConfigDep;
 
-const MAX_VERSIONS: usize = 5;
-
 struct Version {
     id: u32,
     meta: VersionMeta,
@@ -24,6 +22,7 @@ struct VersionMeta {
 pub struct FileManager {
     versions: Vec<Version>,
     base_path: String,
+    config: EnvConfigDep,
 }
 
 impl FileManager {
@@ -37,7 +36,7 @@ impl FileManager {
             let name = entry.file_name();
             let name = name.to_str();
             if let Some(name) = name {
-                if !name.ends_with(".json") { continue }
+                if !name.ends_with(".json") { continue; }
                 let id = name.strip_suffix(".json").unwrap();
 
                 let file = OpenOptions::new()
@@ -55,6 +54,7 @@ impl FileManager {
         Ok(Self {
             versions,
             base_path,
+            config
         })
     }
 
@@ -62,7 +62,7 @@ impl FileManager {
         let new_id = self.most_recent() + 1;
 
         // Remove out-dated versions
-        while self.versions.len() >= MAX_VERSIONS {
+        while self.versions.len() >= self.config.keep_versions {
             let worst = self.versions.iter()
                 .max_by(|a, b| a.meta.loss.total_cmp(&b.meta.loss)).unwrap();
             self.remove(worst.id)?;
@@ -90,14 +90,19 @@ impl FileManager {
             .map_err(|e| io::Error::new(InvalidData, e))
     }
 
-    pub fn get_config(&self) -> io::Result<Vec<u8>> {
+    pub fn get_config(&self) -> io::Result<ModelXmlConfig> {
+        self.get_config_bytes().and_then(|o| load_model_xml(&o)
+            .map_err(|e| io::Error::new(InvalidData, e)))
+    }
+
+    pub fn get_config_bytes(&self) -> io::Result<Vec<u8>> {
         let mut file = self.open_config(OpenOptions::new().read(true))?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         Ok(buffer)
     }
 
-    pub fn set_config(&self, bytes: &[u8]) -> io::Result<()> {
+    pub fn set_config_bytes(&self, bytes: &[u8]) -> io::Result<()> {
         let mut file = self.open_config(OpenOptions::new().write(true).create(true))?;
         file.write_all(bytes)
     }

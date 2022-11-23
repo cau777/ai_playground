@@ -16,7 +16,10 @@ pub struct ServerClient {
 impl ServerClient {
     pub fn new(config: &EnvConfig) -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap(),
             base_url: config.versions_server_url.clone(),
         }
     }

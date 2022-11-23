@@ -14,7 +14,6 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
-    epoch: u32,
 }
 
 impl NNController {
@@ -32,16 +31,11 @@ impl NNController {
         Ok(Self {
             main_layer,
             storage,
-            epoch: 1,
             loss,
         })
     }
 
-    pub fn load(
-        main_layer: Layer,
-        loss: LossFunc,
-        mut storage: GenericStorage,
-    ) -> Result<Self, LayerError> {
+    pub fn load(main_layer: Layer, loss: LossFunc, mut storage: GenericStorage) -> Result<Self, LayerError> {
         let mut assigner = KeyAssigner::new();
         init_layer(
             &main_layer,
@@ -54,9 +48,13 @@ impl NNController {
         Ok(Self {
             main_layer,
             storage,
-            epoch: 1,
             loss,
         })
+    }
+
+    pub fn eval_one(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
+        self.eval_batch(stack![Axis(0), inputs])
+            .map(|o| o.remove_axis(Axis(0)))
     }
 
     pub fn eval_batch(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
@@ -76,12 +74,7 @@ impl NNController {
         )
     }
 
-    pub fn train_one(
-        &mut self,
-        inputs: ArrayDynF,
-        expected: ArrayDynF,
-        config: TrainConfig,
-    ) -> Result<f64, LayerError> {
+    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
         self.train_batch(
             stack![Axis(0), inputs],
             &stack![Axis(0), expected],
@@ -143,7 +136,6 @@ impl NNController {
             },
         )?;
 
-        self.epoch += 1;
         Ok(loss_mean)
     }
 
@@ -260,7 +252,7 @@ mod tests {
             }),
             LossFunc::Mse,
         )
-        .unwrap();
+            .unwrap();
 
         let dist = Normal::new(0.0, 1.0).unwrap();
 

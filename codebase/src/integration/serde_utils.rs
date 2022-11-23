@@ -1,5 +1,5 @@
-use std::{io::{self, Read}, fmt::Display, string::FromUtf8Error};
-use ndarray::{Axis, concatenate, s, Slice, stack};
+use std::{io::{self, Read}, fmt::Display, string::FromUtf8Error, iter};
+use ndarray::{ArrayViewD, Axis, concatenate, s, Slice, stack};
 use ndarray_rand::rand;
 use ndarray_rand::rand::Rng;
 use crate::ArrayDynF;
@@ -94,6 +94,11 @@ impl Pairs {
             inputs: concatenate(Axis(0), &new_inputs).unwrap(),
             expected: concatenate(Axis(0), &new_expected).unwrap(),
         }
+    }
+
+    pub fn chunks_iter(&self, size: usize) -> impl Iterator<Item = (ArrayViewD<f32>, ArrayViewD<f32>)> {
+        iter::zip(self.inputs.axis_chunks_iter(Axis(0), size),
+        self.expected.axis_chunks_iter(Axis(0), size))
     }
 }
 

@@ -25,6 +25,6 @@ opt-level = 3
 codegen-units = 1
 panic = "abort"
 
-[[bench]]
-name = "conv_layer"
-harness = false
+#[[bench]]
+#name = "conv_layer"
+#harness = false

@@ -5,6 +5,7 @@ use std::fs::OpenOptions;
 use std::io;
 use std::io::{Read, Write};
 use std::io::ErrorKind::InvalidData;
+use std::iter::zip;
 use codebase::integration::deserialization::{deserialize_pairs, deserialize_storage};
 use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
 use codebase::integration::serde_utils::Pairs;
@@ -44,20 +45,28 @@ fn init(model_config: ModelXmlConfig, client: &ServerClient) -> GenericStorage {
 
 fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
     let mut controller = NNController::load(model_config.main_layer, model_config.loss_func, initial).unwrap();
-    let data = load_data("train", config).unwrap();
+    let train_data = load_data("train", config).unwrap();
+    let validate_data = load_data("validate", config).unwrap();
     let mut rng = thread_rng();
 
-    for version in 0..10 {
-        let mut total_loss=0.0;
+    for version in 0..config.versions {
+        let mut total_loss = 0.0;
 
-        for epoch in 0..10 {
-            let data = data.pick_rand(128, &mut rng); // TODO: param
-            let loss=controller.train_batch(data.inputs, &data.expected, TrainConfig::default()).unwrap();
+        println!("Start {}", version);
+        for epoch in 0..config.epochs_per_version {
+            let data = train_data.pick_rand(128, &mut rng); // TODO: param
+            let loss = controller.train_batch(data.inputs, &data.expected, TrainConfig::default()).unwrap();
             total_loss += loss;
-            println!("{} -> loss={}", epoch, loss);
+
+            if epoch % 16 == 0 {
+                println!("    {} -> loss={}", epoch, loss);
+            }
         }
 
-        let avg_loss = total_loss / config.max_epochs as f64;
+        let avg_loss = total_loss / config.epochs_per_version as f64;
+        let tested_loss = validate(&validate_data, &controller);
+
+        println!("    Finished with avg_loss={} and tested_loss={}", avg_loss, tested_loss);
         client.submit(&controller.export(), avg_loss);
     }
 }
@@ -69,4 +78,16 @@ fn load_data(filename: &str, config: &EnvConfig) -> io::Result<Pairs> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
     deserialize_pairs(&buffer).map_err(|e| io::Error::new(InvalidData, e))
+}
+
+fn validate(data: &Pairs, controller: &NNController) -> f64 {
+    println!("Started testing");
+
+    let mut total = 0.0;
+    let mut count = 0;
+    for batch in data.chunks_iter(256) {
+        total += controller.test_batch(batch.0.into_owned(), &batch.1.into_owned()).unwrap();
+        count += 1;
+    }
+    total / (count as f64)
 }

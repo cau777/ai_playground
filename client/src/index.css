@@ -25,4 +25,10 @@
     input[type="range"][disabled]::-moz-range-thumb {
         @apply bg-primary-800;
     }
+
+    .grid-center {
+        display: grid;
+        align-items: center;
+        justify-items: center;
+    }
 }

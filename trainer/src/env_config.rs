@@ -2,7 +2,8 @@ use std::env::{var, VarError};
 
 pub struct EnvConfig {
     pub versions_server_url: String,
-    pub max_epochs: u32,
+    pub versions: u32,
+    pub epochs_per_version: u32,
     pub mounted_path: String,
 }
 
@@ -21,10 +22,14 @@ impl EnvConfig {
     }
 
     fn try_new() -> Result<Self, VarError> {
+        let epochs_per_version = var("EPOCHS_PER_VERSION").unwrap_or_else(|_| "3".to_owned()).parse().unwrap();
+        let versions = var("VERSIONS").unwrap_or_else(|_| "10".to_owned()).parse().unwrap();
+
         Ok(Self {
             versions_server_url: get_path("VERSIONS_SERVER_URL")?,
-            max_epochs: var("MAX_EPOCHS").ok().and_then(|o| o.parse().ok()).unwrap_or(10), // Optional
             mounted_path: get_path("MOUNTED_PATH")?,
+            epochs_per_version,
+            versions
         })
     }
 }
