@@ -13,8 +13,10 @@
   "dependencies": {
     "@azure/storage-file-share": "^12.11.0",
     "axios": "^1.1.2",
+    "chart.js": "^4.0.1",
     "dateformat": "^5.0.3",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.0.1",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {

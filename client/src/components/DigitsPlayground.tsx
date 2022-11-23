@@ -2,6 +2,7 @@ import {FC, useRef, useState} from "react";
 import {BtnPrimary} from "./BtnPrimary";
 import {Canvas} from "./Canvas";
 import * as server from "../utils/server-interface";
+import {DigitsResultsGraph} from "./DigitsResultsGraph";
 
 const SIZE = 200;
 const BORDER = 20;
@@ -41,7 +42,7 @@ export const DigitsPlayground: FC = () => {
     let canvasRef = useRef<HTMLCanvasElement>();
     let resizeCanvasRef = useRef<HTMLCanvasElement>(null);
     let framedCanvasRef = useRef<HTMLCanvasElement>(null);
-    let [result, setResult] = useState("");
+    let [result, setResult] = useState<number[]>();
     let [busy, setBusy] = useState(false);
     
     /**
@@ -59,16 +60,18 @@ export const DigitsPlayground: FC = () => {
         centerContext.clearRect(0, 0, SIZE, SIZE);
         let data = canvasContext.getImageData(0, 0, SIZE, SIZE, {colorSpace: "srgb"});
         let realBounds = getRealBounds(data);
-        let clampedBounds = {
-            left: Math.min(realBounds.left, BORDER),
-            top: Math.min(realBounds.top, BORDER),
-            right: Math.max(realBounds.right, SIZE - BORDER),
-            bottom: Math.max(realBounds.bottom, SIZE - BORDER)
-        };
+        let width = realBounds.right - realBounds.left;
+        let height = realBounds.bottom - realBounds.top;
         
-        centerContext.drawImage(canvas, clampedBounds.left, clampedBounds.top,
-            clampedBounds.right - clampedBounds.left, clampedBounds.bottom - clampedBounds.top,
-            BORDER, BORDER, SIZE - BORDER * 2, SIZE - BORDER * 2);
+        let usableSize = SIZE - BORDER * 2;
+        let scale = usableSize / Math.max(width, height);
+        let nWidth = width * scale;
+        let nHeight = height * scale;
+        
+        centerContext.drawImage(canvas, realBounds.left, realBounds.top,
+            width, height,
+            BORDER + (usableSize - nWidth) / 2, BORDER + (usableSize - nHeight) / 2,
+            nWidth, nHeight);
     }
     
     /**
@@ -97,12 +100,13 @@ export const DigitsPlayground: FC = () => {
         frame();
         resize();
         let pixels = preparePixels();
-        console.log(await server.evaluate(pixels));
+        let result = await server.evaluate(pixels);
+        setResult(result);
         setBusy(false);
     }
     
     return (
-        <div className={"grid-center"}>
+        <div className={"m-12"}>
             <div>
                 <div className={"mb-2"}>
                     <Canvas registerCanvas={c => canvasRef.current = c} size={SIZE}></Canvas>
@@ -112,6 +116,9 @@ export const DigitsPlayground: FC = () => {
                 
                 <BtnPrimary disabled={busy} label={"Evaluate"} onClick={evaluate}></BtnPrimary>
             </div>
+            
+            {result && <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>}
+            {/*<DigitsResultsGraph probabilities={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}></DigitsResultsGraph>*/}
         </div>
     )
 }
