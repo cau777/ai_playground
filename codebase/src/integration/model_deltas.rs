@@ -26,12 +26,7 @@ pub fn import_deltas(current: &mut GenericStorage, deltas: GenericStorage) {
                 if current_item.len() <= index {
                     current_item.insert(index, delta_arr);
                 } else {
-                    //println!("{}->{}", key, index);
-                    //println!("Self {:?}", current_item[index].iter().take(10).collect::<Vec<_>>());
-                    //println!("Deltas {:?}", delta_arr.iter().take(10).collect::<Vec<_>>());
-
                     current_item.get_mut(index).unwrap().add_assign(&delta_arr);
-                    //println!("Result {:?}", current_item[index].iter().take(10).collect::<Vec<_>>());
                 }
             }
         }

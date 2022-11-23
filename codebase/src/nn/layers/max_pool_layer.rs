@@ -84,6 +84,7 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::max_pool_layer::{MaxPoolConfig, MaxPoolLayer};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
+    use crate::nn::train_config::TrainConfig;
     use crate::utils::{Array3F, ArrayDynF};
 
     fn create_inputs() -> ArrayDynF {
@@ -126,7 +127,7 @@ mod tests {
         fn forward(inputs: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
             MaxPoolLayer::forward(ForwardData {
                 inputs,
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
@@ -162,7 +163,7 @@ mod tests {
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
-                batch_config: &BatchConfig { epoch: 1 },
+                batch_config: &BatchConfig::new_train(TrainConfig::default()),
             }, &MaxPoolConfig { size, stride }).unwrap()
         }
 

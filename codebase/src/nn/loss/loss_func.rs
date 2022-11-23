@@ -1,4 +1,5 @@
-use crate::nn::loss::mse_loss::MseLossFunc;
+use crate::nn::loss::cross_entropy_loss::CrossEntropyLoss;
+use crate::nn::loss::mse_loss::MseLoss;
 use crate::utils::ArrayDynF;
 
 pub trait LossFuncOps {
@@ -8,19 +9,22 @@ pub trait LossFuncOps {
 
 #[derive(Clone, Debug)]
 pub enum LossFunc {
-    Mse
+    Mse,
+    CrossEntropy
 }
 
 pub fn calc_loss(layer: &LossFunc, expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
     use LossFunc::*;
     match layer {
-        Mse => MseLossFunc::calc_loss(expected, actual)
+        Mse => MseLoss::calc_loss(expected, actual),
+        CrossEntropy => CrossEntropyLoss::calc_loss(expected, actual),
     }
 }
 
 pub fn calc_loss_grad(layer: &LossFunc, expected: &ArrayDynF, actual: &ArrayDynF) -> ArrayDynF {
     use LossFunc::*;
     match layer {
-        Mse => MseLossFunc::calc_loss_grad(expected, actual)
+        Mse => MseLoss::calc_loss_grad(expected, actual),
+        CrossEntropy => CrossEntropyLoss::calc_loss_grad(expected, actual),
     }
 }

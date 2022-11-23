@@ -89,6 +89,7 @@ fn load_loss_func(element: &Element) -> Result<LossFunc> {
     for e in iter_elements(&element.children) {
         match &e.name.as_str() {
             &"Mse" => return Ok(LossFunc::Mse),
+            &"CrossEntropy" => return Ok(LossFunc::CrossEntropy),
             _ => return Err(XmlError::UnexpectedTag(e.name.clone())),
         }
     }

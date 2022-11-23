@@ -28,6 +28,7 @@ const passiveOptions: any = isPassiveEnabled() ? {passive: false} : false;
 
 type Props = {
     registerCanvas: (element: HTMLCanvasElement) => void;
+    size: number;
 }
 
 export const Canvas: FC<Props> = (props) => {
@@ -63,7 +64,7 @@ export const Canvas: FC<Props> = (props) => {
     }, []);
     
     function clear() {
-        ref.current?.getContext("2d")!.clearRect(0, 0, 112, 112);
+        ref.current?.getContext("2d")!.clearRect(0, 0, props.size, props.size);
     }
     
     function drawMove(screenX: number, screenY: number) {
@@ -90,16 +91,17 @@ export const Canvas: FC<Props> = (props) => {
         }
         
         prevPos.current = [currX, currY];
-        
-        console.log(screenX, screenY);
+        // console.log(screenX, screenY);
     }
     
     return (
-        <>
-            <canvas className={"bg-white border-2 border-back-1"} width={112} height={112} ref={ref}
+        <div className={"flex mt-9"}>
+            <canvas className={"bg-white border-2 border-back-1"} width={props.size} height={props.size} ref={ref}
                     onMouseDown={() => setDrawing(true)}
                     onTouchStart={() => setDrawing(true)}></canvas>
-            <BtnPrimary label={"Clear"} onClick={clear}></BtnPrimary>
-        </>
+            <div>
+                <BtnPrimary label={"Clear"} onClick={clear}></BtnPrimary>
+            </div>
+        </div>
     )
 }

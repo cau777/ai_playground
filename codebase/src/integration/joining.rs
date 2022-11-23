@@ -1,6 +1,4 @@
-use std::io::Read;
-
-use crate::integration::byte_utils::*;
+use crate::integration::serde_utils::*;
 pub fn join_as_bytes(objects: &[&[u8]]) -> Vec<u8> {
     let combined_len: usize = objects.iter().map(|o| o.len()).sum();
     let mut result = Vec::with_capacity(4 + objects.len() * 4 + combined_len);

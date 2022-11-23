@@ -48,7 +48,7 @@ pub struct BackwardData<'a> {
     pub grad: ArrayDynF,
     pub batch_config: &'a BatchConfig,
     pub assigner: &'a mut KeyAssigner,
-    pub storage: &'a mut GenericStorage,
+    pub storage: &'a GenericStorage,
     pub forward_cache: &'a mut GenericStorage,
     pub backward_cache: &'a mut GenericStorage,
 }

@@ -1,27 +1,42 @@
 use ndarray::{Array, Array0, Array1, Array2, Array3, Array4, Array5, azip, Dimension, IxDyn};
 
-pub type ArrayF<D> = Array<f32, D>;
-pub type Array0F = Array0<f32>;
-pub type Array1F = Array1<f32>;
-pub type Array2F = Array2<f32>;
-pub type Array3F = Array3<f32>;
-pub type Array4F = Array4<f32>;
-pub type Array5F = Array5<f32>;
-pub type ArrayDynF = Array<f32, IxDyn>;
+type F = f32;
+pub type ArrayF<D> = Array<F, D>;
+pub type Array0F = Array0<F>;
+pub type Array1F = Array1<F>;
+pub type Array2F = Array2<F>;
+pub type Array3F = Array3<F>;
+pub type Array4F = Array4<F>;
+pub type Array5F = Array5<F>;
+pub type ArrayDynF = Array<F, IxDyn>;
 
 // pub type ArrayView1F<'a> = ArrayView1<'a, f32>;
 // pub type ArrayView2F<'a> = ArrayView2<'a, f32>;
 // pub type ArrayView3F<'a> = ArrayView3<'a, f32>;
 // pub type ArrayView4F<'a> = ArrayView4<'a, f32>;
 
+pub trait GetBatchSize {
+    fn batch_size(&self) -> usize;
+}
+
+impl<T, D: Dimension> GetBatchSize for Array<T, D> {
+    #[inline]
+    fn batch_size(&self) -> usize {
+        self.shape()[0]
+    }
+}
+
+#[inline]
 pub fn arrays_almost_equal<D: ndarray::Dimension>(arr1: &ArrayF<D>, arr2: &ArrayF<D>) -> bool {
     azip!(arr1, arr2).all(|a, b| (a - b).abs() < 0.001)
 }
 
-pub fn lerp_arrays<D: Dimension>(a: &ArrayF<D>, b: &ArrayF<D>, t: f32) -> ArrayF<D> {
+#[inline]
+pub fn lerp_arrays<D: Dimension>(a: &ArrayF<D>, b: &ArrayF<D>, t: F) -> ArrayF<D> {
     a + (b - a) * t
 }
 
+#[inline]
 pub fn get_dims_after_filter_dyn(shape: &[usize], size: usize, stride: usize) -> Vec<usize> {
     let len = shape.len();
     let mut result = Vec::with_capacity(len);
@@ -34,6 +49,7 @@ pub fn get_dims_after_filter_dyn(shape: &[usize], size: usize, stride: usize) ->
     result
 }
 
+#[inline]
 pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [usize; 4] {
     let shape = array.shape();
     [
@@ -43,6 +59,8 @@ pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [
         (shape[3] - size) / stride + 1
     ]
 }
+
+pub const EPSILON: f32 = 0.0000001;
 
 #[cfg(test)]
 mod tests {

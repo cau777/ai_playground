@@ -71,6 +71,7 @@ mod tests {
     use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 
     use lazy_static::lazy_static;
+    use crate::nn::train_config::TrainConfig;
 
     lazy_static! {
         static ref INIT_COUNTER: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -115,7 +116,7 @@ mod tests {
     fn test_forward() {
         let data = ForwardData {
             inputs: Default::default(),
-            batch_config: &BatchConfig { epoch: 1 },
+            batch_config: &BatchConfig::new_train(TrainConfig::default()),
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
             forward_cache: &mut GenericStorage::new(),
@@ -136,7 +137,7 @@ mod tests {
     fn test_backward() {
         let data = BackwardData {
             grad: Default::default(),
-            batch_config: &BatchConfig { epoch: 1 },
+            batch_config: &BatchConfig::new_train(TrainConfig::default()),
             assigner: &mut KeyAssigner::new(),
             storage: &mut Default::default(),
             forward_cache: &mut Default::default(),

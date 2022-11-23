@@ -1,0 +1,21 @@
+[package]
+name = "trainer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codebase = { path = "../codebase" }
+http = "0.2.8"
+reqwest = { version="0.11.12", features=["blocking"] }
+rand = "0.8.5"
+
+[profile.dev]
+opt-level = 2
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"
