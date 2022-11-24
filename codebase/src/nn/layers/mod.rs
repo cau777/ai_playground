@@ -7,3 +7,4 @@ pub mod debug_layer;
 pub mod max_pool_layer;
 pub mod flatten_layer;
 pub mod expand_dim_layer;
+pub mod dropout_layer;

@@ -1,17 +1,9 @@
 use std::collections::HashMap;
 use std::error;
 use crate::nn::batch_config::BatchConfig;
-use crate::nn::layers::convolution_layer::ConvolutionLayer;
-use crate::nn::layers::dense_layer::{DenseLayer, DenseConfig};
 use crate::nn::key_assigner::KeyAssigner;
-use crate::nn::layers::activation::relu_layer::ReluLayer;
-use crate::nn::layers::activation::sigmoid_layer::SigmoidLayer;
-use crate::nn::layers::activation::tanh_layer::TanhLayer;
-use crate::nn::layers::debug_layer::{DebugLayer, DebugLayerConfig};
-use crate::nn::layers::expand_dim_layer::ExpandDimLayer;
-use crate::nn::layers::flatten_layer::FlattenLayer;
-use crate::nn::layers::max_pool_layer::MaxPoolLayer;
-use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
+use crate::nn::layers::*;
+use crate::nn::layers::activation::*;
 use crate::utils::ArrayDynF;
 use super::convolution_layer::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
@@ -19,16 +11,17 @@ use super::max_pool_layer::MaxPoolConfig;
 
 #[derive(Clone, Debug)]
 pub enum Layer {
-    Dense(DenseConfig),
-    Sequential(SequentialConfig),
+    Dense(dense_layer::DenseConfig),
+    Sequential(sequential_layer::SequentialConfig),
     Tanh,
     Sigmoid,
     Relu,
-    Debug(DebugLayerConfig),
+    Debug(debug_layer::DebugLayerConfig),
     Convolution(ConvolutionConfig),
     MaxPool(MaxPoolConfig),
     Flatten,
-    ExpandDim(ExpandDimConfig)
+    ExpandDim(ExpandDimConfig),
+    Dropout(dropout_layer::DropoutConfig)
 }
 
 pub struct InitData<'a> {
@@ -81,57 +74,60 @@ pub trait TrainableLayerOps<T> {
 pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
     use Layer::*;
     match layer {
-        Dense(c) => DenseLayer::init(data, c),
-        Relu => ReluLayer::init(data, &()),
-        Tanh => TanhLayer::init(data, &()),
-        Sigmoid => SigmoidLayer::init(data, &()),
-        Sequential(c) => SequentialLayer::init(data, c),
-        Debug(c) => DebugLayer::init(data, c),
-        Convolution(c) => ConvolutionLayer::init(data, c),
-        MaxPool(c) => MaxPoolLayer::init(data, c),
-        Flatten => FlattenLayer::init(data, &()),
-        ExpandDim(c) => ExpandDimLayer::init(data, c),
+        Dense(c) => dense_layer::DenseLayer::init(data, c),
+        Relu => relu_layer::ReluLayer::init(data, &()),
+        Tanh => tanh_layer::TanhLayer::init(data, &()),
+        Sigmoid => sigmoid_layer::SigmoidLayer::init(data, &()),
+        Sequential(c) => sequential_layer::SequentialLayer::init(data, c),
+        Debug(c) => debug_layer::DebugLayer::init(data, c),
+        Convolution(c) => convolution_layer::ConvolutionLayer::init(data, c),
+        MaxPool(c) => max_pool_layer::MaxPoolLayer::init(data, c),
+        Flatten => flatten_layer::FlattenLayer::init(data, &()),
+        ExpandDim(c) => expand_dim_layer::ExpandDimLayer::init(data, c),
+        Dropout(c) => dropout_layer::DropoutLayer::init(data, c),
     }
 }
 
 pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
     use Layer::*;
     match layer {
-        Dense(c) => DenseLayer::forward(data, c),
-        Sequential(c) => SequentialLayer::forward(data, c),
-        Tanh => TanhLayer::forward(data, &()),
-        Sigmoid => SigmoidLayer::forward(data, &()),
-        Relu => ReluLayer::forward(data, &()),
-        Debug(c) => DebugLayer::forward(data, c),
-        Convolution(c) => ConvolutionLayer::forward(data, c),
-        MaxPool(c) => MaxPoolLayer::forward(data, c),
-        Flatten => FlattenLayer::forward(data, &()),
-        ExpandDim(c) => ExpandDimLayer::forward(data, c),
+        Dense(c) => dense_layer::DenseLayer::forward(data, c),
+        Sequential(c) => sequential_layer::SequentialLayer::forward(data, c),
+        Tanh => tanh_layer::TanhLayer::forward(data, &()),
+        Sigmoid => sigmoid_layer::SigmoidLayer::forward(data, &()),
+        Relu => relu_layer::ReluLayer::forward(data, &()),
+        Debug(c) => debug_layer::DebugLayer::forward(data, c),
+        Convolution(c) => convolution_layer::ConvolutionLayer::forward(data, c),
+        MaxPool(c) => max_pool_layer::MaxPoolLayer::forward(data, c),
+        Flatten => flatten_layer::FlattenLayer::forward(data, &()),
+        ExpandDim(c) => expand_dim_layer::ExpandDimLayer::forward(data, c),
+        Dropout(c) => dropout_layer::DropoutLayer::forward(data, c),
     }
 }
 
 pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
     use Layer::*;
     match layer {
-        Dense(c) => DenseLayer::backward(data, c),
-        Sequential(c) => SequentialLayer::backward(data, c),
-        Tanh => TanhLayer::backward(data, &()),
-        Sigmoid => SigmoidLayer::backward(data, &()),
-        Relu => ReluLayer::backward(data, &()),
-        Debug(c) => DebugLayer::backward(data, c),
-        Convolution(c) => ConvolutionLayer::backward(data, c),
-        MaxPool(c) => MaxPoolLayer::backward(data, c),
-        Flatten => FlattenLayer::backward(data, &()),
-        ExpandDim(c) => ExpandDimLayer::backward(data, c),
+        Dense(c) => dense_layer::DenseLayer::backward(data, c),
+        Sequential(c) => sequential_layer::SequentialLayer::backward(data, c),
+        Tanh => tanh_layer::TanhLayer::backward(data, &()),
+        Sigmoid => sigmoid_layer::SigmoidLayer::backward(data, &()),
+        Relu => relu_layer::ReluLayer::backward(data, &()),
+        Debug(c) => debug_layer::DebugLayer::backward(data, c),
+        Convolution(c) => convolution_layer::ConvolutionLayer::backward(data, c),
+        MaxPool(c) => max_pool_layer::MaxPoolLayer::backward(data, c),
+        Flatten => flatten_layer::FlattenLayer::backward(data, &()),
+        ExpandDim(c) => expand_dim_layer::ExpandDimLayer::backward(data, c),
+        Dropout(c) => dropout_layer::DropoutLayer::backward(data, c),
     }
 }
 
 pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
     use Layer::*;
     match layer {
-        Dense(c) => DenseLayer::train(data, c),
-        Sequential(c) => SequentialLayer::train(data, c),
-        Convolution(c) => ConvolutionLayer::train(data, c),
+        Dense(c) => dense_layer::DenseLayer::train(data, c),
+        Sequential(c) => sequential_layer::SequentialLayer::train(data, c),
+        Convolution(c) => convolution_layer::ConvolutionLayer::train(data, c),
         _ => Ok(()),
     }
 }

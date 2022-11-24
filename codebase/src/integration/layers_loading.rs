@@ -110,7 +110,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 layers.push(load_layer(e)?)
             }
             Ok(Layer::Sequential(sequential_layer::SequentialConfig {
-                layers: layers,
+                layers,
             }))
         }
         &"Dense" => {
@@ -165,7 +165,12 @@ fn load_layer(element: &Element) -> Result<Layer> {
         }
         &"ExpandDim" => {
             Ok(Layer::ExpandDim(expand_dim_layer::ExpandDimConfig {
-                dim: get_usize_attr(element, "dim")?
+                dim: get_usize_attr(element, "dim")?,
+            }))
+        },
+        &"Dropout" => {
+            Ok(Layer::Dropout(dropout_layer::DropoutConfig {
+                drop: get_f32_attr(element, "drop")?,
             }))
         }
         _ => Err(XmlError::UnexpectedTag(element.name.clone())),
