@@ -117,8 +117,10 @@ export const DigitsPlayground: FC = () => {
                 <BtnPrimary disabled={busy} label={"Evaluate"} onClick={evaluate}></BtnPrimary>
             </div>
             
-            {result && <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>}
-            {/*<DigitsResultsGraph probabilities={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}></DigitsResultsGraph>*/}
+            <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>
+            
+            <img alt={"MNIST examples"} className={"mt-5 max-h-64"}
+                src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
         </div>
     )
 }
