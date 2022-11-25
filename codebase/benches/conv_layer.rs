@@ -13,12 +13,12 @@ use criterion::*;
 fn criterion_benchmark(c: &mut Criterion) {
     let config = convolution_layer::ConvolutionConfig {
         init_mode: convolution_layer::ConvolutionInitMode::HeNormal(),
-        stride:2,
-        kernel_size: 2,
+        stride: 1,
+        kernel_size: 5,
         lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-        in_channels: 1,
-        out_channels: 16,
-        padding: 0,
+        in_channels: 32,
+        out_channels: 64,
+        padding: 2,
     };
     let dist = Normal::new(0.0, 1.0).unwrap();
     let mut storage = GenericStorage::new();
@@ -27,22 +27,23 @@ fn criterion_benchmark(c: &mut Criterion) {
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
 
-    c.bench_function("conv 24x24~16 forward", |b| b.iter(|| {
-        convolution_layer::ConvolutionLayer::forward(ForwardData {
-            inputs: Array4F::random((64, 1, 24, 24), &dist).into_dyn(),
-            storage: &storage,
-            batch_config: &BatchConfig::new_not_train(),
-            assigner: &mut KeyAssigner::new(),
-            forward_cache: &mut GenericStorage::new()
-        }, &config).unwrap();
-    }));
+    // c.bench_function("conv 24x24~64 forward", |b| b.iter(|| {
+    //     let r = convolution_layer::ConvolutionLayer::forward(ForwardData {
+    //         inputs: Array4F::random((64, 32, 14, 14), &dist).into_dyn(),
+    //         storage: &storage,
+    //         batch_config: &BatchConfig::new_not_train(),
+    //         assigner: &mut KeyAssigner::new(),
+    //         forward_cache: &mut GenericStorage::new()
+    //     }, &config).unwrap();
+    //     // println!("{:?}", r.shape());
+    // }));
 
-    c.bench_function("conv 24x24~16 backward", |b| b.iter(|| {
+    c.bench_function("conv 24x24~64 backward", |b| b.iter(|| {
         let mut forward_cache = GenericStorage::new();
-        forward_cache.insert("convolution_1_16_0".to_owned(), vec![Array4F::random((64, 1, 24, 24), &dist).into_dyn()]);
+        forward_cache.insert("convolution_32_64_0".to_owned(), vec![Array4F::random((64, 32, 18, 18), &dist).into_dyn()]);
 
         convolution_layer::ConvolutionLayer::backward(BackwardData {
-            grad: Array4F::random((64, 16, 12, 12), &dist).into_dyn(),
+            grad: Array4F::random((64, 64, 14, 14), &dist).into_dyn(),
             storage: &storage,
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),
