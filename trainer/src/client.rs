@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::ffi::c_double;
 use std::fmt::{Display, Formatter};
+use std::time::Duration;
 use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
 use codebase::integration::serialization::serialize_version;
 use codebase::nn::layers::nn_layers::GenericStorage;
@@ -18,6 +19,8 @@ impl ServerClient {
         Self {
             client: Client::builder()
                 .danger_accept_invalid_certs(true)
+                .connect_timeout(Duration::new(15, 0))
+                .timeout(Duration::new(15, 0))
                 .build()
                 .unwrap(),
             base_url: config.versions_server_url.clone(),

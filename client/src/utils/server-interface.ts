@@ -8,3 +8,8 @@ export async function evaluate(array: number[]) {
     });
     return response.data;
 }
+
+export async function wakeUp() {
+    // Useless endpoint that just wakes up the Azure instance for the next requests
+    return axios.get(ServerUrl + "/wakeup");
+}
