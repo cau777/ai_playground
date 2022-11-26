@@ -24,8 +24,8 @@ export const DigitsResultsGraph: FC<Props> = (props) => {
     let labels = combined.map(o => o[0]);
     let data = combined.map(o => o[1]);
     
-    console.log(labels);
-    console.log(data)
+    // console.log(labels);
+    // console.log(data)
     
     return (
         <div className={"max-w-xl"}>
