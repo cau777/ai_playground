@@ -8,6 +8,7 @@ mod loaded_model;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{Filter, path};
+use warp::http::StatusCode;
 use crate::env_config::EnvConfig;
 use crate::file_manager::FileManager;
 use crate::loaded_model::LoadedModel;
@@ -31,6 +32,10 @@ async fn main() {
         .allow_header("content-type")
         .build();
 
+    let wake_up_route = path!("wakeup")
+        .and(warp::get())
+        .map(warp::reply);
+
     let post_trainable_route = path!("trainable")
         .and(warp::post())
         .and(warp::body::bytes())
@@ -41,12 +46,12 @@ async fn main() {
         .and(warp::get())
         .and(with_file_manager(&file_manager))
         .and_then(rest_handlers::get_trainable);
-    
+
     let get_config_route = path!("config")
         .and(warp::get())
         .and(with_file_manager(&file_manager))
         .and_then(rest_handlers::get_config);
-    
+
     let set_config_route = path!("config")
         .and(warp::post())
         .and(warp::body::bytes())
@@ -60,7 +65,8 @@ async fn main() {
         .and(with_loaded_model(&loaded_model))
         .and_then(rest_handlers::post_eval);
 
-    let routes = post_trainable_route
+    let routes = wake_up_route
+        .or(post_trainable_route)
         .or(get_trainable_route)
         .or(get_config_route)
         .or(set_config_route)
