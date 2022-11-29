@@ -9,11 +9,14 @@ i18n
     .use(initReactI18next)
     .use(HttpBackend)
     .init({
-        debug: true,
+        debug: import.meta.env.DEV,
         fallbackLng: "en",
         interpolation: {
             escapeValue: false,
         },
+        backend: {
+            loadPath: import.meta.env.BASE_URL + "locales/{{lng}}/{{ns}}.json"
+        }
     })
     .then();
 
