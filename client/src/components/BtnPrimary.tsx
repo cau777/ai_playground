@@ -1,4 +1,5 @@
-import {FC} from "react";
+import {FC, PropsWithChildren} from "react";
+import {combine} from "../utils/components";
 
 type Props = {
     label: string;
@@ -6,11 +7,13 @@ type Props = {
     disabled?: boolean;
 }
 
- //TODO: disabled feedback
-export const BtnPrimary: FC<Props> = (props) => {
+export const BtnPrimary: FC<PropsWithChildren<Props>> = (props) => {
+    
     return (
-        <button onClick={props.onClick} className={"bg-primary-700 rounded px-2 py-1 border-2 border-primary-800"} disabled={props.disabled}>
-            {props.label}
+        <button onClick={props.onClick} title={props.label}
+                className={combine("bg-primary-700 rounded px-2 py-1 border-2 border-primary-800", {"bg-primary-800 border-primary-900": props.disabled})}
+                disabled={props.disabled}>
+            {props.children ?? props.label}
         </button>
     )
 }

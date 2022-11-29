@@ -1,5 +1,6 @@
 import {FC, useEffect, useRef, useState} from "react";
 import {BtnPrimary} from "./BtnPrimary";
+import {ClearIcon} from "./icons/ClearIcon";
 
 /**
  * @link https://stackoverflow.com/questions/50393418/what-happens-if-i-dont-test-passive-event-listeners-support
@@ -91,7 +92,6 @@ export const Canvas: FC<Props> = (props) => {
         }
         
         prevPos.current = [currX, currY];
-        // console.log(screenX, screenY);
     }
     
     return (
@@ -100,7 +100,9 @@ export const Canvas: FC<Props> = (props) => {
                     onMouseDown={() => setDrawing(true)}
                     onTouchStart={() => setDrawing(true)}></canvas>
             <div>
-                <BtnPrimary label={"Clear"} onClick={clear}></BtnPrimary>
+                <BtnPrimary label={"Clear"} onClick={clear}>
+                    <ClearIcon className={"w-6"}></ClearIcon>
+                </BtnPrimary>
             </div>
         </div>
     )

@@ -3,6 +3,7 @@ import {BtnPrimary} from "./BtnPrimary";
 import {Canvas} from "./Canvas";
 import * as server from "../utils/server-interface";
 import {DigitsResultsGraph} from "./DigitsResultsGraph";
+import {useTranslation} from "react-i18next";
 
 const SIZE = 200;
 const BORDER = 20;
@@ -44,6 +45,7 @@ export const DigitsPlayground: FC = () => {
     let framedCanvasRef = useRef<HTMLCanvasElement>(null);
     let [result, setResult] = useState<number[]>();
     let [busy, setBusy] = useState(false);
+    let {t} = useTranslation(["digits"]);
     
     /**
      * @summary Create a white border around the digit, scaling it down if necessary.
@@ -97,16 +99,24 @@ export const DigitsPlayground: FC = () => {
     
     async function evaluate() {
         setBusy(true);
-        frame();
-        resize();
-        let pixels = preparePixels();
-        let result = await server.evaluate(pixels);
-        setResult(result);
-        setBusy(false);
+        setResult(undefined);
+        
+        try {
+            frame();
+            resize();
+            let pixels = preparePixels();
+            let result = await server.evaluate(pixels);
+            setResult(result);
+        } finally {
+            setBusy(false);
+        }
     }
     
     return (
-        <div className={"m-12"}>
+        <div className={"m-12 max-w-xl"}>
+            <h1 className={"text-3xl font-black text-primary-100 mb-3"}>{t("digitsTitle")}</h1>
+            <p className={""}>{t("instructions")}</p>
+            <p className={"text-font-2"}>{t("limitations")}</p>
             <div>
                 <div className={"mb-2"}>
                     <Canvas registerCanvas={c => canvasRef.current = c} size={SIZE}></Canvas>
@@ -114,13 +124,14 @@ export const DigitsPlayground: FC = () => {
                 <canvas ref={framedCanvasRef} className={"bg-white hidden"} width={SIZE} height={SIZE}></canvas>
                 <canvas ref={resizeCanvasRef} className={"bg-white hidden"} width={28} height={28}></canvas>
                 
-                <BtnPrimary disabled={busy} label={"Evaluate"} onClick={evaluate}></BtnPrimary>
+                <BtnPrimary disabled={busy} label={t("evaluateBtn")} onClick={evaluate}></BtnPrimary>
             </div>
             
             <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>
             
-            <img alt={"MNIST examples"} className={"mt-5 max-h-64"}
-                src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
+            <h2 className={"text-xl font-semibold mt-4"}>{t("examples")}</h2>
+            <img alt={"MNIST examples"} className={"mt-2 max-h-64"}
+                 src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
         </div>
     )
 }
