@@ -3,6 +3,7 @@ import LanguageDetector from "i18next-browser-languagedetector"
 import { initReactI18next } from "react-i18next"
 import HttpBackend from "i18next-http-backend";
 
+i18n.on("languageChanged", (lng) => document.documentElement.setAttribute("lang", lng));
 
 i18n
     .use(LanguageDetector)
