@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::nn::generic_storage::{clone_from_storage1, get_mut_from_storage, remove_from_storage1};
 use crate::nn::layers::nn_layers::{
     BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult, TrainData,
@@ -5,11 +6,15 @@ use crate::nn::layers::nn_layers::{
 };
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 use crate::utils::*;
-use ndarray::{s, Axis, ErrorKind, ShapeBuilder, ShapeError, stack, Array1, Zip};
+use ndarray::{s, Axis, ErrorKind, ShapeBuilder, ShapeError, stack};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::ops::AddAssign;
+use std::sync::Arc;
 use ndarray::parallel::prelude::*;
+use crate::gpu::shader_runner::{GlobalGpu, GpuData, ShaderRunner};
+use crate::gpu::shaders;
+use crate::utils::ShapeAsArray;
 
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
@@ -63,6 +68,7 @@ fn gen_name(config: &ConvolutionConfig) -> String {
     format!("convolution_{}_{}", config.in_channels, config.out_channels)
 }
 
+// TODO: move to separate file
 impl ConvolutionLayer {
     fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &ConvolutionConfig) -> Array4F {
         let ConvolutionConfig { in_channels, out_channels, kernel_size, stride, .. } = layer_config;
@@ -104,6 +110,120 @@ impl ConvolutionLayer {
         reshaped.swap_axes(2, 3);
 
         reshaped / (layer_config.kernel_size.pow(2) as f32)
+    }
+
+    fn calc_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_config: &ConvolutionConfig) -> Array4F {
+        let inputs_shape = inputs.shape();
+        let ConvolutionConfig { kernel_size, stride, padding, .. } = layer_config;
+
+        // Put height and width in front
+        let grad = grad.permuted_axes((2, 3, 0, 1));
+        let kernel = kernel.permuted_axes((1, 2, 3, 0));
+        let kernel = kernel.insert_axis(Axis(3));
+
+        let [batch_size, in_channels, new_height, new_width] =
+            get_dims_after_filter_4(&inputs, *kernel_size, *stride);
+
+        let mut parts = Vec::with_capacity(new_height * new_width);
+        (0..(new_height * new_width))
+            .into_par_iter()
+            .map(|o| (o % new_width, o / new_width))
+            .map(|(h, w)| {
+                let current_grad = grad.slice(s![h, w, .., ..]);
+                let batch_mul: Array5F = &kernel * &current_grad;
+                let batch_sum = batch_mul.sum_axis(Axis(4));
+                batch_sum.permuted_axes((3, 0, 1, 2))
+            })
+            .collect_into_vec(&mut parts);
+
+        let mut padded_result =
+            Array4F::zeros((batch_size, in_channels, inputs_shape[2], inputs_shape[3]));
+        parts.into_iter()
+            .enumerate()
+            .for_each(|(i, arr)| {
+                let h = i % new_width;
+                let w = i / new_width;
+                let h_offset = h * stride;
+                let w_offset = w * stride;
+                padded_result.slice_mut(s![
+                    ..,
+                    ..,
+                    h_offset..(h_offset + kernel_size),
+                    w_offset..(w_offset + kernel_size)
+                ]).add_assign(&arr);
+            });
+
+        remove_padding_4d(padded_result, *padding)
+    }
+
+    fn calc_inputs_grad_2(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_config: &ConvolutionConfig) -> Array4F {
+        let grad_max_h = grad.shape()[2];
+        let grad_max_w = grad.shape()[3];
+
+        let ConvolutionConfig { out_channels, kernel_size, padding, stride, .. } = layer_config;
+        let kernel_size = *kernel_size;
+
+        let ish = inputs.shape();
+        Array4F::from_shape_fn((ish[0], ish[1], ish[2] - 2 * padding, ish[3] - 2 * padding), |(b, in_c, h, w)| {
+            let padded_h = h + padding;
+            let padded_w = w + padding;
+            let mut result = 0.0;
+
+            let max_h = kernel_size.min(padded_h + 1);// Asserts the condition grad_h >= 0
+            let min_h = (padded_h / stride + 1).max(grad_max_h) - grad_max_h;// Asserts the condition grad_h < grad_max_h
+
+            // Rest of the division by the stride to get the position relative to the filter
+            let mut kernel_h = (padded_h % stride).max(min_h);
+            while kernel_h < max_h {
+                let grad_h = (padded_h - kernel_h) / stride;
+
+                let max_w = kernel_size.min(padded_w + 1); // Asserts the condition grad_w >= 0
+                let min_w = (padded_w / stride + 1).max(grad_max_w) - grad_max_w; // Asserts the condition grad_w < grad_max_w
+
+                let mut kernel_w = (padded_w % stride).max(min_w);
+                while kernel_w < max_w {
+                    let grad_w = (padded_w - kernel_w) / stride;
+
+                    for out_c in 0..*out_channels {
+                        result += grad[(b, out_c, grad_h, grad_w)] * kernel[(out_c, in_c, kernel_h, kernel_w)]
+                    }
+
+                    kernel_w += stride;
+                }
+                kernel_h += stride;
+            }
+            result
+        })
+    }
+
+    fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> Result<Array4F, Box<dyn Error>> {
+        let ish = inputs.shape_arr();
+        let out_shape = (ish[0], ish[1], ish[2] - 2 * layer_config.padding, ish[3] - 2 * layer_config.padding);
+        let ish = ish.map(|o| o as u32);
+        let gsh = grad.shape_arr().map(|o| o as u32);
+
+        let mut runner = ShaderRunner::new(gpu, |d| shaders::convolution_inputs_grad::load(d),
+                                           "main", &shaders::convolution_inputs_grad::SpecializationConstants {
+                batch_size: ish[0],
+                grad_height: gsh[2],
+                grad_width: gsh[3],
+                input_height: ish[2],
+                input_width: ish[3],
+                in_channels: layer_config.in_channels as u32,
+                out_channels: layer_config.out_channels as u32,
+                kernel_size: layer_config.kernel_size as u32,
+                stride: layer_config.stride as u32,
+                padding: layer_config.padding as u32,
+                out_height: out_shape.2 as u32,
+                out_width: out_shape.3 as u32,
+            })?;
+        let results_buffer = runner.create_buffer_from_array(&Array4F::zeros(out_shape))?; // TODO: init
+        let kernel_buffer = runner.create_buffer_from_array(kernel)?;
+        let grad_buffer = runner.create_buffer_from_array(grad)?;
+        println!("{:?}", out_shape);
+        runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32), shaders::convolution_inputs_grad::BLOCK_SIZE)?;
+        let vec = results_buffer.read()?.to_vec();
+        Ok(Array4F::from_shape_vec(out_shape, vec)?)
     }
 }
 
@@ -210,7 +330,6 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
             assigner, forward_cache, storage,
             grad, backward_cache, ..
         } = data;
-        let ConvolutionConfig { padding, stride, kernel_size, .. } = layer_config;
 
         let key = assigner.get_key(gen_name(layer_config));
 
@@ -219,53 +338,23 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
 
         let [inputs] = remove_from_storage1(forward_cache, &key);
         let inputs = inputs.into_dimensionality()?;
-        let inputs_shape = inputs.shape();
 
         let grad = grad.into_dimensionality()?;
 
         let kernels_grad = ConvolutionLayer::calc_kernel_grad(&inputs, &grad, layer_config);
-
         backward_cache.insert(key, vec![kernels_grad.into_dyn()]);
+        let inputs_grad = match data.gpu {
+            Some(gpu) => match ConvolutionLayer::calc_inputs_grad_gpu(&inputs, &grad, &kernel, gpu, layer_config) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("{:?}", e);
+                    ConvolutionLayer::calc_inputs_grad_2(inputs, grad, kernel, layer_config)
+                }
+            }
+            None => ConvolutionLayer::calc_inputs_grad_2(inputs, grad, kernel, layer_config)
+        };
 
-        // Put height and width in front
-        let grad = grad.permuted_axes((2, 3, 0, 1));
-        let kernel = kernel.permuted_axes((1, 2, 3, 0));
-        let kernel = kernel.insert_axis(Axis(3));
-
-        let [batch_size, in_channels, new_height, new_width] =
-            get_dims_after_filter_4(&inputs, *kernel_size, *stride);
-
-        let mut parts=  Vec::with_capacity(new_height * new_width);
-        (0..(new_height * new_width))
-            .into_par_iter()
-            .map(|o| (o % new_width, o / new_width))
-            .map(|(h, w)| {
-                let current_grad = grad.slice(s![h, w, .., ..]);
-                let batch_mul: Array5F = &kernel * &current_grad;
-                let batch_sum = batch_mul.sum_axis(Axis(4));
-                batch_sum.permuted_axes((3, 0, 1, 2))
-            })
-            .collect_into_vec(&mut parts);
-
-        let mut padded_result =
-            Array4F::zeros((batch_size, in_channels, inputs_shape[2], inputs_shape[3]));
-        parts.into_iter()
-            .enumerate()
-            .for_each(|(i, arr)| {
-                let h = i % new_width;
-                let w = i / new_width;
-                let h_offset = h * stride;
-                let w_offset = w * stride;
-                padded_result.slice_mut(s![
-                    ..,
-                    ..,
-                    h_offset..(h_offset + kernel_size),
-                    w_offset..(w_offset + kernel_size)
-                ]).add_assign(&arr);
-            });
-
-        let result = remove_padding_4d(padded_result, *padding);
-        Ok(result.into_dyn())
+        Ok(inputs_grad.into_dyn())
     }
 }
 
@@ -296,24 +385,54 @@ impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer {
     }
 }
 
+// TODO: gpu tests
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::convolution_layer::ConvolutionInitMode::Kernel;
+    use crate::nn::layers::convolution_layer::ConvolutionInitMode::{HeNormal, Kernel};
     use crate::nn::layers::convolution_layer::{ConvolutionConfig, ConvolutionLayer};
     use crate::nn::layers::nn_layers::{
         BackwardData, ForwardData, GenericStorage, InitData, LayerOps, init_layer, Layer,
     };
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
-    use crate::utils::{arrays_almost_equal, ArrayDynF};
+    use crate::utils::{arrays_almost_equal, ArrayDynF, as_array, get_dims_after_filter_4};
     use crate::Array4F;
     use ndarray::{array, stack, Axis};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
+    use crate::gpu::shader_runner::GpuData;
     use crate::nn::layers::convolution_layer;
     use crate::nn::train_config::TrainConfig;
+
+    #[test]
+    fn test_no_regression() {
+        let dist = Normal::new(0.0, 1.0).unwrap();
+        let config = ConvolutionConfig {
+            in_channels: 3,
+            out_channels: 4,
+            kernel_size: 2,
+            padding: 1,
+            init_mode: HeNormal(),
+            lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            stride: 2,
+        };
+        let inputs = Array4F::random((8, config.in_channels, 10, 10), &dist);
+        let grad_shape = (inputs.shape()[0], config.out_channels,
+                          (inputs.shape()[2] - config.kernel_size) / config.stride + 1,
+                          (inputs.shape()[3] - config.kernel_size) / config.stride + 1);
+
+        let grad = Array4F::random(grad_shape, &dist);
+        let kernel = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
+
+        // let expected = ConvolutionLayer::calc_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
+        let expected = ConvolutionLayer::calc_inputs_grad_2(inputs.clone(), grad.clone(), kernel.clone(), &config);
+        let actual = ConvolutionLayer::calc_inputs_grad_gpu(&inputs, &grad, &kernel, GpuData::new_global().unwrap(),&config).unwrap();
+        // println!("Expected\n {:?}\n-------\nActual\n {:?}", expected, actual);
+        assert!(arrays_almost_equal(&expected, &actual));
+    }
 
     #[test]
     fn test_bench() {
@@ -342,6 +461,7 @@ mod tests {
             assigner: &mut KeyAssigner::new(),
             forward_cache: &mut forward_cache,
             backward_cache: &mut GenericStorage::new(),
+            gpu: None,
         }, &config).unwrap();
     }
 
@@ -405,10 +525,13 @@ mod tests {
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
                 batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                gpu: None,
             },
             &config,
         )
             .unwrap();
+
+        println!("{:?}\r\n--------\r\n{:?}", result, expected);
         assert!(arrays_almost_equal(&result, &expected));
     }
 
@@ -420,7 +543,7 @@ mod tests {
         let expected = get_kernels_grad();
         let result = ConvolutionLayer::calc_kernel_grad(&inputs, &grad, &config);
 
-        println!("{:?}\r\n--------\r\n{:?}", result, expected);
+        // println!("{:?}\r\n--------\r\n{:?}", result, expected);
         assert!(arrays_almost_equal(&expected, &result.into_dyn()));
     }
 

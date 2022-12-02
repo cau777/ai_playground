@@ -164,6 +164,7 @@ mod tests {
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
                 batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                gpu: None,
             }, &MaxPoolConfig { size, stride }).unwrap()
         }
 

@@ -9,6 +9,7 @@ use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 
 use criterion::*;
+use codebase::gpu::shader_runner::{GpuData};
 
 fn criterion_benchmark(c: &mut Criterion) {
     let config = convolution_layer::ConvolutionConfig {
@@ -26,6 +27,8 @@ fn criterion_benchmark(c: &mut Criterion) {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
+    let gpu = GpuData::new_global().unwrap();
+
 
     // c.bench_function("conv 24x24~64 forward", |b| b.iter(|| {
     //     let r = convolution_layer::ConvolutionLayer::forward(ForwardData {
@@ -49,6 +52,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             assigner: &mut KeyAssigner::new(),
             forward_cache: &mut forward_cache,
             backward_cache: &mut GenericStorage::new(),
+            gpu: Some(gpu.clone())
         }, &config).unwrap();
     }));
 }

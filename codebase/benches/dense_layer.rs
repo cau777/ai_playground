@@ -9,6 +9,7 @@ use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 
 use criterion::*;
+use codebase::gpu::shader_runner::GpuData;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let config = dense_layer::DenseConfig {
@@ -24,6 +25,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
+    let gpu = GpuData::new_global().unwrap();
 
     c.bench_function("dense 256x256 forward", |b| b.iter(|| {
         dense_layer::DenseLayer::forward(ForwardData {
@@ -46,6 +48,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             assigner: &mut KeyAssigner::new(),
             forward_cache: &mut forward_cache,
             backward_cache: &mut GenericStorage::new(),
+            gpu: Some(gpu.clone())
         }, &config).unwrap();
     }));
 }

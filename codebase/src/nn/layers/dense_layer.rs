@@ -289,6 +289,7 @@ mod tests {
                 forward_cache: &mut forward_cache,
                 storage: &mut storage,
                 backward_cache: &mut backward_cache,
+                gpu: None,
             },
             &config,
         )

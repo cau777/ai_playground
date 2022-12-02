@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::{
@@ -7,6 +8,7 @@ use crate::nn::layers::nn_layers::{
 use crate::nn::loss::loss_func::{calc_loss, calc_loss_grad, LossFunc};
 use crate::utils::ArrayDynF;
 use ndarray::{stack, Axis};
+use crate::gpu::shader_runner::GpuData;
 
 use super::train_config::TrainConfig;
 
@@ -82,15 +84,17 @@ impl NNController {
         )
     }
 
-    pub fn train_batch(
-        &mut self,
-        inputs: ArrayDynF,
-        expected: &ArrayDynF,
-        config: TrainConfig,
-    ) -> Result<f64, LayerError> {
+    pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
         let config = BatchConfig::new_train(config);
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
+        let gpu = match GpuData::new_global() {
+            Ok(v) => Some(v),
+            Err(e) => {
+                eprintln!("{:?}", e);
+                None
+            }
+        };
 
         let output = forward_layer(
             &self.main_layer,
@@ -121,6 +125,7 @@ impl NNController {
                 forward_cache: &mut forward_cache,
                 storage: &mut self.storage,
                 assigner: &mut assigner,
+                gpu: gpu.clone(),
             },
         )?;
 

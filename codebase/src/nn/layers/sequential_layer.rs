@@ -43,6 +43,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
                 backward_cache: data.backward_cache,
                 batch_config: data.batch_config,
                 storage: data.storage,
+                gpu: data.gpu.clone(),
             };
             grad = backward_layer(layer, data)?;
         }
@@ -142,6 +143,7 @@ mod tests {
             storage: &mut Default::default(),
             forward_cache: &mut Default::default(),
             backward_cache: &mut Default::default(),
+            gpu: None,
         };
 
         BACKWARD_COUNTER.lock().unwrap().clear();

@@ -15,6 +15,28 @@ pub type ArrayDynF = Array<F, IxDyn>;
 // pub type ArrayView3F<'a> = ArrayView3<'a, f32>;
 // pub type ArrayView4F<'a> = ArrayView4<'a, f32>;
 
+pub trait ShapeAsArray<const D: usize> {
+    fn shape_arr(&self) -> [usize; D];
+}
+
+impl<T> ShapeAsArray<2> for Array2<T> {
+    fn shape_arr(&self) -> [usize; 2] {
+        self.shape().try_into().unwrap()
+    }
+}
+
+impl<T> ShapeAsArray<3> for Array3<T> {
+    fn shape_arr(&self) -> [usize; 3] {
+        self.shape().try_into().unwrap()
+    }
+}
+
+impl<T> ShapeAsArray<4> for Array4<T> {
+    fn shape_arr(&self) -> [usize; 4] {
+        self.shape().try_into().unwrap()
+    }
+}
+
 pub trait GetBatchSize {
     fn batch_size(&self) -> usize;
 }
@@ -58,6 +80,16 @@ pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [
         (shape[2] - size) / stride + 1,
         (shape[3] - size) / stride + 1
     ]
+}
+
+pub fn as_array<const N: usize, T: Default + Copy>(slice: &[T]) -> [T; N] {
+    if slice.len() != N {
+        panic!("Invalid slice length");
+    } else {
+        let mut result = [T::default(); N];
+        result[..N].copy_from_slice(&slice[..N]);
+        result
+    }
 }
 
 pub const EPSILON: f32 = 0.0000001;

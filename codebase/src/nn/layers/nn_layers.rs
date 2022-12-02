@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::error;
+use std::sync::Arc;
+use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::*;
@@ -44,6 +46,7 @@ pub struct BackwardData<'a> {
     pub storage: &'a GenericStorage,
     pub forward_cache: &'a mut GenericStorage,
     pub backward_cache: &'a mut GenericStorage,
+    pub gpu: Option<GlobalGpu>,
 }
 
 pub struct TrainData<'a> {
