@@ -1,6 +1,4 @@
 use ndarray_rand::RandomExt;
-use crate::ArrayDynF;
-use crate::nn::layers::expand_dim_layer::ExpandDimConfig;
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::utils::Array1F;
 
@@ -76,6 +74,7 @@ mod tests {
             forward_cache: &mut cache,
             storage: &GenericStorage::new(),
             batch_config:  &batch_config,
+            gpu: None,
         };
         let result = DropoutLayer::forward(forward_data, &config);
         println!("{:?}", result);

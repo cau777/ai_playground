@@ -232,6 +232,7 @@ mod tests {
                 storage: &mut storage,
                 inputs: input,
                 forward_cache: &mut GenericStorage::new(),
+                gpu: None,
             },
             &config,
         )
@@ -289,6 +290,7 @@ mod tests {
                 forward_cache: &mut forward_cache,
                 storage: &mut storage,
                 backward_cache: &mut backward_cache,
+                gpu: None,
             },
             &config,
         )

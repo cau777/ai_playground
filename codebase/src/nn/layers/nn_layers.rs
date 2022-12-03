@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::error;
+use crate::gpu::shader_runner::{GlobalGpu};
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::*;
 use crate::nn::layers::activation::*;
 use crate::utils::ArrayDynF;
-use super::convolution_layer::ConvolutionConfig;
+use crate::nn::layers::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use super::max_pool_layer::MaxPoolConfig;
 
@@ -35,6 +36,7 @@ pub struct ForwardData<'a> {
     pub assigner: &'a mut KeyAssigner,
     pub storage: &'a GenericStorage,
     pub forward_cache: &'a mut GenericStorage,
+    pub gpu: Option<GlobalGpu>,
 }
 
 pub struct BackwardData<'a> {
@@ -44,6 +46,7 @@ pub struct BackwardData<'a> {
     pub storage: &'a GenericStorage,
     pub forward_cache: &'a mut GenericStorage,
     pub backward_cache: &'a mut GenericStorage,
+    pub gpu: Option<GlobalGpu>,
 }
 
 pub struct TrainData<'a> {
@@ -80,7 +83,7 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         Sigmoid => sigmoid_layer::SigmoidLayer::init(data, &()),
         Sequential(c) => sequential_layer::SequentialLayer::init(data, c),
         Debug(c) => debug_layer::DebugLayer::init(data, c),
-        Convolution(c) => convolution_layer::ConvolutionLayer::init(data, c),
+        Convolution(c) => convolution::ConvolutionLayer::init(data, c),
         MaxPool(c) => max_pool_layer::MaxPoolLayer::init(data, c),
         Flatten => flatten_layer::FlattenLayer::init(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::init(data, c),
@@ -97,7 +100,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         Sigmoid => sigmoid_layer::SigmoidLayer::forward(data, &()),
         Relu => relu_layer::ReluLayer::forward(data, &()),
         Debug(c) => debug_layer::DebugLayer::forward(data, c),
-        Convolution(c) => convolution_layer::ConvolutionLayer::forward(data, c),
+        Convolution(c) => convolution::ConvolutionLayer::forward(data, c),
         MaxPool(c) => max_pool_layer::MaxPoolLayer::forward(data, c),
         Flatten => flatten_layer::FlattenLayer::forward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::forward(data, c),
@@ -114,7 +117,7 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         Sigmoid => sigmoid_layer::SigmoidLayer::backward(data, &()),
         Relu => relu_layer::ReluLayer::backward(data, &()),
         Debug(c) => debug_layer::DebugLayer::backward(data, c),
-        Convolution(c) => convolution_layer::ConvolutionLayer::backward(data, c),
+        Convolution(c) => convolution::ConvolutionLayer::backward(data, c),
         MaxPool(c) => max_pool_layer::MaxPoolLayer::backward(data, c),
         Flatten => flatten_layer::FlattenLayer::backward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::backward(data, c),
@@ -127,7 +130,7 @@ pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
     match layer {
         Dense(c) => dense_layer::DenseLayer::train(data, c),
         Sequential(c) => sequential_layer::SequentialLayer::train(data, c),
-        Convolution(c) => convolution_layer::ConvolutionLayer::train(data, c),
+        Convolution(c) => convolution::ConvolutionLayer::train(data, c),
         _ => Ok(()),
     }
 }
