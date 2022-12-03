@@ -7,7 +7,7 @@ use crate::nn::layers::nn_layers::{
 use crate::nn::loss::loss_func::{calc_loss, calc_loss_grad, LossFunc};
 use crate::utils::ArrayDynF;
 use ndarray::{stack, Axis};
-use crate::gpu::shader_runner::GpuData;
+use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 
 use super::train_config::TrainConfig;
 
@@ -62,6 +62,7 @@ impl NNController {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
+        let gpu=   Self::get_gpu();
 
         forward_layer(
             &self.main_layer,
@@ -71,6 +72,7 @@ impl NNController {
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
                 batch_config: &config,
+                gpu: gpu.clone(),
             },
         )
     }
@@ -87,13 +89,7 @@ impl NNController {
         let config = BatchConfig::new_train(config);
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
-        let gpu = match GpuData::new_global() {
-            Ok(v) => Some(v),
-            Err(e) => {
-                eprintln!("{:?}", e);
-                None
-            }
-        };
+        let gpu = Self::get_gpu();
 
         let output = forward_layer(
             &self.main_layer,
@@ -103,6 +99,7 @@ impl NNController {
                 storage: &mut self.storage,
                 forward_cache: &mut forward_cache,
                 batch_config: &config,
+                gpu: gpu.clone(),
             },
         )?;
 
@@ -124,7 +121,7 @@ impl NNController {
                 forward_cache: &mut forward_cache,
                 storage: &mut self.storage,
                 assigner: &mut assigner,
-                gpu: gpu.clone(),
+                gpu,
             },
         )?;
 
@@ -151,6 +148,7 @@ impl NNController {
         let config = BatchConfig::new_not_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
+        let gpu = Self::get_gpu();
 
         let output = forward_layer(
             &self.main_layer,
@@ -160,6 +158,7 @@ impl NNController {
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
                 batch_config: &config,
+                gpu
             },
         )?;
 
@@ -172,6 +171,16 @@ impl NNController {
 
     pub fn export(&self) -> GenericStorage {
         self.storage.clone()
+    }
+
+    fn get_gpu() -> Option<GlobalGpu> {
+        match GpuData::new_global() {
+            Ok(v) => Some(v),
+            Err(e) => {
+                eprintln!("{:?}", e);
+                None
+            }
+        }
     }
 }
 

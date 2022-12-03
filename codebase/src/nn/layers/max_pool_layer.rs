@@ -131,6 +131,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
+                gpu: None,
             }, &MaxPoolConfig { size, stride }).unwrap()
         }
 

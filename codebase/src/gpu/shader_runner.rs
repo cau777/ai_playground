@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 use ndarray::Dimension;
 use vulkano::{
     buffer::{BufferUsage, CpuAccessibleBuffer},
@@ -28,6 +28,7 @@ pub type GlobalGpu = Arc<GpuData>;
 pub struct GpuData {
     device: Arc<PhysicalDevice>,
     create_info: DeviceCreateInfo,
+    // cache_data: Arc<RwLock<Vec<u8>>>,
 }
 
 impl GpuData {
@@ -54,10 +55,6 @@ impl GpuData {
 
         let (physical_device, queue_family_index) = instance
             .enumerate_physical_devices()?
-            .map(|o| {
-                println!("{:?}", o.properties().device_name);
-                o
-            })
             .filter(|p| p.supported_extensions().contains(&device_extensions))
             .filter_map(|p| {
                 // The Vulkan specs guarantee that a compliant implementation must provide at least one queue
@@ -92,6 +89,7 @@ impl GpuData {
                 }],
                 ..Default::default()
             },
+            // cache_data: Arc::new(RwLock::new(Vec::new())),
         })
     }
 }
@@ -105,7 +103,9 @@ pub struct ShaderRunner {
     memory_alloc: StandardMemoryAllocator,
     cmd_alloc: StandardCommandBufferAllocator,
     descriptor_set_alloc: StandardDescriptorSetAllocator,
-    queues: Box<dyn ExactSizeIterator<Item=Arc<Queue>>>
+    queues: Box<dyn ExactSizeIterator<Item=Arc<Queue>>>,
+    gpu: GlobalGpu,
+    // cache: Arc<PipelineCache>,
 }
 
 impl ShaderRunner {
@@ -114,6 +114,9 @@ impl ShaderRunner {
         // Now initializing the device.
         let (device, queues) = Device::new(gpu.device.clone(), gpu.create_info.clone())?;
 
+        // let cache = unsafe {
+        //     PipelineCache::with_data(device.clone(), &gpu.cache_data.read().unwrap())?
+        // };
         let pipeline = {
             let shader = func(device.clone())?;
             let entry = shader.entry_point(entrypoint)
@@ -123,6 +126,7 @@ impl ShaderRunner {
                 device.clone(),
                 entry,
                 constants,
+                // Some(cache.clone()),
                 None,
                 |_| {},
             )?
@@ -136,6 +140,8 @@ impl ShaderRunner {
             descriptors: Vec::new(),
             device,
             queues: Box::new(queues),
+            gpu,
+            // cache,
         })
     }
 
@@ -198,6 +204,13 @@ impl ShaderRunner {
             .unwrap();
 
         future.wait(None)?;
+
+        // let data = self.cache.get_data()?;
+        // let mut global_cache = self.gpu.cache_data.write().unwrap();
+        // if data.len() > 1_000_000 {
+        //     println!("Cache size = {:?}KB", data.len() / 1_000);
+        // }
+        // *global_cache = data;
         Ok(())
     }
 }
@@ -209,78 +222,3 @@ mod tests {
     #[test]
     fn test_test() {}
 }
-/*
-pub fn main() {
-    // Since we can request multiple queues, the `queues` variable is in fact an iterator. In this
-    // example we use only one queue, so we just retrieve the first and only element of the
-    // iterator and throw it away.
-    // TODO: cache
-    let queue = queues.next().unwrap();
-    let pipeline = {
-        mod cs {
-            use vulkano_shaders::shader;
-            shader! {
-                ty: "compute",
-                path: "./src/compute_shader_test.glsl"
-            }
-        }
-        let shader = cs::load(device.clone()).unwrap();
-        .unwrap()
-    };
-
-
-    // We start by creating the buffer that will store the data.
-    let data_buffer = {
-        // Iterator that produces the data.
-        let data_iter = 0..65536u32;
-        // Builds the buffer and fills it with this iterator.
-    };
-
-    // In order to let the shader access the buffer, we need to build a *descriptor set* that
-    // contains the buffer.
-    //
-    // The resources that we bind to the descriptor set must match the resources expected by the
-    // pipeline which we pass as the first parameter.
-    //
-    // If you want to run the pipeline on multiple different buffers, you need to create multiple
-    // descriptor sets that each contain the buffer you want to run the shader on.
-    let layout = pipeline.layout().set_layouts().get(0).unwrap();
-    let set = PersistentDescriptorSet::new(
-        &descriptor_set_allocator,
-        layout.clone(),
-        [WriteDescriptorSet::buffer(0, data_buffer.clone())],
-    ).unwrap();
-
-    // In order to execute our operation, we have to build a command buffer.
-    let mut builder = AutoCommandBufferBuilder::primary(
-        &command_buffer_allocator,
-        queue.queue_family_index(),
-        CommandBufferUsage::OneTimeSubmit,
-    ).unwrap();
-
-    builder
-        .bind_pipeline_compute(pipeline.clone())
-        .bind_descriptor_sets(
-            PipelineBindPoint::Compute,
-            pipeline.layout().clone(),
-            0,
-            set,
-        )
-        .dispatch([1024, 1, 1])
-        .unwrap();
-
-    let command_buffer = builder.build().unwrap();
-
-    let future = sync::now(device)
-        .then_execute(queue, command_buffer)
-        .unwrap()
-        .then_signal_fence_and_flush()
-        .unwrap();
-
-    future.wait(None).unwrap();
-
-    let data_buffer_content = data_buffer.read().unwrap();
-    for n in 0..65536u32 {
-        assert_eq!(data_buffer_content[n as usize], n * 12);
-    }
-}*/

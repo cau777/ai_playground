@@ -27,6 +27,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
                 forward_cache: data.forward_cache,
                 storage: data.storage,
                 batch_config: data.batch_config,
+                gpu: data.gpu.clone(),
             };
             inputs = forward_layer(layer, data)?;
         }
@@ -121,6 +122,7 @@ mod tests {
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
             forward_cache: &mut GenericStorage::new(),
+            gpu: None,
         };
 
         FORWARD_COUNTER.lock().unwrap().clear();

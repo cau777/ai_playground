@@ -58,16 +58,16 @@ void main() {
 
     while (kernel_h < max_h) {
         uint grad_h = (padded_h - kernel_h) / stride;
-        uint max_w = min(kernel_size, padded_w + 1); // Asserts the condition grad_w >= 0
-        uint min_w = max(padded_w / stride + 1, grad_width) - grad_width; // Asserts the condition grad_w < grad_max_w
+        const uint max_w = min(kernel_size, padded_w + 1); // Asserts the condition grad_w >= 0
+        const uint min_w = max(padded_w / stride + 1, grad_width) - grad_width; // Asserts the condition grad_w < grad_max_w
 
         uint kernel_w = max(padded_w % stride, min_w);
         while (kernel_w < max_w) {
-            uint grad_w = (padded_w - kernel_w) / stride;
+            const uint grad_w = (padded_w - kernel_w) / stride;
 
             for (uint out_c = 0; out_c < out_channels; out_c++) {
-                float g = grad_data.data[b*grad_sections[0] + out_c*grad_sections[1] + grad_h*grad_sections[2] + grad_w];
-                float k = kernel_data.data[out_c*kernel_sections[0] + in_c*kernel_sections[1] + kernel_h*kernel_sections[2] + kernel_w];
+                const float g = grad_data.data[b*grad_sections[0] + out_c*grad_sections[1] + grad_h*grad_sections[2] + grad_w];
+                const float k = kernel_data.data[out_c*kernel_sections[0] + in_c*kernel_sections[1] + kernel_h*kernel_sections[2] + kernel_w];
                 result += g * k;
             }
 

@@ -1,9 +1,9 @@
 use std::ops::AddAssign;
-use ndarray::{Axis, s, stack};
+use ndarray::{Axis, s, ShapeError, stack};
 use ndarray::parallel::prelude::*;
 use crate::Array4F;
 use crate::nn::layers::convolution::convolution_layer::ConvolutionConfig;
-use crate::utils::{Array2F, Array5F, get_dims_after_filter_4, GetBatchSize};
+use crate::utils::{Array2F, Array3F, Array5F, get_dims_after_filter_4, GetBatchSize};
 
 pub fn pad4d(array: Array4F, padding: usize) -> Array4F {
     let shape = array.shape();
@@ -118,4 +118,100 @@ pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &Convolu
     reshaped.swap_axes(2, 3);
 
     reshaped / (layer_config.kernel_size.pow(2) as f32)
+}
+
+pub fn calc_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &ConvolutionConfig) -> Result<Array4F, ShapeError> {
+    let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
+
+    let [_, _, new_height, new_width] = get_dims_after_filter_4(&inputs, *kernel_size, *stride);
+    let mut batches = Vec::with_capacity(inputs.batch_size());
+    inputs.outer_iter().into_par_iter()
+        .map(|batch| {
+            let mut result = Array3F::zeros((layer_config.out_channels, new_height, new_width));
+            for h in 0..new_height {
+                for w in 0..new_width {
+                    let h_offset = h * stride;
+                    let w_offset = w * stride;
+                    let area = batch.slice(s![
+                            ..,
+                            h_offset..(h_offset + kernel_size),
+                            w_offset..(w_offset + kernel_size)
+                        ]);
+                    let area = area.insert_axis(Axis(0));
+                    let out: Array4F = &area * kernel;
+
+
+                    out.outer_iter()
+                        .map(|o| o.sum())
+                        .enumerate()
+                        .for_each(|(index, o)| result[(index, h, w)] = o);
+                }
+            }
+            result
+        })
+        .collect_into_vec(&mut batches);
+
+    let mut views = Vec::with_capacity(inputs.batch_size());
+    views.extend(batches.iter().map(|o| o.view()));
+    stack(Axis(0), &views)
+}
+
+#[cfg(test)]
+mod tests {
+    use ndarray_rand::rand_distr::Normal;
+    use ndarray_rand::RandomExt;
+    use crate::gpu::shader_runner::{GpuData};
+    use crate::nn::layers::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
+    use crate::nn::layers::convolution::ConvolutionInitMode::HeNormal;
+    use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
+    use crate::nn::lr_calculators::lr_calculator::LrCalc;
+    use crate::utils::arrays_almost_equal;
+    use super::*;
+
+    #[test]
+    fn test_gpu_cpu_equal_inputs_grad() {
+        let dist = Normal::new(0.0, 1.0).unwrap();
+        let config = ConvolutionConfig {
+            in_channels: 3,
+            out_channels: 4,
+            kernel_size: 2,
+            padding: 1,
+            init_mode: HeNormal(),
+            lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            stride: 2,
+        };
+        let inputs = Array4F::random((8, config.in_channels, 10, 10), &dist);
+        let grad_shape = (inputs.shape()[0], config.out_channels,
+                          (inputs.shape()[2] - config.kernel_size) / config.stride + 1,
+                          (inputs.shape()[3] - config.kernel_size) / config.stride + 1);
+
+        let grad = Array4F::random(grad_shape, &dist);
+        let kernel = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
+
+        let expected = calc_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
+        let actual = calc_inputs_grad_gpu(&inputs, &grad, &kernel, GpuData::new_global().unwrap(), &config).unwrap();
+        assert!(arrays_almost_equal(&expected, &actual));
+    }
+
+    #[test]
+    fn test_gpu_cpu_equal_forward() {
+        let config = ConvolutionConfig {
+            in_channels: 6,
+            out_channels: 3,
+            stride: 2,
+            padding: 0,
+            init_mode: HeNormal(),
+            lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            kernel_size: 2,
+        };
+
+        let dist = ndarray_rand::rand_distr::Normal::new(0.0, 1.0).unwrap();
+        let inputs = Array4F::random((8, config.in_channels, 5, 5), &dist);
+        let kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
+        let expected = calc_forward(&inputs, &kernels, &config).unwrap();
+        let actual = calc_forward_gpu(&inputs, &kernels, GpuData::new_global().unwrap(), &config).unwrap();
+
+        println!("{:?}\n\n------\n\n{:?}", expected, actual);
+        assert!(arrays_almost_equal(&expected, &actual));
+    }
 }

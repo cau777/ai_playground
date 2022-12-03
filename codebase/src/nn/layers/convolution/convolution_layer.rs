@@ -5,13 +5,12 @@ use crate::nn::layers::nn_layers::{
 };
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 use crate::utils::*;
-use ndarray::{s, Axis, ErrorKind, ShapeError, stack};
+use ndarray::{Axis, ErrorKind, ShapeError, stack};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::ops::AddAssign;
-use ndarray::parallel::prelude::*;
-use crate::nn::layers::convolution::convolution_cpu::{calc_inputs_grad, calc_kernel_grad, pad4d};
-use crate::nn::layers::convolution::convolution_gpu::calc_inputs_grad_gpu;
+use crate::nn::layers::convolution::convolution_cpu::{calc_forward, calc_inputs_grad, calc_kernel_grad, pad4d};
+use crate::nn::layers::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
 
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
@@ -70,19 +69,7 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
     }
 
     fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
-        let ForwardData {
-            inputs,
-            storage,
-            assigner,
-            forward_cache,
-            ..
-        } = data;
-        let ConvolutionConfig {
-            padding,
-            stride,
-            kernel_size,
-            ..
-        } = layer_config;
+        let ForwardData { inputs, storage, assigner, forward_cache, .. } = data;
 
         let inputs: Array4F = inputs.into_dimensionality()?;
         let key = assigner.get_key(gen_name(layer_config));
@@ -90,40 +77,18 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         let [kernel] = clone_from_storage1(storage, &key);
         let kernel: Array4F = kernel.into_dimensionality()?;
 
-        let inputs = pad4d(inputs, *padding);
-        let [_, _, new_height, new_width] =
-            get_dims_after_filter_4(&inputs, *kernel_size, *stride);
-
-        let mut batches = Vec::with_capacity(inputs.batch_size());
-        inputs.outer_iter().into_par_iter()
-            .map(|batch| {
-                let mut result = Array3F::zeros((layer_config.out_channels, new_height, new_width));
-                for h in 0..new_height {
-                    for w in 0..new_width {
-                        let h_offset = h * stride;
-                        let w_offset = w * stride;
-                        let area = batch.slice(s![
-                            ..,
-                            h_offset..(h_offset + kernel_size),
-                            w_offset..(w_offset + kernel_size)
-                        ]);
-                        let area = area.insert_axis(Axis(0));
-                        let out: Array4F = &area * &kernel;
-
-
-                        out.outer_iter()
-                            .map(|o| o.sum())
-                            .enumerate()
-                            .for_each(|(index, o)| result[(index, h, w)] = o);
-                    }
+        let inputs = pad4d(inputs, layer_config.padding);
+        let result = match data.gpu {
+            Some(gpu) => match calc_forward_gpu(&inputs, &kernel, gpu, layer_config) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("{:?}", e);
+                    calc_forward(&inputs, &kernel, layer_config)?
                 }
-                result
-            })
-            .collect_into_vec(&mut batches);
+            }
+            None => calc_forward(&inputs, &kernel, layer_config)?
+        };
 
-        let mut views = Vec::with_capacity(inputs.batch_size());
-        views.extend(batches.iter().map(|o| o.view()));
-        let result = stack(Axis(0), &views)?;
         forward_cache.insert(key, vec![inputs.into_dyn()]);
         Ok(result.into_dyn())
     }
@@ -200,41 +165,14 @@ mod tests {
     };
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
-    use crate::utils::{arrays_almost_equal, ArrayDynF, get_dims_after_filter_4};
+    use crate::utils::{arrays_almost_equal, ArrayDynF};
     use crate::Array4F;
     use ndarray::{array, stack, Axis};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
-    use crate::gpu::shader_runner::GpuData;
-    use crate::nn::layers::convolution::convolution_cpu::{calc_inputs_grad, calc_kernel_grad};
-    use crate::nn::layers::convolution::convolution_gpu::calc_inputs_grad_gpu;
+    use crate::nn::layers::convolution::convolution_cpu::{calc_kernel_grad};
     use crate::nn::layers::convolution::convolution_layer;
     use crate::nn::train_config::TrainConfig;
-
-    #[test]
-    fn test_gpu_cpu_equal() {
-        let dist = Normal::new(0.0, 1.0).unwrap();
-        let config = ConvolutionConfig {
-            in_channels: 3,
-            out_channels: 4,
-            kernel_size: 2,
-            padding: 1,
-            init_mode: HeNormal(),
-            lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-            stride: 2,
-        };
-        let inputs = Array4F::random((8, config.in_channels, 10, 10), &dist);
-        let grad_shape = (inputs.shape()[0], config.out_channels,
-                          (inputs.shape()[2] - config.kernel_size) / config.stride + 1,
-                          (inputs.shape()[3] - config.kernel_size) / config.stride + 1);
-
-        let grad = Array4F::random(grad_shape, &dist);
-        let kernel = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
-
-        let expected = calc_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
-        let actual = calc_inputs_grad_gpu(&inputs, &grad, &kernel, GpuData::new_global().unwrap(), &config).unwrap();
-        assert!(arrays_almost_equal(&expected, &actual));
-    }
 
     #[test]
     fn test_bench() {
@@ -290,6 +228,7 @@ mod tests {
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
                 batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                gpu: None,
             },
             &config,
         )

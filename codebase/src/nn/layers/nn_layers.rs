@@ -36,6 +36,7 @@ pub struct ForwardData<'a> {
     pub assigner: &'a mut KeyAssigner,
     pub storage: &'a GenericStorage,
     pub forward_cache: &'a mut GenericStorage,
+    pub gpu: Option<GlobalGpu>,
 }
 
 pub struct BackwardData<'a> {
