@@ -73,11 +73,11 @@ impl GpuData {
                 _ => 5,
             }).ok_or_else(|| "Can't find suitable device".to_owned())?;
 
-        println!(
-            "Using device: {} (type: {:?})",
-            physical_device.properties().device_name,
-            physical_device.properties().device_type
-        );
+        // println!(
+        //     "Using device: {} (type: {:?})",
+        //     physical_device.properties().device_name,
+        //     physical_device.properties().device_type
+        // );
 
         Ok(Self {
             device: physical_device,
