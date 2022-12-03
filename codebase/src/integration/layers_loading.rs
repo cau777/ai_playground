@@ -135,13 +135,13 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 .find(|o| o.name == "KernelsLr")
                 .ok_or_else(|| XmlError::ElementNotFound("KernelsLr"))?;
 
-            Ok(Layer::Convolution(convolution_layer::ConvolutionConfig {
+            Ok(Layer::Convolution(convolution::ConvolutionConfig {
                 in_channels: get_usize_attr(element, "in_channels")?,
                 out_channels: get_usize_attr(element, "out_channels")?,
                 kernel_size: get_usize_attr(element, "kernel_size")?,
                 stride: get_usize_attr(element, "stride")?,
                 padding: get_usize_attr(element, "padding")?,
-                init_mode: convolution_layer::ConvolutionInitMode::HeNormal(),
+                init_mode: convolution::ConvolutionInitMode::HeNormal(),
                 lr_calc: load_lr(kernels_lr)?,
             }))
         }
@@ -257,7 +257,7 @@ fn get_f32_attr(element: &Element, name: &'static str) -> Result<f32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nn::{layers::nn_layers::Layer};
+    use crate::nn::layers::nn_layers::Layer;
 
     use super::load_model_xml;
 

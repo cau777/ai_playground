@@ -9,11 +9,12 @@ use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 
 use criterion::*;
-use codebase::gpu::shader_runner::{GpuData};
+use codebase::gpu::shader_runner::GpuData;
+use codebase::nn::layers::convolution;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let config = convolution_layer::ConvolutionConfig {
-        init_mode: convolution_layer::ConvolutionInitMode::HeNormal(),
+    let config = convolution::ConvolutionConfig {
+        init_mode: convolution::ConvolutionInitMode::HeNormal(),
         stride: 1,
         kernel_size: 5,
         lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
@@ -23,7 +24,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     };
     let dist = Normal::new(0.0, 1.0).unwrap();
     let mut storage = GenericStorage::new();
-    convolution_layer::ConvolutionLayer::init(InitData {
+    convolution::ConvolutionLayer::init(InitData {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();

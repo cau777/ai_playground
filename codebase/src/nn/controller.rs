@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::{
