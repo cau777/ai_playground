@@ -50,7 +50,7 @@ Most of the times, changing the structure (adding or removing layers) does not l
 A single page app built using React and Vite to allow users to interact with the playground in any device. It's hosted
 in GitHub Pages and supports translations to English and Portuguese.
 
-![Digit recognition page](https://raw.githubusercontent.com/cau777/ai_playground/main/screenshots/digits_page.png)
+![Digit recognition page](https://github.com/cau777/ai_playground/blob/master/screenshots/digits_page.png)
 
 ### /versions_server
 
