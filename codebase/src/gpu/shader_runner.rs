@@ -18,17 +18,20 @@ use vulkano::{
     sync::{self, GpuFuture},
     VulkanLibrary,
 };
-use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Queue;
+use vulkano::pipeline::cache::PipelineCache;
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
 use crate::utils::{ArrayF};
 
 pub type GlobalGpu = Arc<GpuData>;
 
 pub struct GpuData {
-    device: Arc<PhysicalDevice>,
-    create_info: DeviceCreateInfo,
-    // cache_data: Arc<RwLock<Vec<u8>>>,
+    device: Arc<Device>,
+    queue: Arc<Queue>, // Queues are the equivalent of CPU threads
+    memory_alloc: StandardMemoryAllocator,
+    descriptor_alloc: StandardDescriptorSetAllocator,
+    cmd_alloc: StandardCommandBufferAllocator,
+    cache: Option<Arc<PipelineCache>>,
 }
 
 impl GpuData {
@@ -79,17 +82,22 @@ impl GpuData {
         //     physical_device.properties().device_type
         // );
 
-        Ok(Self {
-            device: physical_device,
-            create_info: DeviceCreateInfo {
-                enabled_extensions: device_extensions,
-                queue_create_infos: vec![QueueCreateInfo {
-                    queue_family_index,
-                    ..Default::default()
-                }],
+        let (device, mut queues) = Device::new(physical_device, DeviceCreateInfo {
+            enabled_extensions: device_extensions,
+            queue_create_infos: vec![QueueCreateInfo {
+                queue_family_index,
                 ..Default::default()
-            },
-            // cache_data: Arc::new(RwLock::new(Vec::new())),
+            }],
+            ..Default::default()
+        })?;
+
+        Ok(Self {
+            queue: queues.next().ok_or_else(||"Should create 1 queue")?,
+            memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
+            descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
+            cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
+            cache: PipelineCache::empty(device.clone()).map_err(|e| println!("{:?}", e)).ok(),
+            device,
         })
     }
 }
@@ -98,12 +106,7 @@ type RunnerResult<T> = Result<T, Box<dyn Error>>;
 
 pub struct ShaderRunner {
     descriptors: Vec<WriteDescriptorSet>,
-    device: Arc<Device>,
     pipeline: Arc<ComputePipeline>,
-    memory_alloc: StandardMemoryAllocator,
-    cmd_alloc: StandardCommandBufferAllocator,
-    descriptor_set_alloc: StandardDescriptorSetAllocator,
-    queues: Box<dyn ExactSizeIterator<Item=Arc<Queue>>>,
     gpu: GlobalGpu,
     // cache: Arc<PipelineCache>,
 }
@@ -111,43 +114,30 @@ pub struct ShaderRunner {
 impl ShaderRunner {
     pub fn new(gpu: GlobalGpu, func: impl FnOnce(Arc<Device>) -> Result<Arc<ShaderModule>, ShaderCreationError>,
                entrypoint: &str, constants: &impl SpecializationConstants) -> RunnerResult<ShaderRunner> {
-        // Now initializing the device.
-        let (device, queues) = Device::new(gpu.device.clone(), gpu.create_info.clone())?;
-
-        // let cache = unsafe {
-        //     PipelineCache::with_data(device.clone(), &gpu.cache_data.read().unwrap())?
-        // };
         let pipeline = {
-            let shader = func(device.clone())?;
+            let shader = func(gpu.device.clone())?;
             let entry = shader.entry_point(entrypoint)
                 .ok_or_else(|| format!("Can't find function {} on shader", entrypoint))?;
 
             ComputePipeline::new(
-                device.clone(),
+                gpu.device.clone(),
                 entry,
                 constants,
-                // Some(cache.clone()),
-                None,
+                gpu.cache.clone(),
                 |_| {},
             )?
         };
 
         Ok(ShaderRunner {
-            memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
-            descriptor_set_alloc: StandardDescriptorSetAllocator::new(device.clone()),
-            cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
             pipeline,
             descriptors: Vec::new(),
-            device,
-            queues: Box::new(queues),
             gpu,
-            // cache,
         })
     }
 
     pub fn create_buffer_from_array<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
         let buffer = CpuAccessibleBuffer::from_iter(
-            &self.memory_alloc,
+            &self.gpu.memory_alloc,
             BufferUsage {
                 storage_buffer: true,
                 ..BufferUsage::empty()
@@ -171,17 +161,16 @@ impl ShaderRunner {
 
         let layouts = self.pipeline.layout().set_layouts();
         let layout = if layouts.len() == 0 { Err("No layouts found") } else { Ok(&layouts[0]) };
-        let queue = self.queues.next().expect("Should create queues");
 
         let set = PersistentDescriptorSet::new(
-            &self.descriptor_set_alloc,
+            &self.gpu.descriptor_alloc,
             layout?.clone(),
             self.descriptors.drain(0..).into_iter(),
         )?;
 
         let mut builder = AutoCommandBufferBuilder::primary(
-            &self.cmd_alloc,
-            queue.queue_family_index(),
+            &self.gpu.cmd_alloc,
+            self.gpu.queue.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
         )?;
 
@@ -197,20 +186,14 @@ impl ShaderRunner {
             .dispatch(group_counts)?;
 
         let command_buffer = builder.build()?;
-        let future = sync::now(self.device.clone())
-            .then_execute(queue, command_buffer)
+        let future = sync::now(self.gpu.device.clone())
+            .then_execute(self.gpu.queue.clone(), command_buffer)
             .unwrap()
             .then_signal_fence_and_flush()
             .unwrap();
 
         future.wait(None)?;
 
-        // let data = self.cache.get_data()?;
-        // let mut global_cache = self.gpu.cache_data.write().unwrap();
-        // if data.len() > 1_000_000 {
-        //     println!("Cache size = {:?}KB", data.len() / 1_000);
-        // }
-        // *global_cache = data;
         Ok(())
     }
 }

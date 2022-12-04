@@ -42,20 +42,20 @@ fn criterion_benchmark(c: &mut Criterion) {
         }, &config).unwrap();
     }));
 
-    // c.bench_function("conv 24x24~64 backward", |b| b.iter(|| {
-    //     let mut forward_cache = GenericStorage::new();
-    //     forward_cache.insert("convolution_32_64_0".to_owned(), vec![Array4F::random((64, 32, 18, 18), &dist).into_dyn()]);
-    //
-    //     convolution::ConvolutionLayer::backward(BackwardData {
-    //         grad: Array4F::random((64, 64, 14, 14), &dist).into_dyn(),
-    //         storage: &storage,
-    //         batch_config: &BatchConfig::new_not_train(),
-    //         assigner: &mut KeyAssigner::new(),
-    //         forward_cache: &mut forward_cache,
-    //         backward_cache: &mut GenericStorage::new(),
-    //         gpu: Some(gpu.clone())
-    //     }, &config).unwrap();
-    // }));
+    c.bench_function("conv 24x24~64 backward", |b| b.iter(|| {
+        let mut forward_cache = GenericStorage::new();
+        forward_cache.insert("convolution_32_64_0".to_owned(), vec![Array4F::random((64, 32, 18, 18), &dist).into_dyn()]);
+
+        convolution::ConvolutionLayer::backward(BackwardData {
+            grad: Array4F::random((64, 64, 14, 14), &dist).into_dyn(),
+            storage: &storage,
+            batch_config: &BatchConfig::new_not_train(),
+            assigner: &mut KeyAssigner::new(),
+            forward_cache: &mut forward_cache,
+            backward_cache: &mut GenericStorage::new(),
+            gpu: Some(gpu.clone())
+        }, &config).unwrap();
+    }));
 }
 
 criterion_group!(benches, criterion_benchmark);

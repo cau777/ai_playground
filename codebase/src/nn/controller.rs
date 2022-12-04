@@ -199,10 +199,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_complete() {
+    fn test_digits_model() {
         let mut file = OpenOptions::new()
             .read(true)
-            .open("../config/digits/model.xml")
+            .open("../temp/digits/config.xml")
             .unwrap();
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes).unwrap();
@@ -210,70 +210,11 @@ mod tests {
         let mut controller = NNController::new(config.main_layer, config.loss_func).unwrap();
         let result = controller
             .train_batch(
-                Array3F::ones((256, 28, 28)).into_dyn(),
-                &Array2F::ones((256, 10)).into_dyn(),
+                Array3F::ones((64, 28, 28)).into_dyn(),
+                &Array2F::ones((64, 10)).into_dyn(),
                 TrainConfig::default(),
             )
             .unwrap();
         println!("{}", result);
-    }
-
-    #[test]
-    fn test_001() {
-        use crate::nn::layers::*;
-        let d = 40;
-        let mut controller = NNController::new(
-            Layer::Sequential(sequential_layer::SequentialConfig {
-                layers: vec![
-                    // Layer::ExpandDim(expand_dim_layer::ExpandDimConfig { dim: 0 }),
-                    // Layer::Convolution(convolution_layer::ConvolutionConfig {
-                    //     in_channels: 1,
-                    //     out_channels: 4,
-                    //     kernel_size: 3,
-                    //     stride: 1,
-                    //     padding: 0,
-                    //     init_mode: convolution_layer::ConvolutionInitMode::HeNormal(),
-                    //     lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                    // }),
-                    //Layer::Relu,
-                    //Layer::MaxPool(max_pool_layer::MaxPoolConfig { size: 2, stride: 2 }),
-                    //Layer::Flatten,
-                    //Layer::Dense(dense_layer::DenseConfig {
-                    //    in_values: 676,
-                    //    out_values: 512,
-                    //    init_mode: dense_layer::DenseLayerInit::Random(),
-                    //    weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                    //    biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                    //}),
-                    //Layer::Relu,
-                    Layer::Dense(dense_layer::DenseConfig {
-                        in_values: 512 * d,
-                        out_values: 256 * d,
-                        init_mode: dense_layer::DenseLayerInit::Random(),
-                        weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                        biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                    }),
-                    Layer::Relu,
-                    Layer::Dense(dense_layer::DenseConfig {
-                        in_values: 256 * d,
-                        out_values: 10 * d,
-                        init_mode: dense_layer::DenseLayerInit::Random(),
-                        weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                        biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                    }),
-                ],
-            }),
-            LossFunc::Mse,
-        )
-            .unwrap();
-
-        let dist = Normal::new(0.0, 1.0).unwrap();
-
-        let inputs = Array2F::random((1, 512 * d), dist).into_dyn();
-        let expected = Array2F::random((1, 10 * d), dist).into_dyn();
-        for _ in 0..100 {
-            let result = controller.train_batch(inputs.clone(), &expected, TrainConfig::default()).unwrap();
-            println!("{}", result);
-        }
     }
 }
