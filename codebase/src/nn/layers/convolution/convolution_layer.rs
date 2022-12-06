@@ -175,6 +175,7 @@ mod tests {
     use crate::nn::train_config::TrainConfig;
 
     #[test]
+    #[ignore]
     fn test_bench() {
         let config = ConvolutionConfig {
             init_mode: HeNormal(),

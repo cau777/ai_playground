@@ -18,16 +18,20 @@ use vulkano::{
     sync::{self, GpuFuture},
     VulkanLibrary,
 };
+use vulkano::buffer::{BufferAccess, DeviceLocalBuffer};
+use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::Queue;
 use vulkano::pipeline::cache::PipelineCache;
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
+use vulkano::sync::{FenceSignalFuture, NowFuture};
 use crate::utils::{ArrayF};
 
 pub type GlobalGpu = Arc<GpuData>;
 
 pub struct GpuData {
     device: Arc<Device>,
-    queue: Arc<Queue>, // Queues are the equivalent of CPU threads
+    queue: Arc<Queue>,
+    // Queues are the equivalent of CPU threads
     memory_alloc: StandardMemoryAllocator,
     descriptor_alloc: StandardDescriptorSetAllocator,
     cmd_alloc: StandardCommandBufferAllocator,
@@ -92,7 +96,7 @@ impl GpuData {
         })?;
 
         Ok(Self {
-            queue: queues.next().ok_or_else(||"Should create 1 queue")?,
+            queue: queues.next().ok_or_else(|| "Should create 1 queue")?,
             memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
@@ -135,7 +139,76 @@ impl ShaderRunner {
         })
     }
 
-    pub fn create_buffer_from_array<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+    /// Create a buffer that will be used to transfer data to the GPU
+    pub fn create_read_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<()> {
+        let buffer = CpuAccessibleBuffer::from_iter(
+            &self.gpu.memory_alloc,
+            BufferUsage {
+                storage_buffer: true,
+                transfer_dst: true,
+                ..BufferUsage::empty()
+            },
+            false,
+            array.iter().copied(),
+        )?;
+        self.add_buffer(buffer);
+        Ok(())
+
+        // let buffer = DeviceLocalBuffer::from_iter(
+        //     &self.gpu.memory_alloc,
+        //     array.iter().copied(),
+        //     BufferUsage {
+        //         storage_buffer: true,
+        //         transfer_dst: true,
+        //         ..BufferUsage::empty()
+        //     },
+        //     &mut AutoCommandBufferBuilder::primary(
+        //         &self.gpu.cmd_alloc,
+        //         self.gpu.queue.queue_family_index(),
+        //         CommandBufferUsage::OneTimeSubmit,
+        //     )?,
+        // )?;
+        // self.add_buffer(buffer);
+        // Ok(())
+    }
+
+    /// Create an empty buffer that will be used to transfer data from the GPU
+    pub fn create_write_buffer_uninit(&mut self, len: usize) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+        let buffer = unsafe {
+            CpuAccessibleBuffer::<[f32]>::uninitialized_array(
+                &self.gpu.memory_alloc,
+                len as vulkano::DeviceSize,
+                BufferUsage {
+                    storage_buffer: true,
+                    transfer_src: true,
+                    ..BufferUsage::empty()
+                },
+                false,
+            )
+        }?;
+        self.add_buffer(buffer.clone());
+        Ok(buffer)
+    }
+
+    /// Create an empty buffer that will be used to transfer data from the GPU
+    pub fn create_write_buffer(&mut self, len: usize) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+        let buffer =
+            CpuAccessibleBuffer::from_iter(
+                &self.gpu.memory_alloc,
+                BufferUsage {
+                    storage_buffer: true,
+                    transfer_src: true,
+                    ..BufferUsage::empty()
+                },
+                false,
+                (0..len).into_iter().map(|_| 0.0),
+            )?;
+        self.add_buffer(buffer.clone());
+        Ok(buffer)
+    }
+
+    /// Create a generic buffer that supports read and write operations
+    pub fn create_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
         let buffer = CpuAccessibleBuffer::from_iter(
             &self.gpu.memory_alloc,
             BufferUsage {
@@ -145,7 +218,7 @@ impl ShaderRunner {
             false,
             array.iter().copied(),
         )?;
-        self.descriptors.push(WriteDescriptorSet::buffer(self.descriptors.len() as u32, buffer.clone()));
+        self.add_buffer(buffer.clone());
         Ok(buffer)
     }
 
@@ -185,16 +258,20 @@ impl ShaderRunner {
             )
             .dispatch(group_counts)?;
 
-        let command_buffer = builder.build()?;
-        let future = sync::now(self.gpu.device.clone())
-            .then_execute(self.gpu.queue.clone(), command_buffer)
-            .unwrap()
-            .then_signal_fence_and_flush()
-            .unwrap();
-
-        future.wait(None)?;
+        let cmd = builder.build()?;
+        self.exec_cmd(cmd)?.wait(None)?;
 
         Ok(())
+    }
+
+    fn exec_cmd(&self, cmd: PrimaryAutoCommandBuffer) -> RunnerResult<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> {
+        Ok(sync::now(self.gpu.device.clone())
+            .then_execute(self.gpu.queue.clone(), cmd)?
+            .then_signal_fence_and_flush()?)
+    }
+
+    fn add_buffer(&mut self, buffer: Arc<dyn BufferAccess>) {
+        self.descriptors.push(WriteDescriptorSet::buffer(self.descriptors.len() as u32, buffer))
     }
 }
 

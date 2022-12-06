@@ -199,6 +199,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_digits_model() {
         let mut file = OpenOptions::new()
             .read(true)
