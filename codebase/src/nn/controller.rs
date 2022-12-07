@@ -11,6 +11,25 @@ use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 
 use super::train_config::TrainConfig;
 
+/// Main struct to train and use the AI model
+/// ```
+/// use codebase::nn::controller::NNController;
+/// use codebase::nn::train_config::TrainConfig;
+///
+/// let mut controller = NNController::new(main_layer, loss_func).unwrap();
+///
+/// println!("Started training");
+/// for epoch in 0..10 {
+///     // It's better to split the data into random batches
+///     let loss = controller.train_batch(data_inputs.clone(), &data_expected, TrainConfig::default()).unwrap();
+///     println!("Epoch {} finished with avg loss {}", epoch, loss);
+/// }
+///
+/// println!("Finished training. Started validating");
+/// let final_loss = controller.test_batch(data_inputs, &data_expected).unwrap();
+/// println!("Validated loss = {}", final_loss);
+///
+/// ```
 pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
@@ -18,6 +37,7 @@ pub struct NNController {
 }
 
 impl NNController {
+    /// Create a controller with an empty storage and init its layers
     pub fn new(main_layer: Layer, loss: LossFunc) -> Result<Self, LayerError> {
         let mut storage = GenericStorage::new();
         let mut assigner = KeyAssigner::new();
@@ -36,6 +56,7 @@ impl NNController {
         })
     }
 
+    /// Create a controller with the provided storage and init its layers
     pub fn load(main_layer: Layer, loss: LossFunc, mut storage: GenericStorage) -> Result<Self, LayerError> {
         let mut assigner = KeyAssigner::new();
         init_layer(
@@ -53,11 +74,14 @@ impl NNController {
         })
     }
 
+    /// The same as eval_batch except without the "batch" dimension in the input and the output
     pub fn eval_one(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
         self.eval_batch(stack![Axis(0), inputs])
             .map(|o| o.remove_axis(Axis(0)))
     }
 
+    /// Forward the input through the layers and return the result.
+    /// Uses GPU if available
     pub fn eval_batch(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
@@ -77,6 +101,7 @@ impl NNController {
         )
     }
 
+    /// The same as train_batch except without the "batch" dimension in the input and the output
     pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
         self.train_batch(
             stack![Axis(0), inputs],
@@ -85,6 +110,15 @@ impl NNController {
         )
     }
 
+    /// Execute the following steps to train the model based on **inputs** and the corresponding labels
+    /// 1) Evaluate the model output for the given inputs (forward propagation)
+    /// 2) Calculate the loss between the output and **expected**
+    /// 3) Calculate the gradient of that loss
+    /// 4) Use gradient descent to find the gradients of all parameters in all layers (backwards propagation)
+    /// 5) Update all parameters with those gradients
+    /// #####
+    /// Uses GPU if available.
+    /// Returns the average loss in the batch
     pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
         let config = BatchConfig::new_train(config);
         let mut assigner = KeyAssigner::new();
@@ -140,10 +174,13 @@ impl NNController {
         Ok(loss_mean)
     }
 
+    /// The same as test_batch except without the "batch" dimension in the input and the output
     pub fn test_one(&self, inputs: ArrayDynF, expected: ArrayDynF) -> Result<f64, LayerError> {
         self.test_batch(stack![Axis(0), inputs], &stack![Axis(0), expected])
     }
 
+    /// Calculate the loss between **expected** and the result of the forward propagation of **inputs**.
+    /// Uses GPU if available
     pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF) -> Result<f64, LayerError> {
         let config = BatchConfig::new_not_train();
         let mut assigner = KeyAssigner::new();
@@ -169,6 +206,7 @@ impl NNController {
         Ok(loss_mean)
     }
 
+    /// Return a copy of the inner storage
     pub fn export(&self) -> GenericStorage {
         self.storage.clone()
     }
@@ -188,11 +226,8 @@ impl NNController {
 mod tests {
     use std::{fs::OpenOptions, io::Read};
 
-    use ndarray_rand::{rand_distr::Normal, RandomExt};
-
     use crate::{
         integration::layers_loading::load_model_xml,
-        nn::lr_calculators::{constant_lr::ConstantLrConfig, lr_calculator::LrCalc},
         utils::{Array2F, Array3F},
     };
 

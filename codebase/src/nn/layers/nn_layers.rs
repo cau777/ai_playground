@@ -10,6 +10,7 @@ use crate::nn::layers::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use super::max_pool_layer::MaxPoolConfig;
 
+/// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
 pub enum Layer {
     Dense(dense_layer::DenseConfig),
