@@ -5,7 +5,7 @@ use crate::nn::layers::nn_layers::{
 };
 use crate::nn::lr_calculators::lr_calculator::{apply_lr_calc, LrCalc, LrCalcData};
 use crate::utils::*;
-use ndarray::{Axis, ErrorKind, ShapeError, stack};
+use ndarray::{ErrorKind, ShapeError};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::ops::AddAssign;
@@ -307,7 +307,7 @@ mod tests {
             assigner: &mut assigner,
             storage: &mut storage,
         };
-        let result = init_layer(&Layer::Convolution(config), init);
+        init_layer(&Layer::Convolution(config), init).unwrap();
         println!("{:?}", storage);
     }
 

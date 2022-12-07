@@ -2,10 +2,10 @@ use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::{
     backward_layer, forward_layer, init_layer, train_layer, BackwardData, ForwardData,
-    GenericStorage, InitData, Layer, LayerError, TrainData,
+    GenericStorage, InitData, Layer, TrainData,
 };
 use crate::nn::loss::loss_func::{calc_loss, calc_loss_grad, LossFunc};
-use crate::utils::ArrayDynF;
+use crate::utils::{ArrayDynF, GenericResult};
 use ndarray::{stack, Axis};
 use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 
@@ -38,7 +38,7 @@ pub struct NNController {
 
 impl NNController {
     /// Create a controller with an empty storage and init its layers
-    pub fn new(main_layer: Layer, loss: LossFunc) -> Result<Self, LayerError> {
+    pub fn new(main_layer: Layer, loss: LossFunc) -> GenericResult<Self> {
         let mut storage = GenericStorage::new();
         let mut assigner = KeyAssigner::new();
         init_layer(
@@ -57,7 +57,7 @@ impl NNController {
     }
 
     /// Create a controller with the provided storage and init its layers
-    pub fn load(main_layer: Layer, loss: LossFunc, mut storage: GenericStorage) -> Result<Self, LayerError> {
+    pub fn load(main_layer: Layer, loss: LossFunc, mut storage: GenericStorage) -> GenericResult<Self> {
         let mut assigner = KeyAssigner::new();
         init_layer(
             &main_layer,
@@ -75,14 +75,14 @@ impl NNController {
     }
 
     /// The same as eval_batch except without the "batch" dimension in the input and the output
-    pub fn eval_one(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
+    pub fn eval_one(&self, inputs: ArrayDynF) -> GenericResult<ArrayDynF> {
         self.eval_batch(stack![Axis(0), inputs])
             .map(|o| o.remove_axis(Axis(0)))
     }
 
     /// Forward the input through the layers and return the result.
     /// Uses GPU if available
-    pub fn eval_batch(&self, inputs: ArrayDynF) -> Result<ArrayDynF, LayerError> {
+    pub fn eval_batch(&self, inputs: ArrayDynF) -> GenericResult<ArrayDynF> {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
@@ -102,7 +102,7 @@ impl NNController {
     }
 
     /// The same as train_batch except without the "batch" dimension in the input and the output
-    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
+    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF, config: TrainConfig) -> GenericResult<f64> {
         self.train_batch(
             stack![Axis(0), inputs],
             &stack![Axis(0), expected],
@@ -119,7 +119,7 @@ impl NNController {
     /// #####
     /// Uses GPU if available.
     /// Returns the average loss in the batch
-    pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF, config: TrainConfig) -> Result<f64, LayerError> {
+    pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF, config: TrainConfig) -> GenericResult<f64> {
         let config = BatchConfig::new_train(config);
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
@@ -175,13 +175,13 @@ impl NNController {
     }
 
     /// The same as test_batch except without the "batch" dimension in the input and the output
-    pub fn test_one(&self, inputs: ArrayDynF, expected: ArrayDynF) -> Result<f64, LayerError> {
+    pub fn test_one(&self, inputs: ArrayDynF, expected: ArrayDynF) -> GenericResult<f64> {
         self.test_batch(stack![Axis(0), inputs], &stack![Axis(0), expected])
     }
 
     /// Calculate the loss between **expected** and the result of the forward propagation of **inputs**.
     /// Uses GPU if available
-    pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF) -> Result<f64, LayerError> {
+    pub fn test_batch(&self, inputs: ArrayDynF, expected: &ArrayDynF) -> GenericResult<f64> {
         let config = BatchConfig::new_not_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();

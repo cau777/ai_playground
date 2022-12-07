@@ -205,7 +205,7 @@ mod tests {
             kernel_size: 2,
         };
 
-        let dist = ndarray_rand::rand_distr::Normal::new(0.0, 1.0).unwrap();
+        let dist = Normal::new(0.0, 1.0).unwrap();
         let inputs = Array4F::random((8, config.in_channels, 5, 5), &dist);
         let kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
         let expected = calc_forward(&inputs, &kernels, &config).unwrap();

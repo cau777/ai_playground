@@ -1,11 +1,10 @@
 use std::collections::HashMap;
-use std::error;
 use crate::gpu::shader_runner::{GlobalGpu};
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::*;
 use crate::nn::layers::activation::*;
-use crate::utils::ArrayDynF;
+use crate::utils::{ArrayDynF, GenericResult};
 use crate::nn::layers::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use super::max_pool_layer::MaxPoolConfig;
@@ -13,16 +12,59 @@ use super::max_pool_layer::MaxPoolConfig;
 /// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
 pub enum Layer {
+    /// Dense Layer: perform matrix multiplication between the input and a weights matrix, and add
+    /// a biases matrix.
+    /// ### Trainable
+    /// * Weights
+    /// * Biases
     Dense(dense_layer::DenseConfig),
+
+    /// Simply executes the layers in sequential order, passing the output of a layer as the input
+    /// of the next layer. Will probably be the **root** of the model.
     Sequential(sequential_layer::SequentialConfig),
+
+    /// Apply the activation function TanH. Better than Sigmoid for handling negative values.
+    /// https://pt.wikipedia.org/wiki/Tangente_hiperb%C3%B3lica
     Tanh,
+
+    /// Apply the sigmoid activation function.
+    /// https://en.wikipedia.org/wiki/Sigmoid_function
     Sigmoid,
+
+    /// Apply the Rectified Linear Unit (ReLu) activation function. That means:
+    /// * For x >= 0: x
+    /// * For x < 0: 0
     Relu,
+
+    /// Just executes the callback functions and passes the data unchanged. Useful for debugging NaNs.
     Debug(debug_layer::DebugLayerConfig),
+
+    /// Apply the convolution operation with 2D filters. That means passing a filter through the last
+    /// 2 dimension of the input (usually height and width). In position of the filter, the sum of the
+    /// product of those input values and the kernel is computed. Requires a 4 dimensional input (one being
+    /// the batch).
+    /// ### Trainable
+    /// * Kernel
+    /// https://en.wikipedia.org/wiki/Convolutional_neural_network
     Convolution(ConvolutionConfig),
+
+    /// Apply MAX operation with 2D filters, That means passing a filter through the last
+    /// 2 dimension of the input (usually height and width). In position of the filter, the maximum
+    /// value of those input values is computed. Requires a 4 dimensional input (one being the batch).
+    /// Use for reducing the size of arrays after **Convolution**.
+    /// https://deepai.org/machine-learning-glossary-and-terms/max-pooling
     MaxPool(MaxPoolConfig),
+
+    /// Flattens all dimensions except the batch. The result will always be a 2D array. Useful for
+    /// passing **Convolution** results into **Dense** layers.
     Flatten,
+
+    /// Adds a new axis of length 1 in the specified place. By default, it ignores Batch dimension (which is always
+    /// the first), so adding an axis in 1 would result: (Batch, Dim_1, 1, Dim_2, Dim_3).
     ExpandDim(ExpandDimConfig),
+
+    /// Randomly nullifies a percentage of the inputs. Useful for avoiding overfitting.
+    /// https://machinelearningmastery.com/dropout-for-regularizing-deep-neural-networks/
     Dropout(dropout_layer::DropoutConfig)
 }
 
@@ -57,11 +99,17 @@ pub struct TrainData<'a> {
     pub backward_cache: &'a mut GenericStorage,
 }
 
+/// Type alias for a map on which layers store all the needed data.
+/// Key: unique string for a layer
+/// Value: Vector of NDimensional arrays
+/// The purpose of this type is to provide a centralized storage for trainable parameters
+/// as opposed to the objected oriented approach where layers are classes that stores parameters as fields.
+/// The advantage is that it can be easily serialized, and most of the times, layers can be added or
+/// removed without progress loss
 pub type GenericStorage = HashMap<String, Vec<ArrayDynF>>;
 
-pub type LayerError = Box<dyn error::Error>;
-pub type EmptyLayerResult = Result<(), LayerError>;
-pub type LayerResult = Result<ArrayDynF, LayerError>;
+pub type EmptyLayerResult = GenericResult<()>;
+pub type LayerResult = GenericResult<ArrayDynF>;
 
 pub trait LayerOps<T> {
     fn init(data: InitData, layer_config: &T) -> EmptyLayerResult;
@@ -75,6 +123,7 @@ pub trait TrainableLayerOps<T> {
     fn train(data: TrainData, layer_config: &T) -> EmptyLayerResult;
 }
 
+/// Call **init** in the appropriate layer. Not intended to be called directly.
 pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
     use Layer::*;
     match layer {
@@ -92,6 +141,7 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
     }
 }
 
+/// Call **forward** in the appropriate layer. Not intended to be called directly.
 pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
     use Layer::*;
     match layer {
@@ -109,6 +159,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
     }
 }
 
+/// Call **backward** in the appropriate layer. Not intended to be called directly.
 pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
     use Layer::*;
     match layer {
@@ -126,6 +177,8 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
     }
 }
 
+/// Call **train** in the appropriate layer. If the layer doesn't provide an implementation, nothing
+/// will happen. Not intended to be called directly.
 pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
     use Layer::*;
     match layer {

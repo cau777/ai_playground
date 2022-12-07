@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::sync::{Arc};
 use ndarray::Dimension;
 use vulkano::{
@@ -18,13 +17,13 @@ use vulkano::{
     sync::{self, GpuFuture},
     VulkanLibrary,
 };
-use vulkano::buffer::{BufferAccess, DeviceLocalBuffer};
+use vulkano::buffer::{BufferAccess};
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::Queue;
 use vulkano::pipeline::cache::PipelineCache;
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
 use vulkano::sync::{FenceSignalFuture, NowFuture};
-use crate::utils::{ArrayF};
+use crate::utils::{ArrayF, GenericResult};
 
 pub type GlobalGpu = Arc<GpuData>;
 
@@ -39,11 +38,11 @@ pub struct GpuData {
 }
 
 impl GpuData {
-    pub fn new_global() -> RunnerResult<GlobalGpu> {
+    pub fn new_global() -> GenericResult<GlobalGpu> {
         Self::new().map(|o| Arc::new(o))
     }
 
-    fn new() -> RunnerResult<Self> {
+    fn new() -> GenericResult<Self> {
         let library = VulkanLibrary::new().unwrap();
         let instance = Instance::new(
             library,
@@ -106,8 +105,6 @@ impl GpuData {
     }
 }
 
-type RunnerResult<T> = Result<T, Box<dyn Error>>;
-
 pub struct ShaderRunner {
     descriptors: Vec<WriteDescriptorSet>,
     pipeline: Arc<ComputePipeline>,
@@ -117,7 +114,7 @@ pub struct ShaderRunner {
 
 impl ShaderRunner {
     pub fn new(gpu: GlobalGpu, func: impl FnOnce(Arc<Device>) -> Result<Arc<ShaderModule>, ShaderCreationError>,
-               entrypoint: &str, constants: &impl SpecializationConstants) -> RunnerResult<ShaderRunner> {
+               entrypoint: &str, constants: &impl SpecializationConstants) -> GenericResult<ShaderRunner> {
         let pipeline = {
             let shader = func(gpu.device.clone())?;
             let entry = shader.entry_point(entrypoint)
@@ -140,7 +137,7 @@ impl ShaderRunner {
     }
 
     /// Create a buffer that will be used to transfer data to the GPU
-    pub fn create_read_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<()> {
+    pub fn create_read_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> GenericResult<()> {
         let buffer = CpuAccessibleBuffer::from_iter(
             &self.gpu.memory_alloc,
             BufferUsage {
@@ -173,7 +170,7 @@ impl ShaderRunner {
     }
 
     /// Create an empty buffer that will be used to transfer data from the GPU
-    pub fn create_write_buffer_uninit(&mut self, len: usize) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+    pub fn create_write_buffer_uninit(&mut self, len: usize) -> GenericResult<Arc<CpuAccessibleBuffer<[f32]>>> {
         let buffer = unsafe {
             CpuAccessibleBuffer::<[f32]>::uninitialized_array(
                 &self.gpu.memory_alloc,
@@ -191,7 +188,7 @@ impl ShaderRunner {
     }
 
     /// Create an empty buffer that will be used to transfer data from the GPU
-    pub fn create_write_buffer(&mut self, len: usize) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+    pub fn create_write_buffer(&mut self, len: usize) -> GenericResult<Arc<CpuAccessibleBuffer<[f32]>>> {
         let buffer =
             CpuAccessibleBuffer::from_iter(
                 &self.gpu.memory_alloc,
@@ -208,7 +205,7 @@ impl ShaderRunner {
     }
 
     /// Create a generic buffer that supports read and write operations
-    pub fn create_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> RunnerResult<Arc<CpuAccessibleBuffer<[f32]>>> {
+    pub fn create_buffer<D: Dimension>(&mut self, array: &ArrayF<D>) -> GenericResult<Arc<CpuAccessibleBuffer<[f32]>>> {
         let buffer = CpuAccessibleBuffer::from_iter(
             &self.gpu.memory_alloc,
             BufferUsage {
@@ -222,7 +219,7 @@ impl ShaderRunner {
         Ok(buffer)
     }
 
-    pub fn execute(&mut self, total_times: [u32; 3], block_size: [u32; 3]) -> RunnerResult<()> {
+    pub fn execute(&mut self, total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<()> {
         if (0..3).into_iter().any(|o| total_times[o] % block_size[o] != 0) {
             Err("Invalid groups: not divisible")?; // TODO: better error
         }
@@ -264,7 +261,7 @@ impl ShaderRunner {
         Ok(())
     }
 
-    fn exec_cmd(&self, cmd: PrimaryAutoCommandBuffer) -> RunnerResult<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> {
+    fn exec_cmd(&self, cmd: PrimaryAutoCommandBuffer) -> GenericResult<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> {
         Ok(sync::now(self.gpu.device.clone())
             .then_execute(self.gpu.queue.clone(), cmd)?
             .then_signal_fence_and_flush()?)

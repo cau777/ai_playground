@@ -1,4 +1,8 @@
+use std::error::Error;
 use ndarray::{Array, Array0, Array1, Array2, Array3, Array4, Array5, azip, Dimension, IxDyn};
+
+pub type GenericResult<T> = Result<T, GenericError>;
+pub type GenericError = Box<dyn Error>;
 
 type F = f32;
 pub type ArrayF<D> = Array<F, D>;

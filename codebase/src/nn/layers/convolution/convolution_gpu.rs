@@ -1,11 +1,10 @@
-use std::error::Error;
 use crate::Array4F;
 use crate::gpu::shader_runner::{GlobalGpu, ShaderRunner};
 use crate::gpu::shaders;
 use crate::nn::layers::convolution::convolution_layer::ConvolutionConfig;
-use crate::utils::{get_dims_after_filter_4, ShapeAsArray};
+use crate::utils::{GenericResult, get_dims_after_filter_4, ShapeAsArray};
 
-pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> Result<Array4F, Box<dyn Error>> {
+pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<Array4F> {
     let ish = inputs.shape_arr();
     let out_shape = (ish[0], ish[1], ish[2] - 2 * layer_config.padding, ish[3] - 2 * layer_config.padding);
     let ish = ish.map(|o| o as u32);
@@ -36,7 +35,7 @@ pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, 
     Ok(Array4F::from_shape_vec(out_shape, vec)?)
 }
 
-pub fn calc_forward_gpu(inputs: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> Result<Array4F, Box<dyn Error>> {
+pub fn calc_forward_gpu(inputs: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<Array4F> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
     let [batch_size, _, new_height, new_width] = get_dims_after_filter_4(&inputs, *kernel_size, *stride);
 
