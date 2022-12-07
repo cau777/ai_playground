@@ -20,7 +20,7 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
         let ForwardData { forward_cache, assigner, inputs, batch_config, .. } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
-        if batch_config.train_config.is_some() { // Only perform dropout while training
+        if batch_config.is_training { // Only perform dropout while training
             let factor = layer_config.drop;
             let length = inputs.shape().iter().copied().reduce(|acc, val| acc * val).unwrap_or(1);
             let dist = ndarray_rand::rand_distr::Uniform::new(0.0, 1.0);
@@ -66,7 +66,7 @@ mod tests {
         let inputs = Array2F::random((5, 5), &dist).into_dyn();
         let mut cache = GenericStorage::new();
         let config = DropoutConfig{drop: 0.1};
-        let batch_config = BatchConfig::new_train(TrainConfig::default());
+        let batch_config = BatchConfig::new_train();
 
         let forward_data = ForwardData {
             inputs,

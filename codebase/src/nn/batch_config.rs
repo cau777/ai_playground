@@ -1,15 +1,14 @@
-use super::train_config::TrainConfig;
-
+/// Simple struct that contains some information about the current batch
 pub struct BatchConfig {
-    pub train_config: Option<TrainConfig>,
+    pub is_training: bool,
 }
 
 impl BatchConfig {
     pub fn new_not_train() -> Self {
-        Self { train_config: None }
+        Self { is_training: false }
     }
 
-    pub fn new_train(train_config: TrainConfig) -> Self {
-        Self { train_config: Some(train_config) }
+    pub fn new_train() -> Self {
+        Self { is_training: true }
     }
 }

@@ -23,15 +23,9 @@ pub struct AdamLrCalc {}
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
     fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> LayerResult {
-        let LrCalcData {
-            storage,
-            assigner,
-            batch_config,
-        } = data;
-        let workers = batch_config.train_config.as_ref().map(|o| o.workers).unwrap();
+        let LrCalcData { storage, assigner, .. } = data;
 
         let key = assigner.get_key("adam".to_owned());
-
         let mut moment1: ArrayDynF;
         let mut moment2: ArrayDynF;
         let epoch: f32;
@@ -63,7 +57,6 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
             ],
         );
 
-        let factor = config.alpha / workers as f32;
-        Ok(factor * moment1b / (moment2b.mapv(f32::sqrt) + EPSILON))
+        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + EPSILON))
     }
 }

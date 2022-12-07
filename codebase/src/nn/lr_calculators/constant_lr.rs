@@ -17,11 +17,8 @@ impl Default for ConstantLrConfig {
 
 pub struct ConstantLr {}
 
-// TODO: exploding numbers in first epochs for giant networks
 impl LrCalcOps<ConstantLrConfig> for ConstantLr {
-    fn apply(target: ArrayDynF, data: LrCalcData, config: &ConstantLrConfig) -> LayerResult {
-        let workers = data.batch_config.train_config.as_ref().map(|o| o.workers).unwrap();
-        let factor = config.lr / workers as f32;
-        Ok(target * factor)
+    fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> LayerResult {
+        Ok(target * config.lr)
     }
 }

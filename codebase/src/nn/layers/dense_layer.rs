@@ -227,7 +227,7 @@ mod tests {
 
         let output = DenseLayer::forward(
             ForwardData {
-                batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut storage,
                 inputs: input,
@@ -285,7 +285,7 @@ mod tests {
         let result = DenseLayer::backward(
             BackwardData {
                 grad: grad.into_dyn(),
-                batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 forward_cache: &mut forward_cache,
                 storage: &mut storage,
@@ -326,7 +326,7 @@ mod tests {
 
         for _ in 0..100 {
             let inputs = inputs.clone();
-            last_loss = controller.train_batch(inputs, &expected, TrainConfig::default()).unwrap();
+            last_loss = controller.train_batch(inputs, &expected).unwrap();
             if first_loss.is_none() {
                 first_loss = Some(last_loss);
             }

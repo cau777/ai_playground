@@ -9,8 +9,6 @@ use crate::utils::{ArrayDynF, GenericResult};
 use ndarray::{stack, Axis};
 use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 
-use super::train_config::TrainConfig;
-
 /// Main struct to train and use the AI model
 /// ```
 /// use codebase::nn::controller::NNController;
@@ -21,7 +19,7 @@ use super::train_config::TrainConfig;
 /// println!("Started training");
 /// for epoch in 0..10 {
 ///     // It's better to split the data into random batches
-///     let loss = controller.train_batch(data_inputs.clone(), &data_expected, TrainConfig::default()).unwrap();
+///     let loss = controller.train_batch(data_inputs.clone(), &data_expected ).unwrap();
 ///     println!("Epoch {} finished with avg loss {}", epoch, loss);
 /// }
 ///
@@ -102,11 +100,10 @@ impl NNController {
     }
 
     /// The same as train_batch except without the "batch" dimension in the input and the output
-    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF, config: TrainConfig) -> GenericResult<f64> {
+    pub fn train_one(&mut self, inputs: ArrayDynF, expected: ArrayDynF) -> GenericResult<f64> {
         self.train_batch(
             stack![Axis(0), inputs],
             &stack![Axis(0), expected],
-            config,
         )
     }
 
@@ -119,8 +116,8 @@ impl NNController {
     /// #####
     /// Uses GPU if available.
     /// Returns the average loss in the batch
-    pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF, config: TrainConfig) -> GenericResult<f64> {
-        let config = BatchConfig::new_train(config);
+    pub fn train_batch(&mut self, inputs: ArrayDynF, expected: &ArrayDynF) -> GenericResult<f64> {
+        let config = BatchConfig::new_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let gpu = Self::get_gpu();
@@ -248,7 +245,6 @@ mod tests {
             .train_batch(
                 Array3F::ones((64, 28, 28)).into_dyn(),
                 &Array2F::ones((64, 10)).into_dyn(),
-                TrainConfig::default(),
             )
             .unwrap();
         println!("{}", result);

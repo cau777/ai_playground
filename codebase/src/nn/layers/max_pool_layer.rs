@@ -127,7 +127,7 @@ mod tests {
         fn forward(inputs: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
             MaxPoolLayer::forward(ForwardData {
                 inputs,
-                batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
@@ -164,7 +164,7 @@ mod tests {
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut forward_cache,
                 backward_cache: &mut GenericStorage::new(),
-                batch_config: &BatchConfig::new_train(TrainConfig::default()),
+                batch_config: &BatchConfig::new_train(),
                 gpu: None,
             }, &MaxPoolConfig { size, stride }).unwrap()
         }

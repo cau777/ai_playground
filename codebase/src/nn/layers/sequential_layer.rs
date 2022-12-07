@@ -118,7 +118,7 @@ mod tests {
     fn test_forward() {
         let data = ForwardData {
             inputs: Default::default(),
-            batch_config: &BatchConfig::new_train(TrainConfig::default()),
+            batch_config: &BatchConfig::new_train(),
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
             forward_cache: &mut GenericStorage::new(),
@@ -140,7 +140,7 @@ mod tests {
     fn test_backward() {
         let data = BackwardData {
             grad: Default::default(),
-            batch_config: &BatchConfig::new_train(TrainConfig::default()),
+            batch_config: &BatchConfig::new_train(),
             assigner: &mut KeyAssigner::new(),
             storage: &mut Default::default(),
             forward_cache: &mut Default::default(),
