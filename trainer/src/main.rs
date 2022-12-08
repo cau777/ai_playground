@@ -3,17 +3,14 @@ mod client;
 
 use std::fs::OpenOptions;
 use std::io;
-use std::io::{Read, Write};
+use std::io::{Read};
 use std::io::ErrorKind::InvalidData;
-use std::iter::zip;
 use codebase::integration::deserialization::{deserialize_pairs, deserialize_storage};
-use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
+use codebase::integration::layers_loading::{ModelXmlConfig};
 use codebase::integration::serde_utils::Pairs;
-use codebase::integration::serialization::{serialize_storage, serialize_version};
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
-use codebase::nn::train_config::TrainConfig;
-use http::{Method, Request, StatusCode};
+use http::{StatusCode};
 use rand::thread_rng;
 use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
@@ -52,10 +49,10 @@ fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConf
     for version in 0..config.versions {
         let mut total_loss = 0.0;
 
-        println!("Start {}", version);
+        println!("Start {}", version + 1);
         for epoch in 0..config.epochs_per_version {
             let data = train_data.pick_rand(128, &mut rng); // TODO: param
-            let loss = controller.train_batch(data.inputs, &data.expected, TrainConfig::default()).unwrap();
+            let loss = controller.train_batch(data.inputs, &data.expected).unwrap();
             total_loss += loss;
 
             if epoch % 16 == 0 {
