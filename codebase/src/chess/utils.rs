@@ -1,0 +1,1 @@
+pub type BoardArray<T> = [[T; 8]; 8];

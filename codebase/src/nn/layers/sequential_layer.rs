@@ -73,7 +73,6 @@ mod tests {
     use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 
     use lazy_static::lazy_static;
-    use crate::nn::train_config::TrainConfig;
 
     lazy_static! {
         static ref INIT_COUNTER: Mutex<Vec<String>> = Mutex::new(Vec::new());

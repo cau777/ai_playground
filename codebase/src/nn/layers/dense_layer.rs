@@ -205,7 +205,6 @@ mod tests {
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
     use crate::nn::layers::dense_layer::{DenseConfig, DenseLayer, DenseLayerInit};
-    use crate::nn::train_config::TrainConfig;
 
     #[test]
     fn test_forward() {

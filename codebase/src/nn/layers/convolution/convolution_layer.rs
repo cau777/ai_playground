@@ -172,7 +172,6 @@ mod tests {
     use ndarray_rand::RandomExt;
     use crate::nn::layers::convolution::convolution_cpu::{calc_kernel_grad};
     use crate::nn::layers::convolution::convolution_layer;
-    use crate::nn::train_config::TrainConfig;
 
     #[test]
     #[ignore]

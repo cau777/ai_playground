@@ -56,7 +56,6 @@ mod tests {
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::nn_layers::GenericStorage;
-    use crate::nn::train_config::TrainConfig;
     use crate::utils::Array2F;
     use super::*;
 

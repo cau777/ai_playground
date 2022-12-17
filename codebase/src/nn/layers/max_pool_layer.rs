@@ -84,7 +84,6 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::max_pool_layer::{MaxPoolConfig, MaxPoolLayer};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
-    use crate::nn::train_config::TrainConfig;
     use crate::utils::{Array3F, ArrayDynF};
 
     fn create_inputs() -> ArrayDynF {
