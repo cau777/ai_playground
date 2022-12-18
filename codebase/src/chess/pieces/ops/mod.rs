@@ -4,6 +4,9 @@ use crate::chess::movement::Movement;
 
 mod pawn_ops;
 mod knight_ops;
+mod bishop_ops;
+mod lines;
+mod rook_ops;
 
 pub trait PieceOps {
     fn find_possible_moves(result: &mut Vec<Movement>, board: &Board, side: bool, from: Coord);

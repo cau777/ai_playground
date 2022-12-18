@@ -18,6 +18,7 @@ pub struct Board {
     pub piece_counts: SideDict<PieceDict<u8>>,
     pub kings_coords: SideDict<Coord>,
     // TODO: 3 fold repetition
+    // TODO: castles
     // TODO: en-passant
 }
 
