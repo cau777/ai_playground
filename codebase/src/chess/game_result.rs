@@ -8,6 +8,7 @@ pub enum DrawReason {
     InsufficientMaterial,
     FiftyMoveRule,
     Aborted,
+    Repetition,
 }
 
 pub enum GameResult {

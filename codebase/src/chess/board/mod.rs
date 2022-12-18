@@ -1,15 +1,25 @@
+mod move_applying;
+mod literals;
+
 use std::fmt::{Debug, Display, Formatter};
+use crate::chess::coord::Coord;
 use crate::chess::game_result::GameResult;
 use crate::chess::movement::Movement;
 use crate::chess::pieces::board_piece::BoardPiece;
+use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
-use crate::chess::utils::BoardArray;
+use crate::chess::side_dict::SideDict;
+use crate::chess::utils::{BoardArray, CoordIndexed};
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
     pieces: BoardArray<BoardPiece>,
     half_moves: u16,
-    moves_no_captures: u16, // Used for the 50-move rule
+    last_50mr_reset: u16,
+    // Moves until 50-move rule
+    piece_counts: SideDict<PieceDict<u8>>,
+    kings_coords: SideDict<Coord>,
+    // TODO: 3 fold repetition
 }
 
 impl Board {
@@ -26,37 +36,27 @@ impl Board {
             [bp::black(Pawn), bp::black(Pawn), bp::black(Pawn), bp::black(Pawn), bp::black(Pawn), bp::black(Pawn), bp::black(Pawn), bp::black(Pawn)],
             [bp::black(Rook), bp::black(Knight), BoardPiece::black(Bishop), bp::black(Queen), bp::black(King), bp::black(Bishop), bp::black(Knight), bp::black(Rook)],
         ];
+
         Self {
             pieces,
             half_moves: 0,
-            moves_no_captures: 0,
+            last_50mr_reset: 0,
+            piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
+            kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
         }
     }
 
-    /// Literal is a representation of the game from the white's perspective
-    pub fn from_literal(literal: &str, half_moves: u16, moves_no_captures: u16) -> Self {
-        let mut pieces = [[BoardPiece::empty(); 8]; 8];
-        let mut index = 0;
 
-        for c in literal.chars() {
-            let c: char = c;
-            if c == ' ' || c == '\r' || c == '\n' { continue; }
-            pieces[7 - (index / 8)][index % 8] = BoardPiece::try_from_notation(&c.to_string()).unwrap();
-            index += 1;
-        }
-        Self { pieces, half_moves, moves_no_captures }
+
+    pub fn is_valid(&self) -> bool {
+        unimplemented!()
     }
 
     pub fn get_possible_moves(&self) -> Vec<Movement> {
         unimplemented!()
     }
 
-    pub fn apply_move(&mut self) {
-        self.half_moves += 1;
-        unimplemented!()
-    }
-
-    pub fn get_game_result() -> GameResult {
+    pub fn get_game_result(&self) -> GameResult {
         unimplemented!()
     }
 }
@@ -67,7 +67,7 @@ impl Display for Board {
             for col in 0..8 {
                 write!(f, "{} ", self.pieces[7 - row][col])?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())
@@ -76,7 +76,8 @@ impl Display for Board {
 
 impl Debug for Board {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}half_moves={}, moves_no_captures={}", self, self.half_moves, self.moves_no_captures)
+        write!(f, "{}half_moves={}, last_50mr_reset={}, piece_counts={:?}, kings_coords={:?}", self,
+               self.half_moves, self.last_50mr_reset, self.piece_counts, self.kings_coords)
     }
 }
 
@@ -86,17 +87,6 @@ mod tests {
 
     #[test]
     fn test_initial_board() {
-        println!("{:?}", Board::new().pieces);
-        println!("{:?}", Board::from_literal("\
-        r n b q k b n r\
-        p p p p p p p p\
-        _ _ _ _ _ _ _ _\
-        _ _ _ _ _ _ _ _\
-        _ _ _ _ _ _ _ _\
-        _ _ _ _ _ _ _ _\
-        P P P P P P P P\
-        R N B Q K B N R", 0, 0).pieces);
-
         assert_eq!(Board::new(), Board::from_literal("\
         r n b q k b n r\
         p p p p p p p p\
@@ -107,4 +97,5 @@ mod tests {
         P P P P P P P P\
         R N B Q K B N R", 0, 0));
     }
+
 }

@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Copy, Clone, Default)]
 pub struct Coord {
-    row: u8,
-    col: u8,
+    pub row: u8,
+    pub col: u8,
 }
 
 impl Coord {
@@ -36,6 +36,10 @@ impl Coord {
         }
 
         Some(Self { row: row as u8, col: col as u8 })
+    }
+
+    pub fn board_coords() -> impl Iterator<Item = Coord>{
+        (0..64).map(|o| Coord::new(o / 8, o % 8))
     }
 }
 

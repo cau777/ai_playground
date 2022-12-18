@@ -1,9 +1,9 @@
 use crate::chess::coord::Coord;
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct Movement {
-    from: Coord,
-    to: Coord,
+    pub from: Coord,
+    pub to: Coord,
 }
 
 impl Movement {

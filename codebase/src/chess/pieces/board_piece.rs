@@ -53,6 +53,10 @@ impl BoardPiece {
     pub fn try_from_notation(notation: &str) -> Option<Self> {
         Some(BoardPiece::new(PieceType::try_from_notation(notation)?, notation.chars().next()?.is_ascii_uppercase()))
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.ty == PieceType::Empty
+    }
 }
 
 #[cfg(test)]
