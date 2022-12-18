@@ -13,12 +13,10 @@ use crate::chess::utils::{BoardArray, CoordIndexed};
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
-    pieces: BoardArray<BoardPiece>,
-    half_moves: u16,
-    last_50mr_reset: u16,
+    pub pieces: BoardArray<BoardPiece>,
     // Moves until 50-move rule
-    piece_counts: SideDict<PieceDict<u8>>,
-    kings_coords: SideDict<Coord>,
+    pub piece_counts: SideDict<PieceDict<u8>>,
+    pub kings_coords: SideDict<Coord>,
     // TODO: 3 fold repetition
 }
 
@@ -39,8 +37,6 @@ impl Board {
 
         Self {
             pieces,
-            half_moves: 0,
-            last_50mr_reset: 0,
             piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
             kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
         }
@@ -76,8 +72,7 @@ impl Display for Board {
 
 impl Debug for Board {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}half_moves={}, last_50mr_reset={}, piece_counts={:?}, kings_coords={:?}", self,
-               self.half_moves, self.last_50mr_reset, self.piece_counts, self.kings_coords)
+        write!(f, "{} piece_counts={:?}, kings_coords={:?}", self, self.piece_counts, self.kings_coords)
     }
 }
 
@@ -95,7 +90,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ _ _ _ _ _ _\
         P P P P P P P P\
-        R N B Q K B N R", 0, 0));
+        R N B Q K B N R"));
     }
 
 }

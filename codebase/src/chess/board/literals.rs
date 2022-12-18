@@ -8,7 +8,7 @@ use crate::chess::utils::CoordIndexed;
 
 impl Board {
     /// Literal is a representation of the game from the white's perspective
-    pub fn from_literal(literal: &str, half_moves: u16, last_50mr_reset: u16) -> Self {
+    pub fn from_literal(literal: &str) -> Self {
         let mut pieces = [[BoardPiece::empty(); 8]; 8];
         let mut index = 0;
 
@@ -30,7 +30,7 @@ impl Board {
                 }
             }
         }
-        Self { pieces, half_moves, last_50mr_reset, piece_counts: counts, kings_coords }
+        Self { pieces, piece_counts: counts, kings_coords }
     }
 }
 
@@ -48,7 +48,7 @@ mod tests {
         B B B b _ _ _ _\
         p p _ _ _ _ _ _\
         _ _ _ _ _ _ _ _\
-        _ _ _ _ _ _ _ _", 0, 0);
+        _ _ _ _ _ _ _ _");
         assert_eq!(board.piece_counts, SideDict::new(
             PieceDict::new([0, 2, 3, 1, 1, 1]),
             PieceDict::new([2, 0, 1, 2, 1, 1])
@@ -65,7 +65,7 @@ mod tests {
         B B B b _ k _ _\
         p p _ _ _ _ _ _\
         _ _ _ _ _ _ _ _\
-        _ K _ _ _ _ _ _", 0, 0);
+        _ K _ _ _ _ _ _");
         assert_eq!(board.kings_coords, SideDict::new(
             Coord::from_notation("B1"),
             Coord::from_notation("F4")
