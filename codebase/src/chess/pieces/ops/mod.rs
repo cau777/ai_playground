@@ -7,6 +7,7 @@ mod knight_ops;
 mod bishop_ops;
 mod lines;
 mod rook_ops;
+mod queen_ops;
 
 pub trait PieceOps {
     fn find_possible_moves(result: &mut Vec<Movement>, board: &Board, side: bool, from: Coord);
