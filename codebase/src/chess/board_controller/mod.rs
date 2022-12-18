@@ -1,4 +1,5 @@
 mod move_applying;
+mod finding_moves;
 
 use crate::chess::board::Board;
 

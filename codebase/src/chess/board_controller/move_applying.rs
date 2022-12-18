@@ -34,6 +34,7 @@ impl BoardController {
 
 #[cfg(test)]
 mod tests {
+    use crate::chess::board::Board;
     use crate::chess::coord::Coord;
     use crate::chess::pieces::piece_dict::PieceDict;
     use crate::chess::side_dict::SideDict;

@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Eq, PartialEq, Copy, Clone, Default)]
+#[derive(Eq, PartialEq, Copy, Clone, Default, Hash)]
 pub struct Coord {
     pub row: u8,
     pub col: u8,
@@ -12,14 +12,14 @@ impl Coord {
     }
 
     pub fn from_notation(notation: &str) -> Self {
-        Self::try_from_notation(notation).expect(&format!("Could not parse {} as Coord", notation))
+        Self::try_from_notation(notation).unwrap_or_else(|| panic!("Could not parse {} as Coord", notation))
     }
 
     pub fn try_from_notation(notation: &str) -> Option<Self> {
         if notation.len() != 2 {
             return None;
         }
-        
+
         let mut chars = notation.chars();
         let col_char: char = chars.next()?;
         let row_char: char = chars.next()?;
@@ -31,27 +31,51 @@ impl Coord {
         }
 
         let row = row_char as i16 - '1' as i16;
-        if  row < 0 || row > 7 {
+        if row < 0 || row > 7 {
             return None;
         }
 
         Some(Self { row: row as u8, col: col as u8 })
     }
 
-    pub fn board_coords() -> impl Iterator<Item = Coord>{
+    pub fn board_coords() -> impl Iterator<Item=Coord> {
         (0..64).map(|o| Coord::new(o / 8, o % 8))
+    }
+
+    #[inline]
+    pub fn add_checked(&self, row: i8, col: i8) -> Option<Self> {
+        let irow = self.row as i8;
+        let icol = self.col as i8;
+        if irow < -row || icol < -col {
+            None
+        } else {
+            Some(Coord::new((irow + row) as u8, (icol + col) as u8))
+        }
+    }
+
+    #[inline]
+    pub fn in_bounds(&self) -> bool {
+        self.row < 8 && self.col < 8
+    }
+
+    #[inline]
+    pub fn distance_2d(&self, other: Coord) -> Coord {
+        Coord::new(
+            if self.row > other.row { self.row - other.row } else { other.row - self.row },
+            if self.col > other.col { self.col - other.col } else { other.col - self.col },
+        )
     }
 }
 
 impl Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", (self.col as u8 + 'A' as u8) as char, self.row)
+        write!(f, "{}{}", (self.col as u8 + b'A') as char, self.row+1)
     }
 }
 
 impl Debug for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", (self.col as u8 + 'A' as u8) as char, self.row)
+        write!(f, "{}", self)
     }
 }
 
