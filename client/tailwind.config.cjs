@@ -20,6 +20,7 @@ module.exports = {
           3: "#ced4da"
         },
         primary: {
+          50: "#fee485",
           100: "#ffba08",
           200: "#faa307",
           300: "#f48c06",
