@@ -5,7 +5,7 @@ use crate::chess::pieces::ops::lines::{find_possible_moves_line, line_valid, LIN
 use crate::chess::pieces::ops::PieceOps;
 use crate::chess::utils::CoordIndexed;
 
-struct RookOps;
+pub struct RookOps;
 
 impl PieceOps for RookOps {
     fn find_possible_moves(result: &mut Vec<Movement>, board: &Board, side: bool, from: Coord) {

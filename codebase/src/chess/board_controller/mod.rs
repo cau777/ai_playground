@@ -10,27 +10,34 @@ use crate::chess::side_dict::SideDict;
 use crate::chess::utils::CoordIndexed;
 
 #[derive(Eq, PartialEq, Clone)]
-pub struct BoardController {
-    // TODO: 3-fold repetition
-    current: Board,
-    half_moves: u16,
-    last_50mr_reset: u16,
+struct BoardInfo {
+    board: Board,
     piece_counts: SideDict<PieceDict<u8>>,
     kings_coords: SideDict<Coord>,
 }
 
+#[derive(Eq, PartialEq, Clone)]
+pub struct BoardController {
+    // TODO: 3-fold repetition
+    boards: Vec<BoardInfo>,
+    last_50mr_reset: usize,
+}
+
 impl BoardController {
     pub fn new_start() -> Self {
-        Self {
-            current: Board::new(),
-            half_moves: 0,
+        let mut result = Self {
             last_50mr_reset: 0,
+            boards: Vec::new(),
+        };
+        result.push(BoardInfo {
+            board: Board::new(),
             piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
             kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
-        }
+        });
+        result
     }
 
-    pub fn new(board: Board, half_moves: u16, last_50mr_reset: u16) -> Self {
+    pub fn new_from_single(board: Board) -> Self {
         let mut counts = SideDict::new(PieceDict::default(), PieceDict::default());
         let mut kings_coords = SideDict::new(Coord::default(), Coord::default());
         for coord in Coord::board_coords() {
@@ -42,11 +49,42 @@ impl BoardController {
                 }
             }
         }
-        Self { current: board, half_moves, last_50mr_reset, piece_counts: counts, kings_coords }
+
+        let mut result = Self { boards: Vec::new(), last_50mr_reset: 0 };
+        result.push(BoardInfo {
+            board,
+            piece_counts: counts,
+            kings_coords,
+        });
+        result
     }
 
     pub fn get_game_result(&self) -> GameResult {
         todo!()
+    }
+
+    fn push(&mut self, info: BoardInfo) {
+        self.boards.push(info);
+    }
+
+    pub fn half_moves(&self) -> usize {
+        self.boards.len() - 1
+    }
+
+    pub fn current(&self) -> &Board {
+        &self.boards.last().as_ref().unwrap().board
+    }
+
+    fn current_info(&self) -> &BoardInfo {
+        self.boards.last().unwrap()
+    }
+
+    pub fn revert(&mut self) -> Option<Board> {
+        if self.boards.len() > 1 {
+            self.boards.pop().map(|o| o.board)
+        } else {
+            None
+        }
     }
 }
 
@@ -65,11 +103,11 @@ mod tests {
         p p _ _ _ _ _ _\
         _ _ _ _ _ _ _ _\
         _ _ _ _ _ _ _ _");
-        let controller = BoardController::new(board, 0, 0);
+        let controller = BoardController::new_from_single(board);
 
-        assert_eq!(controller.piece_counts, SideDict::new(
+        assert_eq!(controller.current_info().piece_counts, SideDict::new(
             PieceDict::new([0, 2, 3, 1, 1, 1]),
-            PieceDict::new([2, 0, 1, 2, 1, 1])
+            PieceDict::new([2, 0, 1, 2, 1, 1]),
         ));
     }
 
@@ -84,11 +122,11 @@ mod tests {
         p p _ _ _ _ _ _\
         _ _ _ _ _ _ _ _\
         _ K _ _ _ _ _ _");
-        let controller = BoardController::new(board, 0, 0);
+        let controller = BoardController::new_from_single(board);
 
-        assert_eq!(controller.kings_coords, SideDict::new(
+        assert_eq!(controller.current_info().kings_coords, SideDict::new(
             Coord::from_notation("B1"),
-            Coord::from_notation("F4")
+            Coord::from_notation("F4"),
         ));
     }
 }

@@ -4,7 +4,7 @@ use crate::chess::movement::Movement;
 use crate::chess::pieces::ops::PieceOps;
 use crate::chess::utils::CoordIndexed;
 
-struct PawnOps;
+pub struct PawnOps;
 
 impl PieceOps for PawnOps {
     fn find_possible_moves(result: &mut Vec<Movement>, board: &Board, side: bool, from: Coord) {
@@ -179,7 +179,7 @@ mod tests {
     // --------------------------------------------------
 
     #[test]
-    fn test_first_advance_check() {
+    fn test_first_advance_can_move() {
         let board = Board::from_literal("\
         r n b q k b n r\
         p p p p p p p p\
@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn test_first_advance_blocked_check() {
+    fn test_first_advance_blocked_can_move() {
         let board = Board::from_literal("\
         r n b q k b n r\
         p p p p p p p p\
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_advance_check() {
+    fn test_simple_advance_can_move() {
         let board = Board::from_literal("\
         r n b q k b n r\
         p p p p _ p p p\
@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_capture_check() {
+    fn test_capture_can_move() {
         let board = Board::from_literal("\
         r n b q k b n r\
         p p p p _ p p p\
@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn test_capture_en_passant_check() {
+    fn test_capture_en_passant_can_move() {
         let mut board = Board::from_literal("\
         r n b q k b n r\
         p p p p _ p p p\
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn test_wrong_capture_en_passant_check() {
+    fn test_wrong_capture_en_passant_can_move() {
         let mut board = Board::from_literal("\
         r n b q k b n r\
         p p p p _ p p p\
