@@ -7,6 +7,7 @@ pub struct Coord {
 }
 
 impl Coord {
+    #[inline]
     pub fn new(row: u8, col: u8) -> Self {
         Self { row, col }
     }
@@ -54,6 +55,11 @@ impl Coord {
     }
 
     #[inline]
+    pub fn add(&self, row: u8, col: u8) -> Self {
+        Coord::new(self.row + row, self.col + col)
+    }
+
+    #[inline]
     pub fn in_bounds(&self) -> bool {
         self.row < 8 && self.col < 8
     }
@@ -65,11 +71,16 @@ impl Coord {
             if self.col > other.col { self.col - other.col } else { other.col - self.col },
         )
     }
+
+    #[inline]
+    pub fn sub(&self, row: u8, col: u8) -> Self {
+        Coord::new(self.row - row, self.col - col)
+    }
 }
 
 impl Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", (self.col as u8 + b'A') as char, self.row+1)
+        write!(f, "{}{}", (self.col as u8 + b'A') as char, self.row + 1)
     }
 }
 

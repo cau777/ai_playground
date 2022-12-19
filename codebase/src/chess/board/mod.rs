@@ -1,25 +1,20 @@
-mod move_applying;
 mod literals;
 
 use std::fmt::{Debug, Display, Formatter};
 use crate::chess::coord::Coord;
 use crate::chess::game_result::GameResult;
-use crate::chess::movement::Movement;
 use crate::chess::pieces::board_piece::BoardPiece;
 use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
-use crate::chess::utils::{BoardArray, CoordIndexed};
+use crate::chess::utils::{BoardArray};
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
     pub pieces: BoardArray<BoardPiece>,
     // Moves until 50-move rule
-    pub piece_counts: SideDict<PieceDict<u8>>,
-    pub kings_coords: SideDict<Coord>,
-    // TODO: 3 fold repetition
     // TODO: castles
-    // TODO: en-passant
+    pub en_passant_vulnerable: Option<Coord>,
 }
 
 impl Board {
@@ -39,18 +34,11 @@ impl Board {
 
         Self {
             pieces,
-            piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
-            kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
+            en_passant_vulnerable: None,
         }
     }
 
-
-
     pub fn is_valid(&self) -> bool {
-        unimplemented!()
-    }
-
-    pub fn get_game_result(&self) -> GameResult {
         unimplemented!()
     }
 }
@@ -70,7 +58,7 @@ impl Display for Board {
 
 impl Debug for Board {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} piece_counts={:?}, kings_coords={:?}", self, self.piece_counts, self.kings_coords)
+        write!(f, "{}", self)
     }
 }
 
