@@ -24,6 +24,7 @@ impl BoardController {
     pub fn get_possible_moves(&self, side: bool) -> Vec<Movement> {
         let mut result = Vec::new();
         let board = self.current();
+
         for coord in Coord::board_coords() {
             let piece = board.pieces.get_at(coord);
             if piece.is_empty() || piece.side != side { continue; }
