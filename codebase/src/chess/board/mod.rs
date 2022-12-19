@@ -1,6 +1,8 @@
 mod literals;
+pub mod castle_rights;
 
 use std::fmt::{Debug, Display, Formatter};
+use crate::chess::board::castle_rights::CastleRights;
 use crate::chess::coord::Coord;
 use crate::chess::game_result::GameResult;
 use crate::chess::pieces::board_piece::BoardPiece;
@@ -12,9 +14,8 @@ use crate::chess::utils::{BoardArray};
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
     pub pieces: BoardArray<BoardPiece>,
-    // Moves until 50-move rule
-    // TODO: castles
     pub en_passant_vulnerable: Option<Coord>,
+    pub castle_rights: SideDict<CastleRights>,
 }
 
 impl Board {
@@ -35,6 +36,7 @@ impl Board {
         Self {
             pieces,
             en_passant_vulnerable: None,
+            castle_rights: SideDict::new(CastleRights::full(), CastleRights::full()),
         }
     }
 
@@ -78,5 +80,4 @@ mod tests {
         P P P P P P P P\
         R N B Q K B N R"));
     }
-
 }

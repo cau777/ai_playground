@@ -4,6 +4,22 @@ use crate::chess::movement::Movement;
 use crate::chess::pieces::ops::{piece_can_move_to, piece_find_possible_moves};
 use crate::chess::utils::CoordIndexed;
 
+fn get_queen_side_path(side: bool) -> [Coord; 3] {
+    if side {
+        [Coord::from_notation("B1"), Coord::from_notation("C1"), Coord::from_notation("D1")]
+    } else {
+        [Coord::from_notation("B8"), Coord::from_notation("C8"), Coord::from_notation("D8")]
+    }
+}
+
+fn get_king_side_path(side: bool) -> [Coord; 2] {
+    if side {
+        [Coord::from_notation("F1"), Coord::from_notation("G1")]
+    } else {
+        [Coord::from_notation("F8"), Coord::from_notation("G8")]
+    }
+}
+
 impl BoardController {
     pub fn get_possible_moves(&self, side: bool) -> Vec<Movement> {
         let mut result = Vec::new();
@@ -22,7 +38,18 @@ impl BoardController {
             !in_check
         });
 
-        // TODO: castle
+        if !self.is_in_check(side) {
+            let row = if side { 0 } else { 7 };
+            let path = get_queen_side_path(side);
+            if board.castle_rights[side].queen_side && self.path_free(&path) && !self.pieces_cover_path(!side, &path) {
+                result.push(Movement::new(Coord::new(row, 4), Coord::new(row, 2)));
+            }
+
+            let path = get_king_side_path(side);
+            if board.castle_rights[side].king_side && self.path_free(&path) && !self.pieces_cover_path(!side, &path) {
+                result.push(Movement::new(Coord::new(row, 4), Coord::new(row, 6)));
+            }
+        }
 
         result
     }
@@ -40,6 +67,31 @@ impl BoardController {
             }
         }
 
+        false
+    }
+
+    fn path_free(&self, path: &[Coord]) -> bool {
+        let board = self.current();
+        for coord in path {
+            if !board.pieces.get_at(*coord).is_empty() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn pieces_cover_path(&self, side: bool, path: &[Coord]) -> bool {
+        let board = self.current();
+        for coord in Coord::board_coords() {
+            let piece = board.pieces.get_at(coord);
+            if piece.is_empty() || piece.side != side { continue; }
+
+            for to in path {
+                if piece_can_move_to(board, piece.ty, piece.side, coord, *to) {
+                    return true;
+                }
+            }
+        }
         false
     }
 }
@@ -61,7 +113,7 @@ mod tests {
         _ P _ _ _ _ _ _\
         Q _ P K _ _ _ _\
         _ N B _ _ _ _ _");
-        let controller =BoardController::new_from_single(board);
+        let controller = BoardController::new_from_single(board);
         let result = HashSet::from_iter(controller.get_possible_moves(true).into_iter());
         let expected = HashSet::from([
             ["A2", "A1"], ["A2", "B2"], ["A2", "A3"],
@@ -84,6 +136,30 @@ mod tests {
             ["G7", "F6"], ["G7", "E5"], ["G7", "D4"], ["G7", "C3"], ["G7", "B2"], ["G7", "A1"],
         ].map(|[from, to]| Movement::from_notations(from, to)));
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_castle_conditions() {
+        let board = Board::from_literal("\
+        r _ _ _ k b _ r\
+        p B p p p p p p\
+        _ _ _ _ _ _ _ _\
+        _ _ q _ _ _ _ _\
+        _ _ _ _ _ _ _ _\
+        _ N _ Q _ _ _ P\
+        P P P P P P P _\
+        R _ _ _ K _ _ R");
+        let mut controller = BoardController::new_from_single(board);
+        // Move rook to remove king side castle rights
+        controller.apply_move(Movement::from_notations("H1", "H2"));
+
+        let result = controller.get_possible_moves(true);
+        assert!(result.contains(&Movement::from_notations("E1", "C1")));
+        assert!(!result.contains(&Movement::from_notations("E1", "G1")));
+
+        let result = controller.get_possible_moves(false);
+        assert!(!result.contains(&Movement::from_notations("E8", "C8")));
+        assert!(!result.contains(&Movement::from_notations("E8", "G8")));
     }
 
     #[test]

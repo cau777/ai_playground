@@ -1,5 +1,7 @@
 use crate::chess::board::Board;
+use crate::chess::board::castle_rights::CastleRights;
 use crate::chess::pieces::board_piece::BoardPiece;
+use crate::chess::side_dict::SideDict;
 
 impl Board {
     /// Literal is a representation of the game from the white's perspective
@@ -13,7 +15,11 @@ impl Board {
             pieces[7 - (index / 8)][index % 8] = BoardPiece::try_from_notation(&c.to_string()).unwrap();
             index += 1;
         }
-        
-        Self { pieces, en_passant_vulnerable: None }
+
+        Self {
+            pieces,
+            en_passant_vulnerable: None,
+            castle_rights: SideDict::new(CastleRights::full(), CastleRights::full()),
+        }
     }
 }
