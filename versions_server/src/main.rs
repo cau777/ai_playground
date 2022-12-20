@@ -7,12 +7,13 @@ mod loaded_model;
 mod utils;
 mod endpoint_dict;
 mod digits_handler;
-mod chess_handlers;
+mod chess;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{Filter, path};
 use warp::http::StatusCode;
+use crate::chess::chess_games_pool::ChessGamesPool;
 use crate::endpoint_dict::EndpointDict;
 use crate::env_config::EnvConfig;
 use crate::file_manager::FileManager;
@@ -21,6 +22,7 @@ use crate::loaded_model::LoadedModel;
 pub type EnvConfigDep = Arc<EnvConfig>;
 pub type FileManagerDep = Arc<RwLock<FileManager>>;
 pub type LoadedModelDep = Arc<RwLock<LoadedModel>>;
+pub type ChessGamesPoolDep = Arc<RwLock<ChessGamesPool>>;
 
 pub type FileManagersDep = EndpointDict<Arc<RwLock<FileManager>>>;
 pub type LoadedModelsDep = EndpointDict<Arc<RwLock<LoadedModel>>>;
@@ -37,6 +39,7 @@ async fn main() {
         Arc::new(RwLock::new(LoadedModel::new())),
         Arc::new(RwLock::new(LoadedModel::new())),
     );
+    let chess_games_pool = Arc::new(RwLock::new(ChessGamesPool::new()));
 
     let cors = warp::cors()
         .allow_any_origin()
@@ -71,20 +74,38 @@ async fn main() {
         .and(with_file_managers(&file_managers))
         .and_then(rest_handlers::post_config);
 
-    // Specific routes
-    let post_eval_route = path!("digits" / "eval")
+    // Digits routes
+    let digits_eval_route = path!("digits" / "eval")
         .and(warp::post())
-        .and(warp::body::json())
+        .and(warp::body::bytes())
         .and(with_file_manager(&file_managers.digits))
         .and(with_loaded_model(&loaded_models.digits))
         .and_then(digits_handler::post_eval);
+
+    // Chess routes
+    let chess_start_route = path!("chess" / "start")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_chess_games_pool(&chess_games_pool))
+        .and_then(chess::chess_handlers::post_start);
+
+    let chess_move_route = path!("chess" / "move")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_chess_games_pool(&chess_games_pool))
+        .and_then(chess::chess_handlers::post_move);
 
     let routes = wake_up_route
         .or(post_trainable_route)
         .or(get_trainable_route)
         .or(get_config_route)
         .or(set_config_route)
-        .or(post_eval_route)
+
+        .or(digits_eval_route)
+
+        .or(chess_start_route)
+        .or(chess_move_route)
+
         .with(cors);
 
     warp::serve(routes).run((config.host_address, config.port)).await;
@@ -117,6 +138,11 @@ fn with_file_managers(instance: &FileManagersDep) -> dep_filter![FileManagersDep
 }
 
 fn with_loaded_models(instance: &LoadedModelsDep) -> dep_filter![LoadedModelsDep] {
+    let instance = instance.clone();
+    warp::any().map(move || instance.clone())
+}
+
+fn with_chess_games_pool(instance: &ChessGamesPoolDep) -> dep_filter![ChessGamesPoolDep] {
     let instance = instance.clone();
     warp::any().map(move || instance.clone())
 }

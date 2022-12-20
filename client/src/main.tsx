@@ -11,6 +11,7 @@ import {DigitsPlayground} from "./components/digits/DigitsPlayground";
 import {ChessPlayground} from "./components/chess/ChessPlayground";
 // server.wakeUp().then(); TODO
 
+// TODO: Router bug
 const router = createBrowserRouter([
     {
         path: "/digits",

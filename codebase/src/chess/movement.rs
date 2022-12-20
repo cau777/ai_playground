@@ -14,4 +14,9 @@ impl Movement {
     pub fn from_notations(from: &str, to: &str) -> Self {
         Self::new(Coord::from_notation(from), Coord::from_notation(to))
     }
+
+    pub fn try_from_notations(from: &str, to: &str) -> Option<Self> {
+        Some(Self::new(Coord::try_from_notation(from)?,
+                       Coord::try_from_notation(to)?))
+    }
 }

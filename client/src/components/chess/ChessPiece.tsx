@@ -1,7 +1,8 @@
 import {FC} from "react";
 
 type Props = {
-    notation: string,
+    notation: string;
+    canMoveTo: boolean;
 }
 
 // Source: Wikipedia Commons (slightly edited)

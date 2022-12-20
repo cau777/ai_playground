@@ -3,7 +3,7 @@ use warp::{reply, Reply};
 use crate::{FileManagerDep, LoadedModelDep, StatusCode};
 use crate::utils::{data_err_proc, EndpointResult};
 
-pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
+pub async fn post_eval(body: warp::hyper::body::Bytes, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
     {
         // Code block to free write lock asap
         let file_manager = file_manager.read().await;
