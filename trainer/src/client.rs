@@ -27,11 +27,11 @@ impl ServerClient {
         }
     }
 
-    pub fn submit(&self, storage: &GenericStorage, loss: f64) {
+    pub fn submit(&self, storage: &GenericStorage, loss: f64, name: &str) {
         println!("Uploading");
         let bytes = serialize_version(storage, loss);
 
-        let response = self.client.post(self.create_url("trainable"))
+        let response = self.client.post(self.create_url_with_name(name, "trainable"))
             .body(bytes)
             .send().unwrap();
         if response.status() != StatusCode::OK {
@@ -39,18 +39,23 @@ impl ServerClient {
         }
     }
 
-    pub fn load_model_config(&self) -> Result<ModelXmlConfig, Box<dyn Error>> {
-        let model_config_response = self.client.get(self.create_url("config")).send()?;
-        model_config_response.error_for_status_ref()?;
-        Ok(load_model_xml(&model_config_response.bytes()?)?)
+    pub fn load_model_config(&self, name: &str) -> Result<ModelXmlConfig, Box<dyn Error>> {
+        let response = self.client.get(self.create_url_with_name(name, "config")).send()?;
+        response.error_for_status_ref()?;
+        Ok(load_model_xml(&response.bytes()?)?)
     }
 
-    pub fn get(&self, path: &str) -> reqwest::Result<Response> {
-        self.client.get(self.create_url(path)).send()
+    pub fn get_trainable(&self, name: &str) -> reqwest::Result<Response> {
+        self.client.get(self.create_url_with_name(name, "trainable")).send()
     }
 
     fn create_url(&self, path: &str) -> String {
         println!("{}/{}", self.base_url, path);
         format!("{}/{}", self.base_url, path)
+    }
+
+    fn create_url_with_name(&self,name: &str,  path: &str) -> String {
+        println!("{}/{}/{}", self.base_url, name, path);
+        format!("{}/{}/{}", self.base_url, name, path)
     }
 }

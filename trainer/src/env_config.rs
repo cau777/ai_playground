@@ -5,6 +5,7 @@ pub struct EnvConfig {
     pub versions: u32,
     pub epochs_per_version: u32,
     pub mounted_path: String,
+    pub name: String,
 }
 
 fn get_path(name: &str) -> Result<String, VarError> {
@@ -29,7 +30,8 @@ impl EnvConfig {
             versions_server_url: get_path("VERSIONS_SERVER_URL")?,
             mounted_path: get_path("MOUNTED_PATH")?,
             epochs_per_version,
-            versions
+            versions,
+            name: var("NAME").unwrap_or_else(|_| "digits".to_owned()).to_ascii_lowercase(),
         })
     }
 }

@@ -1,9 +1,10 @@
 import axios from "axios";
 
+// const ServerUrl = "http://localhost:8000";
 const ServerUrl = "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
 
-export async function evaluate(array: number[]) {
-    let response = await axios.post<number[]>(ServerUrl + "/eval", array, {
+export async function digits_eval(array: number[]) {
+    let response = await axios.post<number[]>(ServerUrl + "/digits/eval", array, {
         responseType: "json",
     });
     return response.data;

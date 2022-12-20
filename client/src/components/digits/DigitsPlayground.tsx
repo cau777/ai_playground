@@ -106,7 +106,7 @@ export const DigitsPlayground: FC = () => {
             frame();
             resize();
             let pixels = preparePixels();
-            let result = await server.evaluate(pixels);
+            let result = await server.digits_eval(pixels);
             setResult(result);
         } finally {
             setBusy(false);
