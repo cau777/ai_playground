@@ -14,7 +14,8 @@ type StartGameResponse = {
     board: string;
     player_side: boolean;
     game_id: string;
-    possible: [string, string][],
+    possible: [string, string][];
+    game_state: string;
 };
 
 export async function chess_start_game(color?: boolean) {
@@ -28,7 +29,8 @@ export async function chess_start_game(color?: boolean) {
 
 type MoveResponse = {
     board: string;
-    possible: [string, string][],
+    possible: [string, string][];
+    game_state: string;
 }
 
 export async function chess_move(gameId: string, from: string, to: string) {
@@ -44,3 +46,22 @@ export async function wakeUp() {
     // Useless endpoint that just wakes up the Azure instance for the next requests
     return axios.get(ServerUrl + "/wakeup");
 }
+
+// GameResult::Undefined => "gameResultUndefined",
+//     GameResult::Draw(reason) => match reason {
+//     DrawReason::Aborted => "gameResultAborted",
+//         DrawReason::FiftyMoveRule => "gameResultFiftyMoveRule",
+//         DrawReason::Repetition => "gameResultRepetition",
+//         DrawReason::Stalemate => "gameResultStalemate",
+//         DrawReason::InsufficientMaterial => "gameResultInsufficientMaterial",
+// },
+// GameResult::Win(side, reason) => match reason {
+//     WinReason::Checkmate => match side {
+//         true => "gameResultCheckmateWhite",
+//             false => "gameResultCheckmateBlack",
+//     },
+//     WinReason::Timeout => match side {
+//         true => "gameResultTimeoutWhite",
+//             false => "gameResultTimeoutBlack",
+//     },
+// }

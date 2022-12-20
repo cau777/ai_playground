@@ -6,17 +6,15 @@ type Props = {
     board: string;
     onMove: (from: string, to: string) => void;
     possible: Map<string, Set<string>>;
+    interactive: boolean;
 }
 
 type SelectedInfo = {
     notation: string;
 }
 
-// TODO: highlight selected
-// TODO: show valid moves
-
 function indexToNotation(index: number) {
-    let row = 7- Math.floor(index / 8);
+    let row = 7 - Math.floor(index / 8);
     let col = index % 8;
     // 65 is the code point for letter A
     return String.fromCodePoint(65 + col) + (row + 1);
@@ -28,14 +26,13 @@ export const ChessBoard: FC<Props> = (props) => {
     let [selected, setSelected] = useState<SelectedInfo>();
     
     function pieceClick(notation: string) {
-        
+        if(!props.interactive) return;
         if (selected === undefined) {
             setSelected({notation});
         } else {
             if (selected.notation === notation) {
                 setSelected(undefined);
             } else {
-                // TODO: check if move is valid
                 props.onMove(selected.notation, notation);
                 setSelected(undefined);
             }
@@ -60,8 +57,7 @@ export const ChessBoard: FC<Props> = (props) => {
                             </div>
                         )}
                         <div className={"p-1"}>
-                        <ChessPiece notation={piece} canMoveTo={canMoveTo}></ChessPiece>
-                        
+                            <ChessPiece notation={piece} canMoveTo={canMoveTo}></ChessPiece>
                         </div>
                     </div>
                 );

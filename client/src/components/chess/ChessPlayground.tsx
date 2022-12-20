@@ -17,7 +17,7 @@ type BoardState = {
     board: string;
     possible: Map<string, Set<string>>;
     gameId: string;
-    // TODO: game state
+    state: string;
 }
 
 function createMapSet(possible: [string, string][]) {
@@ -35,38 +35,41 @@ function createMapSet(possible: [string, string][]) {
 }
 
 export const ChessPlayground: FC = () => {
-    let [board, setBoard] = useState<BoardState>();
+    let [game, setGame] = useState<BoardState>();
     
     useEffect(() => {
         server.chess_start_game(true)
             .then(o => {
-                setBoard({
+                setGame({
                     board: o.board,
                     gameId: o.game_id,
                     possible : createMapSet(o.possible),
+                    state: o.game_state
                 });
             });
     }, []);
     
     async function moved(from: string, to: string) {
-        if (board === undefined) return;
-        if (!board.possible.get(from)?.has(to))
+        if (game === undefined) return;
+        if (!game.possible.get(from)?.has(to))
             return;
         console.log(from, to);
         
-        let response = await server.chess_move(board.gameId, from, to);
-        setBoard({
-            gameId: board.gameId,
+        let response = await server.chess_move(game.gameId, from, to);
+        setGame({
+            gameId: game.gameId,
             possible: createMapSet(response.possible),
             board: response.board,
+            state: response.game_state,
         });
     }
     
     
     return (
         <NavControls>
-            Chess
-            <ChessBoard board={board?.board ?? INITIAL_BOARD} possible={board?.possible ?? new Map()} onMove={moved}></ChessBoard>
+            <h1>Chess</h1>
+            <h6>{game?.state}</h6>
+            <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD} possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
         </NavControls>
     )
 }

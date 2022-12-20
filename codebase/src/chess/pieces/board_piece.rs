@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::chess::pieces::piece_type::PieceType;
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub struct BoardPiece {
     pub side: bool,
     // True for white and False for black

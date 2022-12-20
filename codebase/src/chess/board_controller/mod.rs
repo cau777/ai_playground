@@ -1,13 +1,16 @@
 mod move_applying;
 mod finding_moves;
+mod game_result;
 
+use std::collections::{HashMap};
+use std::hash::{Hash};
 use crate::chess::board::Board;
 use crate::chess::coord::Coord;
-use crate::chess::game_result::GameResult;
+use crate::chess::pieces::board_piece::BoardPiece;
 use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
-use crate::chess::utils::CoordIndexed;
+use crate::chess::utils::{BoardArray, CoordIndexed};
 
 #[derive(Eq, PartialEq, Clone)]
 struct BoardInfo {
@@ -16,9 +19,14 @@ struct BoardInfo {
     kings_coords: SideDict<Coord>,
 }
 
+#[derive(Eq, PartialEq, Clone, Hash)]
+struct BoardRecord {
+    pieces: BoardArray<BoardPiece>,
+}
+
 #[derive(Eq, PartialEq, Clone)]
 pub struct BoardController {
-    // TODO: 3-fold repetition
+    board_repetitions: HashMap<BoardRecord, u8>,
     boards: Vec<BoardInfo>,
     last_50mr_reset: usize,
 }
@@ -28,7 +36,9 @@ impl BoardController {
         let mut result = Self {
             last_50mr_reset: 0,
             boards: Vec::new(),
+            board_repetitions: HashMap::new(),
         };
+
         result.push(BoardInfo {
             board: Board::new(),
             piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
@@ -50,7 +60,11 @@ impl BoardController {
             }
         }
 
-        let mut result = Self { boards: Vec::new(), last_50mr_reset: 0 };
+        let mut result = Self {
+            boards: Vec::new(),
+            last_50mr_reset: 0,
+            board_repetitions: HashMap::new(),
+        };
         result.push(BoardInfo {
             board,
             piece_counts: counts,
@@ -59,11 +73,11 @@ impl BoardController {
         result
     }
 
-    pub fn get_game_result(&self) -> GameResult {
-        todo!()
-    }
-
     fn push(&mut self, info: BoardInfo) {
+        let record = BoardRecord { pieces: info.board.pieces };
+        let prev = *self.board_repetitions.get(&record).unwrap_or(&0);
+        self.board_repetitions.insert(record, prev + 1);
+
         self.boards.push(info);
     }
 
@@ -81,10 +95,24 @@ impl BoardController {
 
     pub fn revert(&mut self) -> Option<Board> {
         if self.boards.len() > 1 {
-            self.boards.pop().map(|o| o.board)
+            let removed = self.boards.pop().map(|o| o.board).unwrap();
+
+            let record = BoardRecord { pieces: removed.pieces };
+            let prev = *self.board_repetitions.get(&record).unwrap();
+            if prev == 1 {
+                self.board_repetitions.remove(&record);
+            } else {
+                self.board_repetitions.insert(record, prev - 1);
+            }
+
+            Some(removed)
         } else {
             None
         }
+    }
+
+    pub fn side_to_play(&self) -> bool {
+        self.half_moves() % 2 == 0
     }
 }
 

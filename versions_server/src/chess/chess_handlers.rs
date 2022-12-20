@@ -1,3 +1,4 @@
+use codebase::chess::game_result::{GameResult, DrawReason, WinReason};
 use codebase::chess::movement::Movement;
 use codebase::utils::GenericResult;
 use rand::{Rng, thread_rng};
@@ -17,6 +18,7 @@ struct StartResponse {
     player_side: bool,
     game_id: String,
     possible: Vec<[String; 2]>,
+    game_state: String,
 }
 
 pub async fn post_start(body: StartRequest, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
@@ -35,7 +37,7 @@ pub async fn post_start(body: StartRequest, pool: ChessGamesPoolDep) -> Endpoint
         }
     }
 
-    let (board, possible) = match get_board_info(&pool, &id).await {
+    let (board, possible, result) = match get_board_info(&pool, &id).await {
         Some(v) => v,
         None => return Ok(reply::with_status(reply::json(&""), StatusCode::NOT_FOUND)),
     };
@@ -45,6 +47,7 @@ pub async fn post_start(body: StartRequest, pool: ChessGamesPoolDep) -> Endpoint
         player_side,
         game_id: id,
         possible,
+        game_state: result,
     }), StatusCode::OK))
 }
 
@@ -59,6 +62,7 @@ pub struct MoveRequest {
 struct MoveResponse {
     board: String,
     possible: Vec<[String; 2]>,
+    game_state: String,
 }
 
 pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
@@ -74,6 +78,19 @@ pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointRe
             None => return Ok(reply::with_status(reply::json(&""), StatusCode::NOT_FOUND)),
         };
         controller.apply_move(movement);
+
+        let possible = controller.get_possible_moves(controller.side_to_play());
+        let result = controller.get_game_result(&possible);
+        match result {
+            GameResult::Undefined => {}
+            _ => {
+                return Ok(reply::with_status(reply::json(&MoveResponse {
+                    possible: vec![],
+                    board: format!("{}", controller.current()),
+                    game_state: game_state_to_string(result),
+                }), StatusCode::OK));
+            }
+        }
     }
 
     // AI makes a move
@@ -82,7 +99,7 @@ pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointRe
         Err(e) => return data_err_proc(e, reply::json(&"")),
     };
 
-    let (board, possible) = match get_board_info(&pool, &body.game_id).await {
+    let (board, possible, result) = match get_board_info(&pool, &body.game_id).await {
         Some(v) => v,
         None => return Ok(reply::with_status(reply::json(&""), StatusCode::NOT_FOUND)),
     };
@@ -90,6 +107,7 @@ pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointRe
     Ok(reply::with_status(reply::json(&MoveResponse {
         possible,
         board,
+        game_state: result,
     }), StatusCode::OK))
 }
 
@@ -98,7 +116,7 @@ async fn decide_and_apply(pool: &ChessGamesPoolDep, id: &str) -> GenericResult<(
         let pool = pool.read().await;
         let controller = pool.get_controller(id).ok_or("Game not found")?;
 
-        let side = controller.half_moves() % 2 == 0;
+        let side = controller.side_to_play();
         controller.get_possible_moves(side)
     };
 
@@ -111,20 +129,47 @@ async fn decide_and_apply(pool: &ChessGamesPoolDep, id: &str) -> GenericResult<(
     Ok(())
 }
 
-async fn get_board_info(pool: &ChessGamesPoolDep, id: &str) -> Option<(String, Vec<[String; 2]>)> {
+async fn get_board_info(pool: &ChessGamesPoolDep, id: &str) -> Option<(String, Vec<[String; 2]>, String)> {
     let pool = pool.read().await;
     let controller = pool.get_controller(id);
     controller.map(|controller| {
-        let side = controller.half_moves() % 2 == 0;
+        let side = controller.side_to_play();
+        let possible = controller.get_possible_moves(side);
+        let result = controller.get_game_result(&possible);
+
         (
             format!("{}", controller.current()),
-            controller.get_possible_moves(side).into_iter()
+            possible.into_iter()
                 .map(|o| [format!("{}", o.from), format!("{}", o.to)])
-                .collect()
+                .collect(),
+            game_state_to_string(result),
         )
     })
 }
 
 fn decide_move(possible: Vec<Movement>) -> Movement {
     possible[0]
+}
+
+fn game_state_to_string(state: GameResult) -> String {
+    match state {
+        GameResult::Undefined => "gameResultUndefined",
+        GameResult::Draw(reason) => match reason {
+            DrawReason::Aborted => "gameResultAborted",
+            DrawReason::FiftyMoveRule => "gameResultFiftyMoveRule",
+            DrawReason::Repetition => "gameResultRepetition",
+            DrawReason::Stalemate => "gameResultStalemate",
+            DrawReason::InsufficientMaterial => "gameResultInsufficientMaterial",
+        },
+        GameResult::Win(side, reason) => match reason {
+            WinReason::Checkmate => match side {
+                true => "gameResultCheckmateWhite",
+                false => "gameResultCheckmateBlack",
+            },
+            WinReason::Timeout => match side {
+                true => "gameResultTimeoutWhite",
+                false => "gameResultTimeoutBlack",
+            },
+        }
+    }.to_owned()
 }
