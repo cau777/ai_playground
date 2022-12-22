@@ -86,12 +86,16 @@ async fn main() {
     let chess_start_route = path!("chess" / "start")
         .and(warp::post())
         .and(warp::body::json())
+        .and(with_file_manager(&file_managers.chess))
+        .and(with_loaded_model(&loaded_models.chess))
         .and(with_chess_games_pool(&chess_games_pool))
         .and_then(chess::chess_handlers::post_start);
 
     let chess_move_route = path!("chess" / "move")
         .and(warp::post())
         .and(warp::body::json())
+        .and(with_file_manager(&file_managers.chess))
+        .and(with_loaded_model(&loaded_models.chess))
         .and(with_chess_games_pool(&chess_games_pool))
         .and_then(chess::chess_handlers::post_move);
 

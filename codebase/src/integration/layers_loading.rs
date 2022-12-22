@@ -161,6 +161,16 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 },
                 tag: get_string_attr(element, "tag")?,
             }))
+        },
+        "Concat" => {
+            let mut layers = Vec::new();
+            for e in iter_elements(&element.children) {
+                layers.push(load_layer(e)?)
+            }
+            Ok(Layer::Concat(concat_layer::ConcatConfig {
+                layers,
+                dim: get_usize_attr(element, "dim")?,
+            }))
         }
         "Relu" => {
             Ok(Layer::Relu)

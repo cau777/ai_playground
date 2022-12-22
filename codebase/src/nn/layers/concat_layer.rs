@@ -1,7 +1,7 @@
 use std::iter::zip;
 use ndarray::{Axis, concatenate, Slice};
 use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::nn_layers::{backward_layer, forward_layer, Layer, train_layer, TrainableLayerOps, TrainData};
+use crate::nn::layers::nn_layers::{backward_layer, forward_layer, init_layer, Layer, train_layer, TrainableLayerOps, TrainData};
 use crate::utils::Array1F;
 
 use super::nn_layers::{ForwardData, LayerOps, InitData, EmptyLayerResult, LayerResult, BackwardData};
@@ -19,7 +19,15 @@ fn gen_name(config: &ConcatConfig) -> String {
 }
 
 impl LayerOps<ConcatConfig> for ConcatLayer {
-    fn init(_: InitData, _: &ConcatConfig) -> EmptyLayerResult { Ok(()) }
+    fn init(data: InitData, layer_config: &ConcatConfig) -> EmptyLayerResult {
+        for layer in layer_config.layers.iter() {
+            init_layer(layer, InitData {
+                assigner: data.assigner,
+                storage: data.storage,
+            })?;
+        }
+        Ok(())
+    }
 
     fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
         let mut results = Vec::with_capacity(layer_config.layers.len());
@@ -53,11 +61,17 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         let key = data.assigner.get_key(gen_name(layer_config));
         let [cache] = remove_from_storage1(data.forward_cache, &key);
         let dim = layer_config.dim + 1;
-        let mut prev_split = 0;
-        let mut result = None;
+        let splits: Vec<_> = cache.iter().map(|o| o.round() as usize).collect();
 
-        for (layer, split) in zip(&layer_config.layers, cache.iter().map(|o| o.round() as usize)) {
-            let grad = data.grad.slice_axis(Axis(dim), Slice::from(prev_split..(prev_split + split)));
+        let mut end = data.grad.shape()[dim];
+        let mut result = None;
+        let layer_count = layer_config.layers.len();
+
+        for i in 0..layer_count {
+            let i = layer_count - i - 1;
+            let layer = &layer_config.layers[i];
+            let split = splits[i];
+            let grad = data.grad.slice_axis(Axis(dim), Slice::from((end - split)..end));
 
             let layer_result = backward_layer(layer, BackwardData {
                 grad: grad.to_owned(),
@@ -69,12 +83,11 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
                 backward_cache: data.backward_cache,
             })?;
 
-            println!("{:?}", result);
             result = Some(match result {
                 Some(v) => v + layer_result,
                 None => layer_result,
             });
-            prev_split += split;
+            end -= split;
         }
 
         Ok(result.unwrap())
@@ -95,6 +108,7 @@ impl TrainableLayerOps<ConcatConfig> for ConcatLayer {
     }
 }
 
+// TODO: test - doesn't affect single layer output
 #[cfg(test)]
 mod tests {
     use ndarray::array;

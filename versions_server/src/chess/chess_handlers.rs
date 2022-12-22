@@ -1,6 +1,7 @@
 use codebase::chess::game_result::{GameResult, DrawReason, WinReason};
 use codebase::chess::movement::Movement;
-use codebase::utils::GenericResult;
+use codebase::utils::{Array4F, Array5F, GenericResult};
+use codebase::utils::ndarray::{Axis, stack};
 use rand::{Rng, thread_rng};
 use warp::{Reply, reply};
 use crate::utils::{data_err_proc, EndpointResult};
@@ -21,7 +22,7 @@ struct StartResponse {
     game_state: String,
 }
 
-pub async fn post_start(body: StartRequest, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
+pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
     let id = {
         let mut pool = pool.write().await;
         pool.start()
@@ -31,7 +32,7 @@ pub async fn post_start(body: StartRequest, pool: ChessGamesPoolDep) -> Endpoint
     let player_side = body.side.unwrap_or_else(|| thread_rng().gen_bool(0.5));
 
     if !player_side {
-        match decide_and_apply(&pool, &id).await {
+        match decide_and_apply(file_manager, loaded, &pool, &id).await {
             Ok(_) => {}
             Err(e) => return data_err_proc(e, reply::json(&"")),
         }
@@ -65,7 +66,7 @@ struct MoveResponse {
     game_state: String,
 }
 
-pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
+pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: LoadedModelDep, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
     let movement = match Movement::try_from_notations(&body.from, &body.to) {
         Some(v) => v,
         None => return Ok(reply::with_status(reply::json(&""), StatusCode::BAD_REQUEST)),
@@ -94,7 +95,7 @@ pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointRe
     }
 
     // AI makes a move
-    match decide_and_apply(&pool, &body.game_id).await {
+    match decide_and_apply(file_manager, loaded, &pool, &body.game_id).await {
         Ok(_) => {}
         Err(e) => return data_err_proc(e, reply::json(&"")),
     };
@@ -111,16 +112,30 @@ pub async fn post_move(body: MoveRequest, pool: ChessGamesPoolDep) -> EndpointRe
     }), StatusCode::OK))
 }
 
-async fn decide_and_apply(pool: &ChessGamesPoolDep, id: &str) -> GenericResult<()> {
-    let possible = {
+async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelDep, pool: &ChessGamesPoolDep, id: &str) -> GenericResult<()> {
+    let (moves, boards, side) = {
         let pool = pool.read().await;
         let controller = pool.get_controller(id).ok_or("Game not found")?;
 
+        let mut controller = controller.clone();
         let side = controller.side_to_play();
-        controller.get_possible_moves(side)
+        let possible = controller.get_possible_moves(side);
+
+        let boards: Vec<_> = possible.iter()
+            .copied()
+            .map(|m| {
+                controller.apply_move(m);
+                let array = controller.current().to_array();
+                controller.revert();
+                array
+            })
+            .collect();
+        let views: Vec<_> = boards.iter().map(|o| o.view()).collect();
+        (possible, stack(Axis(0), &views)?, controller.side_to_play())
     };
 
-    let chosen = decide_move(possible);
+    let chosen = decide_move(file_manager, loaded, boards, side).await?;
+    let chosen = moves[chosen];
     {
         let mut pool = pool.write().await;
         let controller = pool.get_controller_mut(id).ok_or("Game not found")?;
@@ -147,8 +162,25 @@ async fn get_board_info(pool: &ChessGamesPoolDep, id: &str) -> Option<(String, V
     })
 }
 
-fn decide_move(file_manager: FileManagerDep, loaded: LoadedModelDep, possible: Vec<Movement>) -> Movement {
-    
+async fn decide_move(file_manager: FileManagerDep, loaded: LoadedModelDep, options: Array4F, side: bool) -> GenericResult<usize> {
+    {
+        // Code block to free write lock asap
+        let file_manager = file_manager.read().await;
+        let target = file_manager.best();
+        let mut loaded = loaded.write().await;
+        loaded.assert_loaded(target, &file_manager)?;
+    }
+
+    let loaded = loaded.read().await;
+    let controller = loaded.get_loaded().unwrap();
+    let result = controller.eval_batch(options.into_dyn())?;
+
+    Ok(result.into_iter()
+        .map(|o| if side {o} else {-o})
+        .enumerate()
+        .max_by(|(_, v1), (_, v2)| v1.total_cmp(v2))
+        .map(|(index, _)| index)
+        .unwrap())
 }
 
 fn game_state_to_string(state: GameResult) -> String {

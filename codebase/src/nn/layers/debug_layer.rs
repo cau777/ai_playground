@@ -39,7 +39,7 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.action {
             DebugAction::PrintShape => {
-                println!("Inputs_shape={:?}", data.inputs.shape())
+                println!("{}:Inputs_shape={:?}", layer_config.tag, data.inputs.shape())
             }
             DebugAction::Call(_, f, _) => {
                 f(&layer_config.tag, &data, &key);
@@ -52,7 +52,7 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.action {
             DebugAction::PrintShape => {
-                println!("Grad_shape={:?}", data.grad.shape())
+                println!("{}:Grad_shape={:?}", layer_config.tag, data.grad.shape())
             }
             DebugAction::Call(_, _, f) => {
                 f(&layer_config.tag, &data, &key);

@@ -64,6 +64,7 @@ pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &Convolu
     let mean_grad = mean_grad.insert_axis(Axis(1));
 
     let mut parts = Vec::with_capacity(kernel_size * kernel_size);
+
     (0..kernel_size * kernel_size)
         .into_par_iter()
         .with_min_len(1)

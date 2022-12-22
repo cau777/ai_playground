@@ -65,7 +65,10 @@ pub enum Layer {
 
     /// Randomly nullifies a percentage of the inputs. Useful for avoiding overfitting.
     /// https://machinelearningmastery.com/dropout-for-regularizing-deep-neural-networks/
-    Dropout(dropout_layer::DropoutConfig)
+    Dropout(dropout_layer::DropoutConfig),
+
+    // TODO: docs
+    Concat(concat_layer::ConcatConfig),
 }
 
 pub struct InitData<'a> {
@@ -138,6 +141,7 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         Flatten => flatten_layer::FlattenLayer::init(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::init(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::init(data, c),
+        Concat(c) => concat_layer::ConcatLayer::init(data, c),
     }
 }
 
@@ -156,6 +160,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         Flatten => flatten_layer::FlattenLayer::forward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::forward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::forward(data, c),
+        Concat(c) => concat_layer::ConcatLayer::forward(data, c),
     }
 }
 
@@ -174,6 +179,7 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         Flatten => flatten_layer::FlattenLayer::backward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::backward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::backward(data, c),
+        Concat(c) => concat_layer::ConcatLayer::backward(data, c),
     }
 }
 
@@ -185,6 +191,7 @@ pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
         Dense(c) => dense_layer::DenseLayer::train(data, c),
         Sequential(c) => sequential_layer::SequentialLayer::train(data, c),
         Convolution(c) => convolution::ConvolutionLayer::train(data, c),
+        Concat(c) => concat_layer::ConcatLayer::train(data, c),
         _ => Ok(()),
     }
 }

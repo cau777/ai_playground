@@ -3,14 +3,14 @@ use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::integration::random_picker::RandomPicker;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
-use codebase::utils::Array3F;
+use codebase::utils::{Array2F};
 use codebase::utils::ndarray::{Axis, stack};
 use rand::thread_rng;
 use crate::{EnvConfig, ServerClient};
 use crate::files::{load_file_lines};
 
 const NAME: &str = "chess";
-const BATCH_SIZE: usize = 64;
+const BATCH_SIZE: usize = 128;
 
 pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
     let mut controller = NNController::load(model_config.main_layer, model_config.loss_func, initial).unwrap();
@@ -43,7 +43,7 @@ pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &Env
             let chosen_games_views: Vec<_> = chosen_games.iter().map(|o| o.view()).collect();
             let inputs = stack(Axis(0), &chosen_games_views).unwrap();
 
-            let expected = Array3F::from_shape_vec((BATCH_SIZE, 1, 1),
+            let expected = Array2F::from_shape_vec((BATCH_SIZE, 1),
                                                    all_chosen.into_iter().map(|(o, _)| o).collect()).unwrap();
 
             let loss = controller.train_batch(inputs.into_dyn(), &expected.into_dyn()).unwrap();
