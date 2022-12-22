@@ -7,6 +7,7 @@ use crate::{EnvConfig, ServerClient};
 use crate::files::load_file_data;
 
 const NAME: &str = "digits";
+const BATCH_SIZE: usize = 128;
 
 pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
     let mut controller = NNController::load(model_config.main_layer, model_config.loss_func, initial).unwrap();
@@ -19,7 +20,7 @@ pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &Env
 
         println!("Start {}", version + 1);
         for epoch in 0..config.epochs_per_version {
-            let data = train_data.pick_rand(128, &mut rng); // TODO: param
+            let data = train_data.pick_rand(BATCH_SIZE, &mut rng);
             let loss = controller.train_batch(data.inputs, &data.expected).unwrap();
             total_loss += loss;
 

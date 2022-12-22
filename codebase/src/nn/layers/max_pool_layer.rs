@@ -10,6 +10,7 @@ pub struct MaxPoolConfig {
     pub stride: usize,
 }
 
+// TODO: padding
 pub struct MaxPoolLayer {}
 
 fn gen_name() -> String {

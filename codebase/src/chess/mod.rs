@@ -1,5 +1,5 @@
 mod coord;
-mod board;
+pub mod board;
 mod utils;
 mod pieces;
 pub mod movement;

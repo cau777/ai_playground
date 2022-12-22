@@ -68,7 +68,7 @@ mod tests {
     use std::sync::Mutex;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::debug_layer::{DebugLayerConfig};
+    use crate::nn::layers::debug_layer::{DebugAction, DebugLayerConfig};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, InitData, Layer, LayerOps};
     use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 
@@ -87,9 +87,9 @@ mod tests {
         for i in 0..4 {
             result.push(Layer::Debug(DebugLayerConfig {
                 tag: format!("debug_{}", i),
-                init_callback: init,
-                forward_callback: forward,
-                backward_callback: backward,
+                action: DebugAction::Call(init.unwrap_or(|_, _, _| {}),
+                                          forward.unwrap_or(|_, _, _| {}),
+                                          backward.unwrap_or(|_, _, _| {})),
             }))
         }
 

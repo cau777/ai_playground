@@ -8,3 +8,4 @@ pub mod flatten_layer;
 pub mod expand_dim_layer;
 pub mod dropout_layer;
 pub mod convolution;
+pub mod concat_layer;

@@ -10,6 +10,7 @@ use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
 use crate::chess::utils::{BoardArray};
+use crate::utils::Array3F;
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
@@ -40,8 +41,17 @@ impl Board {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
-        unimplemented!()
+    pub fn to_array(&self) -> Array3F {
+        let mut result = Array3F::zeros((6, 8, 8));
+        for row in 0..8 {
+            for col in 0..8 {
+                let piece = self.pieces[row][col];
+                if !piece.is_empty() {
+                    result[(piece.ty as usize - 1, row, col)] = if piece.side { 1.0 } else { -1.0 };
+                }
+            }
+        }
+        result
     }
 }
 

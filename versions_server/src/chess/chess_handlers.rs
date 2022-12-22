@@ -5,7 +5,7 @@ use rand::{Rng, thread_rng};
 use warp::{Reply, reply};
 use crate::utils::{data_err_proc, EndpointResult};
 use serde::{Serialize, Deserialize};
-use crate::{ChessGamesPoolDep, StatusCode};
+use crate::{ChessGamesPoolDep, FileManagerDep, LoadedModelDep, StatusCode};
 
 #[derive(Deserialize)]
 pub struct StartRequest {
@@ -147,8 +147,8 @@ async fn get_board_info(pool: &ChessGamesPoolDep, id: &str) -> Option<(String, V
     })
 }
 
-fn decide_move(possible: Vec<Movement>) -> Movement {
-    possible[0]
+fn decide_move(file_manager: FileManagerDep, loaded: LoadedModelDep, possible: Vec<Movement>) -> Movement {
+    
 }
 
 fn game_state_to_string(state: GameResult) -> String {

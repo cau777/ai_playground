@@ -5,7 +5,7 @@ use super::nn_layers::{LayerOps, LayerResult, EmptyLayerResult, ForwardData, Bac
 pub struct FlattenLayer;
 
 fn gen_name() -> String {
-    "Flatten".to_owned()
+    "flatten".to_owned()
 }
 
 impl LayerOps<()> for FlattenLayer {
