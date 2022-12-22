@@ -9,8 +9,9 @@ use ndarray::{ErrorKind, ShapeError};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::ops::AddAssign;
-use crate::nn::layers::convolution::convolution_cpu::{calc_forward, calc_inputs_grad, calc_kernel_grad, pad4d};
+use crate::nn::layers::convolution::convolution_cpu::{calc_forward, calc_inputs_grad, calc_kernel_grad};
 use crate::nn::layers::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
+use crate::nn::utils::pad4d;
 
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {

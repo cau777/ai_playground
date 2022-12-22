@@ -149,6 +149,17 @@ fn load_layer(element: &Element) -> Result<Layer> {
             Ok(Layer::MaxPool(max_pool_layer::MaxPoolConfig {
                 size: get_usize_attr(element, "size")?,
                 stride: get_usize_attr(element, "stride")?,
+                padding: get_usize_attr(element, "padding")?,
+            }))
+        }
+        "Debug" => {
+            let action = get_string_attr(element, "action")?;
+            Ok(Layer::Debug(debug_layer::DebugLayerConfig {
+                action: match action.as_str() {
+                    "print_shape" => debug_layer::DebugAction::PrintShape,
+                    _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action",action.clone()))
+                },
+                tag: get_string_attr(element, "tag")?,
             }))
         }
         "Relu" => {
@@ -232,6 +243,16 @@ fn load_single_child<'a>(element: &'a Element) -> Result<&'a Element> {
 fn iter_elements<'a>(elements: &'a Vec<xmltree::XMLNode>) -> impl Iterator<Item = &'a Element> {
     elements.iter().filter_map(|o| o.as_element())
 }
+
+fn get_string_attr(element: &Element, name: &'static str) -> Result<String> {
+    element
+        .attributes
+        .get(name)
+        .cloned()
+        .map(|o| o.to_lowercase())
+        .ok_or_else(|| XmlError::AttributeNotFound(element.name.clone(), name))
+}
+
 
 fn get_usize_attr(element: &Element, name: &'static str) -> Result<usize> {
     let value = element

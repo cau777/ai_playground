@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub enum PieceType {
     Empty,
@@ -13,15 +11,15 @@ pub enum PieceType {
 
 impl PieceType {
     pub fn from_notation(notation: &str) -> Self {
-        Self::try_from_notation(notation).expect(&format!("Could not parse {} as PieceType", notation))
+        Self::try_from_notation(notation).unwrap_or_else(|| panic!("Could not parse {} as PieceType", notation))
     }
 
     pub fn try_from_notation(notation: &str) -> Option<Self> {
-        if notation.len() == 0 {
+        if notation.is_empty() {
             // Because when no letter is specified, it's implicitly a Pawn
             // Example: "E4" means Pawn to A4
             // "Empty" is used for other purposes
-            return Some(PieceType::Pawn);
+            return Some(Pawn);
         }
 
         if notation.len() != 1 {
