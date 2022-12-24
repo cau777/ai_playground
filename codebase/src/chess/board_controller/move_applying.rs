@@ -80,6 +80,9 @@ impl BoardController {
                 info.board.castle_rights[side_moving].king_side = false;
             }
         }
+        
+        // Update opening
+        info.opening = info.opening.and_then(|current| self.openings.as_ref().and_then(|o| o.find_opening_move(current, m)));
 
         self.push(info);
     }

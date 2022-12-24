@@ -6,7 +6,7 @@ pub struct RandomPicker {
 }
 
 impl RandomPicker {
-    pub fn new(len: usize) -> Self{
+    pub fn new(len: usize) -> Self {
         Self{
             possible: (0..len).collect()
         }

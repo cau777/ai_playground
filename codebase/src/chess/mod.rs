@@ -8,3 +8,4 @@ mod side_dict;
 pub mod board_controller;
 #[cfg(test)]
 mod test_utils;
+pub mod openings;

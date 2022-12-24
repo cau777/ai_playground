@@ -4,19 +4,23 @@ mod game_result;
 
 use std::collections::{HashMap};
 use std::hash::{Hash};
+use std::sync::Arc;
 use crate::chess::board::Board;
 use crate::chess::coord::Coord;
+use crate::chess::movement::Movement;
+use crate::chess::openings::openings_tree::OpeningsTree;
 use crate::chess::pieces::board_piece::BoardPiece;
 use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
 use crate::chess::utils::{BoardArray, CoordIndexed};
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 struct BoardInfo {
     board: Board,
     piece_counts: SideDict<PieceDict<u8>>,
     kings_coords: SideDict<Coord>,
+    opening: Option<usize>,
 }
 
 #[derive(Eq, PartialEq, Clone, Hash)]
@@ -24,11 +28,12 @@ struct BoardRecord {
     pieces: BoardArray<BoardPiece>,
 }
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Clone)]
 pub struct BoardController {
     board_repetitions: HashMap<BoardRecord, u8>,
     boards: Vec<BoardInfo>,
     last_50mr_reset: usize,
+    openings: Option<Arc<OpeningsTree>>,
 }
 
 impl BoardController {
@@ -37,14 +42,32 @@ impl BoardController {
             last_50mr_reset: 0,
             boards: Vec::new(),
             board_repetitions: HashMap::new(),
+            openings: None,
         };
 
         result.push(BoardInfo {
             board: Board::new(),
             piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
             kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
+            opening: Some(0),
         });
         result
+    }
+
+    pub fn add_openings_tree(&mut self, openings: Arc<OpeningsTree>) {
+        self.openings = Some(openings);
+    }
+
+    pub fn get_opening_continuations(&self) -> Vec<Movement> {
+        self.current_info().opening.and_then(|current|
+            self.openings.as_ref().map(|o| o.get_opening_continuations(current)))
+            .unwrap_or_default()
+    }
+
+    pub fn get_opening_name(&self) -> &str {
+        self.openings.as_ref().and_then(|openings|
+            self.boards.iter().rev().filter_map(|o| o.opening).map(|o| openings.get_opening_name(o)).next())
+            .unwrap_or_default()
     }
 
     pub fn new_from_single(board: Board) -> Self {
@@ -64,11 +87,13 @@ impl BoardController {
             boards: Vec::new(),
             last_50mr_reset: 0,
             board_repetitions: HashMap::new(),
+            openings: None,
         };
         result.push(BoardInfo {
             board,
             piece_counts: counts,
             kings_coords,
+            opening: None,
         });
         result
     }
@@ -156,5 +181,34 @@ mod tests {
             Coord::from_notation("B1"),
             Coord::from_notation("F4"),
         ));
+    }
+
+    #[test]
+    fn test_openings() {
+        let openings = OpeningsTree::load_from_string(
+            "||1,2,4,11
+A01 Nimzovich-Larsen Attack|b2b3|
+A02 Bird's Opening|f2f4|3
+A03 Bird's Opening|d7d5|
+A04 Reti Opening|g1f3|5,6
+A05 Reti Opening|g8f6|
+A06 Reti Opening|d7d5|7,10
+A07 King's Indian Attack|g2g3|8
+|c7c5|9
+A08 King's Indian Attack|f1g2|
+A09 Reti Opening|c2c4|
+A10 English|c2c4|12
+A11 English, Caro-Kann Defensive System|c7c6|13
+|g1f3|14
+|d7d5|15
+A12 English with b3|b2b3|").unwrap();
+        let mut controller = BoardController::new_start();
+        controller.add_openings_tree(Arc::new(openings));
+        controller.apply_move(Movement::from_notations("C2", "C4"));
+        controller.apply_move(Movement::from_notations("C7", "C6"));
+        controller.apply_move(Movement::from_notations("G1", "F3"));
+        controller.apply_move(Movement::from_notations("D7", "D5"));
+        controller.apply_move(Movement::from_notations("B2", "B3"));
+        assert_eq!(controller.current_info().opening, Some(15));
     }
 }

@@ -18,6 +18,7 @@ type BoardState = {
     possible: Map<string, Set<string>>;
     gameId: string;
     state: string;
+    opening: string;
 }
 
 function createMapSet(possible: [string, string][]) {
@@ -43,8 +44,9 @@ export const ChessPlayground: FC = () => {
                 setGame({
                     board: o.board,
                     gameId: o.game_id,
-                    possible : createMapSet(o.possible),
-                    state: o.game_state
+                    possible: createMapSet(o.possible),
+                    state: o.game_state,
+                    opening: o.opening,
                 });
             });
     }, []);
@@ -61,6 +63,7 @@ export const ChessPlayground: FC = () => {
             possible: createMapSet(response.possible),
             board: response.board,
             state: response.game_state,
+            opening: response.opening,
         });
     }
     
@@ -69,7 +72,9 @@ export const ChessPlayground: FC = () => {
         <NavControls>
             <h1>Chess</h1>
             <h6>{game?.state}</h6>
-            <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD} possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
+            <h6>{game?.opening}</h6>
+            <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD}
+                        possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
         </NavControls>
     )
 }

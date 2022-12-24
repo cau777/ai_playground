@@ -39,7 +39,8 @@ async fn main() {
         Arc::new(RwLock::new(LoadedModel::new())),
         Arc::new(RwLock::new(LoadedModel::new())),
     );
-    let chess_games_pool = Arc::new(RwLock::new(ChessGamesPool::new()));
+    let chess_games_pool = Arc::new(RwLock::new(ChessGamesPool::new(&config)));
+    println!("Finished loading");
 
     let cors = warp::cors()
         .allow_any_origin()

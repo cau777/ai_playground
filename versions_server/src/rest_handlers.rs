@@ -1,10 +1,9 @@
 use codebase::integration::deserialization::{deserialize_version};
 use codebase::integration::layers_loading::load_model_xml;
 use codebase::integration::serialization::{serialize_storage};
-use codebase::utils::Array2F;
 use warp::{Reply, reply};
 use warp::http::{StatusCode};
-use crate::{FileManagerDep, FileManagersDep, LoadedModelDep};
+use crate::{FileManagersDep};
 use crate::utils::{EndpointResult, stderr_proc};
 
 pub async fn post_trainable(name: String, body: warp::hyper::body::Bytes, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
@@ -18,10 +17,10 @@ pub async fn post_trainable(name: String, body: warp::hyper::body::Bytes, file_m
             let mut file_manager = file_manager.write().await;
             match file_manager.add(&storage, loss) {
                 Ok(_) => Ok(StatusCode::OK),
-                Err(e) => return stderr_proc(e)
+                Err(e) => stderr_proc(e)
             }
         }
-        Err(e) => return stderr_proc(e)
+        Err(e) => stderr_proc(e)
     }
 }
 

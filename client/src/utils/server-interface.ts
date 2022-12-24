@@ -16,11 +16,12 @@ type StartGameResponse = {
     game_id: string;
     possible: [string, string][];
     game_state: string;
+    opening: string;
 };
 
 export async function chess_start_game(color?: boolean) {
     let response = await axios.post<StartGameResponse>(ServerUrl + "/chess/start",{
-        color,
+        side: color,
     }, {
         responseType: "json",
     });
@@ -31,6 +32,7 @@ type MoveResponse = {
     board: string;
     possible: [string, string][];
     game_state: string;
+    opening: string;
 }
 
 export async function chess_move(gameId: string, from: string, to: string) {
