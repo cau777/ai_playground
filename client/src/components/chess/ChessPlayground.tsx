@@ -70,11 +70,12 @@ export const ChessPlayground: FC = () => {
     
     return (
         <NavControls>
-            <h1>Chess</h1>
-            <h6>{game?.state}</h6>
-            <h6>{game?.opening}</h6>
-            <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD}
-                        possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
+            <div className={"mx-12"}>
+                <h6>{game?.state}</h6>
+                <h6>{game?.opening}</h6>
+                <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD}
+                            possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
+            </div>
         </NavControls>
     )
 }
