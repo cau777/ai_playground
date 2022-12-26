@@ -2,28 +2,31 @@ use ndarray::{s};
 use crate::Array4F;
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
+use crate::nn::utils::{pad4d, remove_padding_4d};
 use crate::utils::{get_dims_after_filter_4};
 
 #[derive(Clone, Debug)]
 pub struct MaxPoolConfig {
     pub size: usize,
     pub stride: usize,
+    pub padding: usize,
 }
 
-pub struct MaxPoolLayer {}
+pub struct MaxPoolLayer;
 
 fn gen_name() -> String {
     "max_pool".to_owned()
 }
 
 impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
-    fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult {Ok(())}
+    fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult { Ok(()) }
 
     fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
         let ForwardData { inputs, forward_cache, assigner, .. } = data;
         let stride = layer_config.stride;
         let size = layer_config.size;
         let inputs: Array4F = inputs.into_dimensionality()?;
+        let inputs = pad4d(inputs, layer_config.padding);
 
         let [batch_size, channels, new_height, new_width] =
             get_dims_after_filter_4(&inputs, size, stride);
@@ -67,12 +70,13 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
                             .reduce(|accum, item| {
                                 if item.1 > accum.1 { item } else { accum }
                             }).unwrap();
-                        result[(b, c, h_offset+argmax.0 / size, w_offset+argmax.0 % size)] += grad[(b, c, h, w)];
+                        result[(b, c, h_offset + argmax.0 / size, w_offset + argmax.0 % size)] += grad[(b, c, h, w)];
                     }
                 }
             })
         });
 
+        let result = remove_padding_4d(result, layer_config.padding);
         Ok(result.into_dyn())
     }
 }
@@ -84,7 +88,6 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::max_pool_layer::{MaxPoolConfig, MaxPoolLayer};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
-    use crate::nn::train_config::TrainConfig;
     use crate::utils::{Array3F, ArrayDynF};
 
     fn create_inputs() -> ArrayDynF {
@@ -132,7 +135,7 @@ mod tests {
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
                 gpu: None,
-            }, &MaxPoolConfig { size, stride }).unwrap()
+            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap()
         }
 
         assert_eq!(expected.into_dyn(), forward(inputs, 2, 2));
@@ -166,7 +169,7 @@ mod tests {
                 backward_cache: &mut GenericStorage::new(),
                 batch_config: &BatchConfig::new_train(),
                 gpu: None,
-            }, &MaxPoolConfig { size, stride }).unwrap()
+            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap()
         }
 
         let result = backward(inputs, grad, 2, 2);

@@ -1,9 +1,10 @@
 import {FC, useRef, useState} from "react";
-import {BtnPrimary} from "./BtnPrimary";
+import {BtnPrimary} from "../BtnPrimary";
 import {Canvas} from "./Canvas";
-import * as server from "../utils/server-interface";
+import * as server from "../../utils/server-interface";
 import {DigitsResultsGraph} from "./DigitsResultsGraph";
 import {useTranslation} from "react-i18next";
+import {NavControls} from "../NavControls";
 
 const SIZE = 200;
 const BORDER = 20;
@@ -105,7 +106,7 @@ export const DigitsPlayground: FC = () => {
             frame();
             resize();
             let pixels = preparePixels();
-            let result = await server.evaluate(pixels);
+            let result = await server.digits_eval(pixels);
             setResult(result);
         } finally {
             setBusy(false);
@@ -113,25 +114,27 @@ export const DigitsPlayground: FC = () => {
     }
     
     return (
-        <div className={"m-12 max-w-xl"}>
-            <h1 className={"text-3xl font-black text-primary-100 mb-3"}>{t("digitsTitle")}</h1>
-            <p className={""}>{t("instructions")}</p>
-            <p className={"text-font-2"}>{t("limitations")}</p>
-            <div>
-                <div className={"mb-2"}>
-                    <Canvas registerCanvas={c => canvasRef.current = c} size={SIZE}></Canvas>
+        <NavControls>
+            <div className={"m-12 max-w-xl"}>
+                <h1 className={"text-3xl font-black text-primary-100 mb-3"}>{t("digitsTitle")}</h1>
+                <p className={""}>{t("instructions")}</p>
+                <p className={"text-font-2"}>{t("limitations")}</p>
+                <div>
+                    <div className={"mb-2"}>
+                        <Canvas registerCanvas={c => canvasRef.current = c} size={SIZE}></Canvas>
+                    </div>
+                    <canvas ref={framedCanvasRef} className={"bg-white hidden"} width={SIZE} height={SIZE}></canvas>
+                    <canvas ref={resizeCanvasRef} className={"bg-white hidden"} width={28} height={28}></canvas>
+                    
+                    <BtnPrimary disabled={busy} label={t("evaluateBtn")} onClick={evaluate}></BtnPrimary>
                 </div>
-                <canvas ref={framedCanvasRef} className={"bg-white hidden"} width={SIZE} height={SIZE}></canvas>
-                <canvas ref={resizeCanvasRef} className={"bg-white hidden"} width={28} height={28}></canvas>
                 
-                <BtnPrimary disabled={busy} label={t("evaluateBtn")} onClick={evaluate}></BtnPrimary>
+                <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>
+                
+                <h2 className={"text-xl font-semibold mt-4"}>{t("examples")}</h2>
+                <img alt={"MNIST examples"} className={"mt-2 max-h-64"}
+                     src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
             </div>
-            
-            <DigitsResultsGraph probabilities={result}></DigitsResultsGraph>
-            
-            <h2 className={"text-xl font-semibold mt-4"}>{t("examples")}</h2>
-            <img alt={"MNIST examples"} className={"mt-2 max-h-64"}
-                 src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
-        </div>
+        </NavControls>
     )
 }

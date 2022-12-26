@@ -1,4 +1,4 @@
-import {DigitsPlayground} from "./components/DigitsPlayground";
+import {DigitsPlayground} from "./components/digits/DigitsPlayground";
 
 function App() {
 

@@ -1,8 +1,8 @@
 use std::{io::{self, Read}, fmt::Display, string::FromUtf8Error, iter};
 use ndarray::{ArrayViewD, Axis, concatenate, Slice};
 use ndarray_rand::rand;
-use ndarray_rand::rand::Rng;
 use crate::ArrayDynF;
+use crate::integration::random_picker::RandomPicker;
 
 pub fn read_u8(source: &mut &[u8]) -> io::Result<u8> {
     let mut buffer = [0];
@@ -78,16 +78,14 @@ pub struct Pairs {
 impl Pairs {
     pub fn pick_rand(&self, count: usize, rng: &mut impl rand::RngCore) -> Pairs {
         let total = self.inputs.shape()[0];
-        let mut possible: Vec<usize> = (0..total).collect();
+        let mut picker = RandomPicker::new(total);
         let mut new_inputs = Vec::with_capacity(count);
         let mut new_expected = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let chosen_index = rng.gen_range(0..possible.len());
-            let chosen = possible[chosen_index];
+            let chosen = picker.pick(rng);
             new_inputs.push(self.inputs.slice_axis(Axis(0), Slice::from(chosen..chosen + 1)));
             new_expected.push(self.expected.slice_axis(Axis(0), Slice::from(chosen..chosen + 1)));
-            possible.swap_remove(chosen_index);
         }
 
         Pairs {
@@ -101,22 +99,3 @@ impl Pairs {
         self.expected.axis_chunks_iter(Axis(0), size))
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use ndarray_rand::rand::thread_rng;
-//     use ndarray_rand::rand_distr::Uniform;
-//     use ndarray_rand::RandomExt;
-//     use crate::utils::Array3F;
-//     use super::*;
-// 
-//     #[test]
-//     fn test_pick_rand() {
-//         let dist = Uniform::new(-1.0, 1.0);
-//         let inputs = Pairs {
-//             inputs: Array3F::random((3, 2, 2), dist).into_dyn(),
-//             expected: Array3F::random((3, 2, 2), dist).into_dyn(),
-//         };
-//         let result = inputs.pick_rand(2, &mut thread_rng());
-//     }
-// }

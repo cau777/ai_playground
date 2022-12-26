@@ -1,6 +1,6 @@
 import {FC, useEffect, useRef, useState} from "react";
-import {BtnPrimary} from "./BtnPrimary";
-import {ClearIcon} from "./icons/ClearIcon";
+import {BtnPrimary} from "../BtnPrimary";
+import {ClearIcon} from "../icons/ClearIcon";
 
 /**
  * @link https://stackoverflow.com/questions/50393418/what-happens-if-i-dont-test-passive-event-listeners-support

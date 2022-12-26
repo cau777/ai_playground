@@ -1,7 +1,5 @@
-use std::io::ErrorKind::InvalidData;
 use codebase::nn::controller::NNController;
-use codebase::nn::layers::nn_layers::LayerError;
-use tokio::io;
+use codebase::utils::GenericResult;
 use crate::FileManager;
 
 #[derive(Default)]
@@ -18,7 +16,7 @@ impl LoadedModel {
         }
     }
 
-    pub fn assert_loaded(&mut self, target: u32, file_manager: &FileManager) -> Result<(), LayerError> {
+    pub fn assert_loaded(&mut self, target: u32, file_manager: &FileManager) -> GenericResult<()> {
         if self.version != target {
             let storage = file_manager.get_storage(target)?;
             let config = file_manager.get_config()?;

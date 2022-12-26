@@ -20,6 +20,7 @@ module.exports = {
           3: "#ced4da"
         },
         primary: {
+          50: "#fee485",
           100: "#ffba08",
           200: "#faa307",
           300: "#f48c06",
@@ -30,6 +31,7 @@ module.exports = {
           800: "#6a040f",
           900: "#370617",
         },
+        test: "#e4f406",
       }
     },
   },

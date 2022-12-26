@@ -47,7 +47,7 @@ pub struct ModelXmlConfig {
 }
 
 pub fn load_model_xml(bytes: &[u8]) -> Result<ModelXmlConfig> {
-    let elements = xmltree::Element::parse_all(bytes).unwrap();
+    let elements = Element::parse_all(bytes).unwrap();
 
     let mut root = None;
     for e in iter_elements(&elements) {
@@ -74,23 +74,23 @@ pub fn load_model_xml(bytes: &[u8]) -> Result<ModelXmlConfig> {
                 }
             }
 
-            let loss_func = loss_func.ok_or_else(|| XmlError::ElementNotFound("LossFunc"))?;
-            let main_layer = main_layer.ok_or_else(|| XmlError::ElementNotFound("Layer"))?;
+            let loss_func = loss_func.ok_or(XmlError::ElementNotFound("LossFunc"))?;
+            let main_layer = main_layer.ok_or(XmlError::ElementNotFound("Layer"))?;
             Ok(ModelXmlConfig {
                 loss_func,
                 main_layer,
             })
         }
-        None => return Err(XmlError::ElementNotFound("AIModel")),
+        None => Err(XmlError::ElementNotFound("AIModel")),
     }
 }
 
 fn load_loss_func(element: &Element) -> Result<LossFunc> {
-    for e in iter_elements(&element.children) {
-        match &e.name.as_str() {
-            &"Mse" => return Ok(LossFunc::Mse),
-            &"CrossEntropy" => return Ok(LossFunc::CrossEntropy),
-            _ => return Err(XmlError::UnexpectedTag(e.name.clone())),
+    if let Some(e) = iter_elements(&element.children).next() {
+        return match e.name.as_str() {
+            "Mse" => Ok(LossFunc::Mse),
+            "CrossEntropy" => Ok(LossFunc::CrossEntropy),
+            _ => Err(XmlError::UnexpectedTag(e.name.clone())),
         }
     }
     Err(XmlError::ElementNotFound("Any loss function node"))
@@ -103,8 +103,8 @@ fn load_main_layer(element: &Element) -> Result<Layer> {
 
 fn load_layer(element: &Element) -> Result<Layer> {
     use crate::nn::layers::*;
-    match &element.name.as_str() {
-        &"Sequential" => {
+    match element.name.as_str() {
+        "Sequential" => {
             let mut layers = Vec::new();
             for e in iter_elements(&element.children) {
                 layers.push(load_layer(e)?)
@@ -113,14 +113,14 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 layers,
             }))
         }
-        &"Dense" => {
+        "Dense" => {
             // TODO: Init mode
             let weights_lr = iter_elements(&element.children)
                 .find(|o| o.name == "WeightsLr")
-                .ok_or_else(|| XmlError::ElementNotFound("WeightsLr"))?;
+                .ok_or(XmlError::ElementNotFound("WeightsLr"))?;
             let biases_lr = iter_elements(&element.children)
                 .find(|o| o.name == "BiasesLr")
-                .ok_or_else(|| XmlError::ElementNotFound("BiasesLr"))?;
+                .ok_or(XmlError::ElementNotFound("BiasesLr"))?;
 
             Ok(Layer::Dense(dense_layer::DenseConfig {
                 in_values: get_usize_attr(element, "in_values")?,
@@ -130,10 +130,10 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 biases_lr_calc: load_lr(biases_lr)?,
             }))
         }
-        &"Convolution" => {
+        "Convolution" => {
             let kernels_lr = iter_elements(&element.children)
                 .find(|o| o.name == "KernelsLr")
-                .ok_or_else(|| XmlError::ElementNotFound("KernelsLr"))?;
+                .ok_or(XmlError::ElementNotFound("KernelsLr"))?;
 
             Ok(Layer::Convolution(convolution::ConvolutionConfig {
                 in_channels: get_usize_attr(element, "in_channels")?,
@@ -145,30 +145,51 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 lr_calc: load_lr(kernels_lr)?,
             }))
         }
-        &"MaxPool" => {
+        "MaxPool" => {
             Ok(Layer::MaxPool(max_pool_layer::MaxPoolConfig {
                 size: get_usize_attr(element, "size")?,
                 stride: get_usize_attr(element, "stride")?,
+                padding: get_usize_attr(element, "padding")?,
             }))
         }
-        &"Relu" => {
+        "Debug" => {
+            let action = get_string_attr(element, "action")?;
+            Ok(Layer::Debug(debug_layer::DebugLayerConfig {
+                action: match action.as_str() {
+                    "print_shape" => debug_layer::DebugAction::PrintShape,
+                    _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action",action.clone()))
+                },
+                tag: get_string_attr(element, "tag")?,
+            }))
+        },
+        "Concat" => {
+            let mut layers = Vec::new();
+            for e in iter_elements(&element.children) {
+                layers.push(load_layer(e)?)
+            }
+            Ok(Layer::Concat(concat_layer::ConcatConfig {
+                layers,
+                dim: get_usize_attr(element, "dim")?,
+            }))
+        }
+        "Relu" => {
             Ok(Layer::Relu)
         }
-        &"Tanh" => {
+        "Tanh" => {
             Ok(Layer::Tanh)
         }
-        &"Sigmoid" => {
+        "Sigmoid" => {
             Ok(Layer::Sigmoid)
         }
-        &"Flatten" => {
+        "Flatten" => {
             Ok(Layer::Flatten)
         }
-        &"ExpandDim" => {
+        "ExpandDim" => {
             Ok(Layer::ExpandDim(expand_dim_layer::ExpandDimConfig {
                 dim: get_usize_attr(element, "dim")?,
             }))
         },
-        &"Dropout" => {
+        "Dropout" => {
             Ok(Layer::Dropout(dropout_layer::DropoutConfig {
                 drop: get_f32_attr(element, "drop")?,
             }))
@@ -180,8 +201,8 @@ fn load_layer(element: &Element) -> Result<Layer> {
 fn load_lr(element: &Element) -> Result<LrCalc> {
     use crate::nn::lr_calculators::*;
     let element = load_single_child(element)?;
-    match &element.name.as_str() {
-        &"Adam" => {
+    match element.name.as_str() {
+        "Adam" => {
             let mut config = adam_lr::AdamConfig::default();
             match get_f32_attr(element, "alpha") {
                 Ok(v) => config.alpha = v,
@@ -197,7 +218,7 @@ fn load_lr(element: &Element) -> Result<LrCalc> {
             };
             Ok(LrCalc::Adam(config))
         }
-        &"Constant" => {
+        "Constant" => {
             let mut config = constant_lr::ConstantLrConfig::default();
             match get_f32_attr(element, "lr") {
                 Ok(v) => config.lr = v,
@@ -232,6 +253,16 @@ fn load_single_child<'a>(element: &'a Element) -> Result<&'a Element> {
 fn iter_elements<'a>(elements: &'a Vec<xmltree::XMLNode>) -> impl Iterator<Item = &'a Element> {
     elements.iter().filter_map(|o| o.as_element())
 }
+
+fn get_string_attr(element: &Element, name: &'static str) -> Result<String> {
+    element
+        .attributes
+        .get(name)
+        .cloned()
+        .map(|o| o.to_lowercase())
+        .ok_or_else(|| XmlError::AttributeNotFound(element.name.clone(), name))
+}
+
 
 fn get_usize_attr(element: &Element, name: &'static str) -> Result<usize> {
     let value = element

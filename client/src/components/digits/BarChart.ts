@@ -1,4 +1,4 @@
-import "../utils/charts";
+import "../../utils/charts";
 
 import {
     Chart as ChartJS,

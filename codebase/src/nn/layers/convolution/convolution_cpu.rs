@@ -3,36 +3,8 @@ use ndarray::{Axis, s, ShapeError, stack};
 use ndarray::parallel::prelude::*;
 use crate::Array4F;
 use crate::nn::layers::convolution::convolution_layer::ConvolutionConfig;
+use crate::nn::utils::remove_padding_4d;
 use crate::utils::{Array2F, Array3F, Array5F, get_dims_after_filter_4, GetBatchSize};
-
-pub fn pad4d(array: Array4F, padding: usize) -> Array4F {
-    let shape = array.shape();
-    let height = shape[2];
-    let width = shape[3];
-    let mut result = Array4F::zeros(
-        (
-            shape[0],
-            shape[1],
-            height + 2 * padding,
-            width + 2 * padding,
-        ),
-    );
-    let mut slice = result.slice_mut(s![
-        ..,
-        ..,
-        padding..height + padding,
-        padding..width + padding
-    ]);
-    slice.assign(&array);
-    result
-}
-
-pub fn remove_padding_4d(array: Array4F, padding: usize) -> Array4F {
-    let shape = array.shape();
-    let height = shape[2] - padding;
-    let width = shape[3] - padding;
-    array.slice_move(s![.., .., padding..height, padding..width])
-}
 
 pub fn calc_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_config: &ConvolutionConfig) -> Array4F {
     let inputs_shape = inputs.shape();
@@ -92,6 +64,7 @@ pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &Convolu
     let mean_grad = mean_grad.insert_axis(Axis(1));
 
     let mut parts = Vec::with_capacity(kernel_size * kernel_size);
+
     (0..kernel_size * kernel_size)
         .into_par_iter()
         .with_min_len(1)
