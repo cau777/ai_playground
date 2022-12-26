@@ -43,7 +43,7 @@ impl GpuData {
     }
 
     fn new() -> GenericResult<Self> {
-        let library = VulkanLibrary::new().unwrap();
+        let library = VulkanLibrary::new()?;
         let instance = Instance::new(
             library,
             InstanceCreateInfo {

@@ -3,7 +3,7 @@ use warp::{reply, Reply};
 use crate::{FileManagerDep, LoadedModelDep, StatusCode};
 use crate::utils::{data_err_proc, EndpointResult};
 
-pub async fn post_eval(body: warp::hyper::body::Bytes, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
+pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
     {
         // Code block to free write lock asap
         let file_manager = file_manager.read().await;
@@ -11,7 +11,7 @@ pub async fn post_eval(body: warp::hyper::body::Bytes, file_manager: FileManager
         let mut loaded = loaded.write().await;
         match loaded.assert_loaded(target, &file_manager) {
             Ok(_) => {}
-            Err(e) => return data_err_proc(e, reply::json(&""))
+            Err(e) => return data_err_proc(e, reply::json(&"Loading error"))
         };
     }
 
@@ -21,12 +21,12 @@ pub async fn post_eval(body: warp::hyper::body::Bytes, file_manager: FileManager
 
     let inputs = match Array2F::from_shape_vec((28, 28), pixels) {
         Ok(v) => v.into_dyn(),
-        Err(e) => return data_err_proc(e, reply::json(&""))
+        Err(e) => return data_err_proc(e, reply::json(&"Input error"))
     };
 
     let result = match controller.eval_one(inputs) {
         Ok(v) => v,
-        Err(e) => return data_err_proc(e, reply::json(&""))
+        Err(e) => return data_err_proc(e, reply::json(&"Layers error"))
     };
 
     let numbers: Vec<_> = result.into_iter().collect();

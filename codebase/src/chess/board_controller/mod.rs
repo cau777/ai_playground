@@ -23,14 +23,15 @@ struct BoardInfo {
     opening: Option<usize>,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash)]
-struct BoardRecord {
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
+pub struct BoardRecord {
     pieces: BoardArray<BoardPiece>,
 }
 
-#[derive(Clone)]
+// TODO:private
+#[derive(Clone, Debug)]
 pub struct BoardController {
-    board_repetitions: HashMap<BoardRecord, u8>,
+    pub board_repetitions: HashMap<BoardRecord, u8>,
     boards: Vec<BoardInfo>,
     last_50mr_reset: usize,
     openings: Option<Arc<OpeningsTree>>,

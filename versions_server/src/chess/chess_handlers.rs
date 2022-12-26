@@ -81,9 +81,11 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
         let mut pool = pool.write().await;
         let controller = match pool.get_controller_mut(&body.game_id) {
             Some(v) => v,
-            None => return Ok(reply::with_status(reply::json(&""), StatusCode::NOT_FOUND)),
+            None => return Ok(reply::with_status(reply::json(&"Board not found"), StatusCode::NOT_FOUND)),
         };
         controller.apply_move(movement);
+        println!("Repetitions {}", controller.board_repetitions.len());
+        // println!("reps {:?}", controller.board_repetitions.iter().map(|o| format!("{}: {}", o.1, o.0.)).collect::<Vec<_>>());
 
         let possible = controller.get_possible_moves(controller.side_to_play());
         let result = controller.get_game_result(&possible);
@@ -103,7 +105,7 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
     // AI makes a move
     match decide_and_apply(file_manager, loaded, &pool, &body.game_id).await {
         Ok(_) => {}
-        Err(e) => return data_err_proc(e, reply::json(&"")),
+        Err(e) => return data_err_proc(e, reply::json(&"Layers error")),
     };
 
     let serialized = match serialize_game(&pool, &body.game_id).await {

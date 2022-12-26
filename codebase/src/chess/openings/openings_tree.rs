@@ -3,10 +3,12 @@ use std::io;
 use std::io::{BufRead, BufReader};
 use crate::chess::movement::Movement;
 
+#[derive(Debug)]
 pub struct OpeningsTree {
     nodes: Vec<OpeningNode>,
 }
 
+#[derive(Debug)]
 struct OpeningNode {
     name: String,
     movement: Movement,

@@ -78,7 +78,7 @@ async fn main() {
     // Digits routes
     let digits_eval_route = path!("digits" / "eval")
         .and(warp::post())
-        .and(warp::body::bytes())
+        .and(warp::body::json())
         .and(with_file_manager(&file_managers.digits))
         .and(with_loaded_model(&loaded_models.digits))
         .and_then(digits_handler::post_eval);
