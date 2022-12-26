@@ -1,36 +1,43 @@
 use codebase::chess::board::Board;
-use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::integration::random_picker::RandomPicker;
 use codebase::nn::controller::NNController;
-use codebase::nn::layers::nn_layers::GenericStorage;
-use codebase::utils::{Array2F};
+use codebase::utils::Array2F;
 use codebase::utils::ndarray::{Axis, stack};
 use rand::thread_rng;
-use crate::{EnvConfig, ServerClient};
-use crate::files::{load_file_lines};
+use crate::chess::{BATCH_SIZE, NAME};
+use crate::EnvConfig;
+use crate::files::load_file_lines;
 
-const NAME: &str = "chess";
-const BATCH_SIZE: usize = 128;
+pub struct EndgamesTrainer {
+    endgames: Vec<String>,
+}
 
-pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
-    let mut controller = NNController::load(model_config.main_layer, model_config.loss_func, initial).unwrap();
-    let mut endgames_string = String::new();
+#[derive(Debug)]
+pub struct EndgamesMetrics {
+    pub avg_loss: f64,
+}
 
-    let endgames = load_file_lines("endgames", NAME, config, &mut endgames_string).unwrap();
-    let mut rng = thread_rng();
+impl EndgamesTrainer {
+    pub fn new(config: &EnvConfig) -> Self {
+        let mut buffer = String::new();
+        let endgames = load_file_lines("endgames", NAME, config, &mut buffer).unwrap();
+        Self{
+            endgames: endgames.into_iter().map(|o| o.to_owned()).collect()
+        }
+    }
 
-    for version in 0..config.versions {
+    pub fn train_version(&self, controller: &mut NNController, config: &EnvConfig) -> EndgamesMetrics {
         let mut total_loss = 0.0;
+        let mut rng = thread_rng();
 
-        println!("Start {}", version + 1);
         for epoch in 0..config.epochs_per_version {
-            let mut picker = RandomPicker::new(endgames.len());
+            let mut picker = RandomPicker::new(self.endgames.len());
             let mut all_chosen = Vec::with_capacity(BATCH_SIZE);
             for _ in 0..BATCH_SIZE {
                 let chosen = picker.pick(&mut rng);
-                let result = &endgames[chosen][0..3];
+                let result = &self.endgames[chosen][0..3];
                 let result = if result == "1-0" { 1.0 } else { -1.0 };
-                let game = &endgames[chosen][4..];
+                let game = &self.endgames[chosen][4..];
                 all_chosen.push((result, game));
             }
 
@@ -55,8 +62,6 @@ pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &Env
         }
 
         let avg_loss = total_loss / config.epochs_per_version as f64;
-
-        println!("    Finished with avg_loss={}", avg_loss);
-        client.submit(&controller.export(), avg_loss, NAME);
+        EndgamesMetrics {avg_loss}
     }
 }

@@ -1,3 +1,5 @@
+extern crate core;
+
 mod env_config;
 mod client;
 mod digits;

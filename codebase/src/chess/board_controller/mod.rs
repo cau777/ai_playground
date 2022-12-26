@@ -70,6 +70,10 @@ impl BoardController {
             .unwrap_or_default()
     }
 
+    pub fn into_non_opening_positions(self) -> impl Iterator<Item=Board> {
+        self.boards.into_iter().filter(|o| o.opening.is_none()).map(|o| o.board)
+    }
+
     pub fn new_from_single(board: Board) -> Self {
         let mut counts = SideDict::new(PieceDict::default(), PieceDict::default());
         let mut kings_coords = SideDict::new(Coord::default(), Coord::default());
