@@ -7,7 +7,7 @@ use crate::chess::NAME;
 use crate::{EnvConfig, ServerClient};
 use crate::chess::games_trainer::GamesTrainer;
 
-pub struct TrainerScheduler{
+pub struct TrainerScheduler {
     endgames_trainer: EndgamesTrainer,
     games_trainer: GamesTrainer,
     controller: NNController,
@@ -23,23 +23,33 @@ impl TrainerScheduler {
     }
 
     pub fn train_versions(&mut self, count: u32, config: &EnvConfig, client: &ServerClient) {
+        let mut prev_aborted_rate = 1.0;
+        let mut to_play = 1;
+
         for version in 0..count {
-            if true {
-                self.games_trainer.train_version(&mut self.controller, config);
+            println!("Start {}", version + 1);
+
+            if to_play > 0 || prev_aborted_rate < 0.3 {
+                println!("Decided to play against itself");
+                let metrics = self.games_trainer.train_version(&mut self.controller, config);
+                prev_aborted_rate = metrics.aborted_rate;
+                println!("    Finished with {:?}", metrics);
+                to_play = (to_play - 1).max(0);
             } else {
-                println!("Start {}", version + 1);
+                println!("Decided to train endgames");
                 let metrics = self.endgames_trainer.train_version(&mut self.controller, config);
                 println!("    Finished with {:?}", metrics);
-
-                // For now, the only criteria to evaluate the model's performance is the time spent training
-                let start = SystemTime::now();
-                let since_the_epoch = start
-                    .duration_since(UNIX_EPOCH)
-                    .expect("Time went backwards");
-
-                let export = &self.controller.export();
-                client.submit(export, since_the_epoch.as_millis() as f64, NAME);
+                to_play = 3;
             }
+
+            // For now, the only criteria to evaluate the model's performance is the time spent training
+            let start = SystemTime::now();
+            let since_the_epoch = start
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards");
+
+            let export = &self.controller.export();
+            client.submit(export, since_the_epoch.as_millis() as f64, NAME);
         }
     }
 }

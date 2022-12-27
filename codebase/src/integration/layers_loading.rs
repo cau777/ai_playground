@@ -157,6 +157,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
             Ok(Layer::Debug(debug_layer::DebugLayerConfig {
                 action: match action.as_str() {
                     "print_shape" => debug_layer::DebugAction::PrintShape,
+                    "print_time" => debug_layer::DebugAction::PrintTime,
                     _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action",action.clone()))
                 },
                 tag: get_string_attr(element, "tag")?,

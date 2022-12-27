@@ -10,6 +10,7 @@ codebase = { path = "../codebase" }
 http = "0.2.8"
 reqwest = { version="0.11.12", features=["blocking"] }
 rand = "0.8.5"
+itertools = "0.10.5"
 
 [profile.dev]
 opt-level = 2
@@ -19,3 +20,10 @@ lto = true
 opt-level = 3
 codegen-units = 1
 panic = "abort"
+
+# For profiling with flamegraph
+#debug = true
+
+#[target.x86_64-unknown-linux-gnu]
+#linker = "/usr/bin/clang"
+#rustflags = ["-Clink-arg=-fuse-ld=lld", "-Clink-arg=-Wl,--no-rosegment"]

@@ -1,12 +1,19 @@
 use std::fmt::Debug;
+use lazy_static::lazy_static;
+use std::time;
 
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 
 pub struct DebugLayer;
 
+lazy_static!{
+    static ref START_TIME: time::Instant = time::Instant::now();
+}
+
 #[derive(Clone)]
 pub enum DebugAction {
     PrintShape,
+    PrintTime,
     Call(fn(tag: &str, data: &InitData, name: &str), fn(tag: &str, data: &ForwardData, name: &str), fn(tag: &str, data: &BackwardData, name: &str)),
 }
 
@@ -28,6 +35,7 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.action {
             DebugAction::PrintShape => {}
+            DebugAction::PrintTime => {}
             DebugAction::Call(f, _, _) => {
                 f(&layer_config.tag, &data, &key)
             }
@@ -39,7 +47,10 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.action {
             DebugAction::PrintShape => {
-                println!("{}:Inputs_shape={:?}", layer_config.tag, data.inputs.shape())
+                println!("Forward:{}:Inputs_shape={:?}", layer_config.tag, data.inputs.shape())
+            }
+            DebugAction::PrintTime => {
+                println!("Forward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
             }
             DebugAction::Call(_, f, _) => {
                 f(&layer_config.tag, &data, &key);
@@ -52,7 +63,10 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
         let key = data.assigner.get_key("debug".to_owned());
         match layer_config.action {
             DebugAction::PrintShape => {
-                println!("{}:Grad_shape={:?}", layer_config.tag, data.grad.shape())
+                println!("Backward:{}:Grad_shape={:?}", layer_config.tag, data.grad.shape())
+            }
+            DebugAction::PrintTime => {
+                println!("Backward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
             }
             DebugAction::Call(_, _, f) => {
                 f(&layer_config.tag, &data, &key);

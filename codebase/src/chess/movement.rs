@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use crate::chess::coord::Coord;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
@@ -18,5 +19,11 @@ impl Movement {
     pub fn try_from_notations(from: &str, to: &str) -> Option<Self> {
         Some(Self::new(Coord::try_from_notation(from)?,
                        Coord::try_from_notation(to)?))
+    }
+}
+
+impl Display for Movement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}->{}", self.from, self.to)
     }
 }

@@ -33,7 +33,7 @@ impl BoardController {
             is_insufficient_material(&info.piece_counts[false]) {
             GameResult::Draw(DrawReason::InsufficientMaterial)
             // 50-move rule corresponds to 50 FULL moves
-        } else if self.half_moves() - self.last_50mr_reset >= 100 {
+        } else if self.half_moves_since_50mr_reset() >= 100 {
             GameResult::Draw(DrawReason::FiftyMoveRule)
             // Check if a position was repeated 3 times 
         } else if self.board_repetitions.iter().any(|(_, value)| *value >= 3) {

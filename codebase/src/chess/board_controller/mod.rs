@@ -21,6 +21,7 @@ struct BoardInfo {
     piece_counts: SideDict<PieceDict<u8>>,
     kings_coords: SideDict<Coord>,
     opening: Option<usize>,
+    reset_50mr: bool,
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
@@ -33,14 +34,12 @@ pub struct BoardRecord {
 pub struct BoardController {
     pub board_repetitions: HashMap<BoardRecord, u8>,
     boards: Vec<BoardInfo>,
-    last_50mr_reset: usize,
     openings: Option<Arc<OpeningsTree>>,
 }
 
 impl BoardController {
     pub fn new_start() -> Self {
         let mut result = Self {
-            last_50mr_reset: 0,
             boards: Vec::new(),
             board_repetitions: HashMap::new(),
             openings: None,
@@ -51,6 +50,7 @@ impl BoardController {
             piece_counts: SideDict::new(PieceDict::new([8, 2, 2, 2, 1, 1]), PieceDict::new([8, 2, 2, 2, 1, 1])),
             kings_coords: SideDict::new(Coord::from_notation("E1"), Coord::from_notation("E8")),
             opening: Some(0),
+            reset_50mr: true,
         });
         result
     }
@@ -90,7 +90,6 @@ impl BoardController {
 
         let mut result = Self {
             boards: Vec::new(),
-            last_50mr_reset: 0,
             board_repetitions: HashMap::new(),
             openings: None,
         };
@@ -99,6 +98,7 @@ impl BoardController {
             piece_counts: counts,
             kings_coords,
             opening: None,
+            reset_50mr: true,
         });
         result
     }
@@ -139,6 +139,10 @@ impl BoardController {
         } else {
             None
         }
+    }
+
+    pub fn half_moves_since_50mr_reset(&self) -> usize {
+        self.boards.iter().rev().take_while(|o| !o.reset_50mr).count()
     }
 
     pub fn side_to_play(&self) -> bool {

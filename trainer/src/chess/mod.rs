@@ -8,7 +8,7 @@ mod endgames_trainer;
 mod games_trainer;
 
 const NAME: &str = "chess";
-const BATCH_SIZE: usize = 128;
+const BATCH_SIZE: usize = 256;
 
 // trait Trainer {
 //     fn new(config: &EnvConfig) -> Self;
@@ -17,5 +17,5 @@ const BATCH_SIZE: usize = 128;
 
 pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
     let mut trainer = TrainerScheduler::new(initial, model_config, config);
-    trainer.train_versions(1, config, client); // TODO
+    trainer.train_versions(config.versions, config, client);
 }

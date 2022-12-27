@@ -21,7 +21,7 @@ impl EndgamesTrainer {
     pub fn new(config: &EnvConfig) -> Self {
         let mut buffer = String::new();
         let endgames = load_file_lines("endgames", NAME, config, &mut buffer).unwrap();
-        Self{
+        Self {
             endgames: endgames.into_iter().map(|o| o.to_owned()).collect()
         }
     }
@@ -56,7 +56,7 @@ impl EndgamesTrainer {
             let loss = controller.train_batch(inputs.into_dyn(), &expected.into_dyn()).unwrap();
             total_loss += loss;
 
-            if epoch % 16 == 0 {
+            if epoch % 20 == 0 {
                 println!("    {} -> loss={}", epoch, loss);
             }
         }

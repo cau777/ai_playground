@@ -6,6 +6,8 @@ use crate::{ChessGamesPoolDep, FileManagerDep, LoadedModelDep};
 
 type Res<T> = Result<T, String>;
 
+// TODO: improve like training
+// TODO: best ai
 pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelDep, pool: &ChessGamesPoolDep, id: &str) -> Res<()> {
     let decision_data = gather_decision_data(pool, id).await;
     let chosen = match decision_data.map_err(|e| format!("{:?}", e))? {

@@ -68,9 +68,7 @@ impl BoardController {
         }
 
         // Resets every time a pawn is moved or a piece is captured
-        if !piece_to.is_empty() || piece_from.ty == PieceType::Pawn {
-            self.last_50mr_reset = self.half_moves() + 1;
-        }
+        info.reset_50mr = !piece_to.is_empty() || piece_from.ty == PieceType::Pawn;
 
         // Castle is illegal if that specific rook moves
         if piece_from.ty == PieceType::Rook {
