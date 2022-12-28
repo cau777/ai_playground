@@ -34,22 +34,20 @@ void main() {
     const uint w_offset = w * stride;
 
     float result = 0.0;
+    
+    const uint inputs_section_0 = in_channels * input_height * input_width;
+    const uint inputs_section_1 = input_height * input_width;
+    const uint inputs_section_2 = input_width;
 
-    uint inputs_section[3];
-    inputs_section[0] = in_channels * input_height * input_width;
-    inputs_section[1] = input_height * input_width;
-    inputs_section[2] = input_width;
+    const uint kernel_sections_0 = in_channels*kernel_size*kernel_size;
+    const uint kernel_sections_1 = kernel_size*kernel_size;
+    const uint kernel_sections_2 = kernel_size;
 
-    uint kernel_sections[3];
-    kernel_sections[0] = in_channels*kernel_size*kernel_size;
-    kernel_sections[1] = kernel_size*kernel_size;
-    kernel_sections[2] = kernel_size;
-
-    for (uint kh = 0; kh < kernel_size; kh++){
+    for (uint kh = 0; kh < kernel_size; kh++) {
         for (uint kw = 0; kw < kernel_size; kw++) {
             for (uint in_c = 0; in_c < in_channels; in_c++) {
-                const float i = input_data.data[b*inputs_section[0] + in_c*inputs_section[1] + (h_offset + kh) * inputs_section[2] + (w_offset + kw)];
-                const float k = kernel_data.data[out_c*kernel_sections[0] + in_c*kernel_sections[1] + kh*kernel_sections[2] + kw];
+                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + (h_offset + kh) * inputs_section_2 + (w_offset + kw)];
+                const float k = kernel_data.data[out_c*kernel_sections_0 + in_c*kernel_sections_1 + kh*kernel_sections_2 + kw];
                 result += i * k;
             }
         }

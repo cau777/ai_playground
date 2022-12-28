@@ -2,12 +2,11 @@ mod evaluating;
 mod training;
 mod testing;
 
-use crate::nn::batch_config::BatchConfig;
+use std::cell::RefCell;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
-use crate::nn::loss::loss_func::{calc_loss, LossFunc};
-use crate::utils::{ArrayDynF, GenericResult};
-use ndarray::{stack, Axis};
+use crate::nn::loss::loss_func::{LossFunc};
+use crate::utils::{GenericResult};
 use crate::gpu::shader_runner::{GlobalGpu, GpuData};
 
 /// Main struct to train and use the AI model
@@ -33,6 +32,7 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
+    cached_gpu: RefCell<Option<Option<GlobalGpu>>>,
 }
 
 impl NNController {
@@ -52,6 +52,7 @@ impl NNController {
             main_layer,
             storage,
             loss,
+            cached_gpu: RefCell::new(None),
         })
     }
 
@@ -70,6 +71,7 @@ impl NNController {
             main_layer,
             storage,
             loss,
+            cached_gpu: RefCell::new(None),
         })
     }
 
@@ -78,15 +80,19 @@ impl NNController {
         self.storage.clone()
     }
 
-    fn get_gpu() -> Option<GlobalGpu> {
-        // TODO: cache
-        match GpuData::new_global() {
-            Ok(v) => Some(v),
-            Err(e) => {
-                eprintln!("{:?}", e);
-                None
-            }
+    fn get_gpu(&self) -> Option<GlobalGpu> {
+        if self.cached_gpu.borrow().is_none() {
+            let new_gpu = match GpuData::new_global() {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    eprintln!("{:?}", e);
+                    None
+                }
+            };
+
+            self.cached_gpu.replace(Some(new_gpu));
         }
+        self.cached_gpu.borrow().clone().unwrap()
     }
 }
 

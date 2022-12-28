@@ -17,7 +17,7 @@ impl NNController {
         let config = BatchConfig::new_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
-        let gpu = Self::get_gpu();
+        let gpu = self.get_gpu();
 
         let output = forward_layer(
             &self.main_layer,
@@ -52,7 +52,7 @@ impl NNController {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
-        let gpu=   Self::get_gpu();
+        let gpu = self.get_gpu();
 
         forward_layer(
             &self.main_layer,

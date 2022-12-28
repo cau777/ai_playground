@@ -1,4 +1,3 @@
-use std::iter::zip;
 use ndarray::{Axis, concatenate, Slice};
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::{backward_layer, forward_layer, init_layer, Layer, train_layer, TrainableLayerOps, TrainData};

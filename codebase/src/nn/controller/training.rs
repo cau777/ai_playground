@@ -30,7 +30,7 @@ impl NNController {
         let config = BatchConfig::new_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
-        let gpu = Self::get_gpu();
+        let gpu = self.get_gpu();
 
         let output = forward_layer(
             &self.main_layer,
@@ -85,7 +85,7 @@ impl NNController {
     pub fn train_batch_with_output(&mut self, eval_output: FullEvalOutput, expected: &ArrayDynF) -> GenericResult<f64> {
         let config = BatchConfig::new_train();
         let mut backward_cache = GenericStorage::new();
-        let gpu = Self::get_gpu();
+        let gpu = self.get_gpu();
         let FullEvalOutput { output, mut forward_cache, mut assigner } = eval_output;
         
         let grad = calc_loss_grad(&self.loss, expected, &output);

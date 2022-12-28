@@ -17,8 +17,8 @@ use vulkano::{
     sync::{self, GpuFuture},
     VulkanLibrary,
 };
-use vulkano::buffer::{BufferAccess};
-use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
+use vulkano::buffer::{BufferAccess, DeviceLocalBuffer};
+use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer, PrimaryCommandBufferAbstract};
 use vulkano::device::Queue;
 use vulkano::pipeline::cache::PipelineCache;
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
@@ -39,7 +39,7 @@ pub struct GpuData {
 
 impl GpuData {
     pub fn new_global() -> GenericResult<GlobalGpu> {
-        Self::new().map(|o| Arc::new(o))
+        Self::new().map(Arc::new)
     }
 
     fn new() -> GenericResult<Self> {
@@ -95,7 +95,7 @@ impl GpuData {
         })?;
 
         Ok(Self {
-            queue: queues.next().ok_or_else(|| "Should create 1 queue")?,
+            queue: queues.next().ok_or("Should create 1 queue")?,
             memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
@@ -230,12 +230,12 @@ impl ShaderRunner {
         }
 
         let layouts = self.pipeline.layout().set_layouts();
-        let layout = if layouts.len() == 0 { Err("No layouts found") } else { Ok(&layouts[0]) };
+        let layout = layouts.get(0).ok_or("No layouts found")?;
 
         let set = PersistentDescriptorSet::new(
             &self.gpu.descriptor_alloc,
-            layout?.clone(),
-            self.descriptors.drain(0..).into_iter(),
+            layout.clone(),
+            self.descriptors.drain(0..),
         )?;
 
         let mut builder = AutoCommandBufferBuilder::primary(

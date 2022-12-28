@@ -120,7 +120,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ _ _ _ _ _ _");
         assert_eq!(controller.half_moves(), 1);
-        assert_eq!(controller.last_50mr_reset, 1);
+        assert_eq!(controller.half_moves_since_50mr_reset(), 0);
         assert_eq!(controller.current().en_passant_vulnerable, Some(Coord::from_notation("B3")));
     }
 
@@ -152,7 +152,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ _ _ _ _ _ _");
         assert_eq!(controller.half_moves(), 1);
-        assert_eq!(controller.last_50mr_reset, 1);
+        assert_eq!(controller.half_moves_since_50mr_reset(), 0);
     }
 
     #[test]
@@ -319,6 +319,6 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ _ _ _ _ _ _");
         assert_eq!(controller.half_moves(), 1);
-        assert_eq!(controller.last_50mr_reset, 0);
+        assert_eq!(controller.half_moves_since_50mr_reset(), 1);
     }
 }
