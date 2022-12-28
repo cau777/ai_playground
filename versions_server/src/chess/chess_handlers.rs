@@ -84,7 +84,7 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
             None => return Ok(reply::with_status(reply::json(&"Board not found"), StatusCode::NOT_FOUND)),
         };
         controller.apply_move(movement);
-        println!("Repetitions {}", controller.board_repetitions.len());
+        // println!("Repetitions {}", controller.board_repetitions.len());
         // println!("reps {:?}", controller.board_repetitions.iter().map(|o| format!("{}: {}", o.1, o.0.)).collect::<Vec<_>>());
 
         let possible = controller.get_possible_moves(controller.side_to_play());

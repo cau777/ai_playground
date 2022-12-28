@@ -8,8 +8,6 @@ RUN mkdir final
 RUN apt-get update
 RUN apt-get -y install cmake
 
-#ENTRYPOINT ["tail", "-f", "/dev/null"]
-
 WORKDIR /app/codebase
 COPY ./codebase/Cargo.toml .
 # Removes benchmarks from dependencies

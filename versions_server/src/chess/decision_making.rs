@@ -34,7 +34,8 @@ async fn ai_decide(file_manager: FileManagerDep, loaded: LoadedModelDep, options
     {
         // Code block to free write lock asap
         let file_manager = file_manager.read().await;
-        let target = file_manager.best();
+        // For now, the only criteria to evaluate the model's performance is the time spent training
+        let target = file_manager.most_recent();
         let mut loaded = loaded.write().await;
         loaded.assert_loaded(target, &file_manager).map_err(|e| format!("{:?}", e))?;
     }
