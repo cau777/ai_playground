@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::chess::coord::Coord;
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Hash, Default)]
 pub struct Movement {
     pub from: Coord,
     pub to: Coord,

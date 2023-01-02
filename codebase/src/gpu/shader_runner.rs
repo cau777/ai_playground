@@ -17,8 +17,8 @@ use vulkano::{
     sync::{self, GpuFuture},
     VulkanLibrary,
 };
-use vulkano::buffer::{BufferAccess, DeviceLocalBuffer};
-use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer, PrimaryCommandBufferAbstract};
+use vulkano::buffer::{BufferAccess};
+use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::Queue;
 use vulkano::pipeline::cache::PipelineCache;
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};

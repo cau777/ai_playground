@@ -2,7 +2,7 @@ mod evaluating;
 mod training;
 mod testing;
 
-use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
 use crate::nn::loss::loss_func::{LossFunc};
@@ -32,7 +32,7 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
-    cached_gpu: RefCell<Option<Option<GlobalGpu>>>,
+    cached_gpu: Arc<RwLock<Option<Option<GlobalGpu>>>>,
 }
 
 impl NNController {
@@ -52,7 +52,7 @@ impl NNController {
             main_layer,
             storage,
             loss,
-            cached_gpu: RefCell::new(None),
+            cached_gpu: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -71,7 +71,7 @@ impl NNController {
             main_layer,
             storage,
             loss,
-            cached_gpu: RefCell::new(None),
+            cached_gpu: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -81,7 +81,7 @@ impl NNController {
     }
 
     fn get_gpu(&self) -> Option<GlobalGpu> {
-        if self.cached_gpu.borrow().is_none() {
+        if self.cached_gpu.read().unwrap().is_none() {
             let new_gpu = match GpuData::new_global() {
                 Ok(v) => Some(v),
                 Err(e) => {
@@ -90,9 +90,9 @@ impl NNController {
                 }
             };
 
-            self.cached_gpu.replace(Some(new_gpu));
+            *self.cached_gpu.write().unwrap() = Some(new_gpu);
         }
-        self.cached_gpu.borrow().clone().unwrap()
+        self.cached_gpu.read().unwrap().clone().unwrap()
     }
 }
 

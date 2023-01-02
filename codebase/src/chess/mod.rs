@@ -9,3 +9,4 @@ pub mod board_controller;
 #[cfg(test)]
 mod test_utils;
 pub mod openings;
+pub mod decision_tree;

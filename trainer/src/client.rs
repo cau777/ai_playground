@@ -1,6 +1,4 @@
 use std::error::Error;
-use std::ffi::c_double;
-use std::fmt::{Display, Formatter};
 use std::time::Duration;
 use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
 use codebase::integration::serialization::serialize_version;
