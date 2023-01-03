@@ -7,6 +7,7 @@ mod train_scheduler;
 mod endgames_trainer;
 mod games_trainer;
 mod results_aggregator;
+mod game_metrics;
 
 const NAME: &str = "chess";
 const BATCH_SIZE: usize = 128;

@@ -9,7 +9,6 @@ pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, 
     let out_shape = (ish[0], ish[1], ish[2] - 2 * layer_config.padding, ish[3] - 2 * layer_config.padding);
     let ish = ish.map(|o| o as u32);
     let gsh = grad.shape_arr().map(|o| o as u32);
-
     let mut runner = ShaderRunner::new(gpu, shaders::convolution_inputs_grad::load,
                                        "main", &shaders::convolution_inputs_grad::SpecializationConstants {
             batch_size: ish[0],
@@ -31,7 +30,9 @@ pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, 
     runner.create_read_buffer(grad)?;
 
     runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32), shaders::convolution_inputs_grad::BLOCK_SIZE)?;
-    let vec = results_buffer.read()?.to_vec();
+    let read = results_buffer.read()?;
+    let vec = read.to_vec();
+
     Ok(Array4F::from_shape_vec(out_shape, vec)?)
 }
 
@@ -56,7 +57,10 @@ pub fn calc_forward_gpu(inputs: &Array4F, kernel: &Array4F, gpu: GlobalGpu, laye
     runner.create_read_buffer(kernel)?;
     runner.create_read_buffer(inputs)?;
 
-    runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32), shaders::convolution_forward::BLOCK_SIZE)?;
+    runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32),
+                   shaders::convolution_forward::BLOCK_SIZE)?;
+
     let vec = results_buffer.read()?.to_vec();
+
     Ok(Array4F::from_shape_vec(out_shape, vec)?)
 }
