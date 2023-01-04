@@ -76,7 +76,7 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
         None => return Ok(reply::with_status(reply::json(&""), StatusCode::BAD_REQUEST)),
     };
 
-    // Apply the play's move and return if the game is over
+    // Apply the player's move and return if the game is over
     {
         let mut pool = pool.write().await;
         let controller = match pool.get_controller_mut(&body.game_id) {
@@ -84,8 +84,6 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
             None => return Ok(reply::with_status(reply::json(&"Board not found"), StatusCode::NOT_FOUND)),
         };
         controller.apply_move(movement);
-        // println!("Repetitions {}", controller.board_repetitions.len());
-        // println!("reps {:?}", controller.board_repetitions.iter().map(|o| format!("{}: {}", o.1, o.0.)).collect::<Vec<_>>());
 
         let possible = controller.get_possible_moves(controller.side_to_play());
         let result = controller.get_game_result(&possible);

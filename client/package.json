@@ -1,36 +1,32 @@
 {
-  "name": "client",
-  "version": "0.1.0",
-  "type": "module",
+  "name": "client2",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "gh-pages": "tsc && vite build --base=/ai_playground/"
+    "dev": "solid-start dev",
+    "build": "solid-start build",
+    "start": "solid-start start",
+    "gh-pages": "solid-start build -c vite.gh-pages.config.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "autoprefixer": "^10.4.13",
+    "esbuild": "^0.14.54",
+    "postcss": "^8.4.18",
+    "solid-start-node": "^0.2.0",
+    "solid-start-static": "^0.2.10",
+    "tailwindcss": "^3.2.4",
+    "typescript": "^4.8.4",
+    "vite": "^3.1.8"
   },
   "dependencies": {
-    "@azure/storage-file-share": "^12.11.0",
-    "axios": "^1.1.2",
-    "chart.js": "^4.0.1",
-    "dateformat": "^5.0.3",
-    "i18next": "^22.0.6",
-    "i18next-browser-languagedetector": "^7.0.1",
-    "i18next-http-backend": "^2.0.2",
-    "react": "^18.2.0",
-    "react-chartjs-2": "^5.0.1",
-    "react-dom": "^18.2.0",
-    "react-i18next": "^12.0.0",
-    "react-router-dom": "^6.5.0"
+    "@solidjs/meta": "^0.28.0",
+    "@solidjs/router": "^0.6.0",
+    "chart.js": "^4.1.1",
+    "solid-js": "^1.6.2",
+    "solid-start": "^0.2.0",
+    "undici": "^5.11.0"
   },
-  "devDependencies": {
-    "@types/dateformat": "^5.0.0",
-    "@types/react": "^18.0.17",
-    "@types/react-dom": "^18.0.6",
-    "@vitejs/plugin-react": "^2.1.0",
-    "autoprefixer": "^10.4.12",
-    "postcss": "^8.4.16",
-    "tailwindcss": "^3.1.8",
-    "typescript": "^4.6.4",
-    "vite": "^3.1.0"
+  "engines": {
+    "node": ">=16.8"
   }
 }

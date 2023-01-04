@@ -1,5 +1,4 @@
-import {FC, PropsWithChildren} from "react";
-import {combine} from "../utils/components";
+import {ParentComponent} from "solid-js";
 
 type Props = {
     label: string;
@@ -7,11 +6,12 @@ type Props = {
     disabled?: boolean;
 }
 
-export const BtnPrimary: FC<PropsWithChildren<Props>> = (props) => {
+export const BtnPrimary: ParentComponent<Props> = (props) => {
     
     return (
         <button onClick={props.onClick} title={props.label}
-                className={combine("bg-primary-700 rounded px-2 py-1 border-2 border-primary-800", {"bg-primary-800 border-primary-900": props.disabled})}
+                classList={{"bg-primary-800 border-primary-900": props.disabled}}
+                class={"bg-primary-700 rounded px-2 py-1 border-2 border-primary-800"}
                 disabled={props.disabled}>
             {props.children ?? props.label}
         </button>

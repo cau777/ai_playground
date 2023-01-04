@@ -1,6 +1,6 @@
-import {FC, useState} from "react";
 import {ChessPiece} from "./ChessPiece";
 import {PossibleMoveIndicator} from "./PossibleMoveIndicator";
+import {Component, createSignal, Index, Show} from "solid-js";
 
 type Props = {
     board: string;
@@ -20,48 +20,55 @@ function indexToNotation(index: number) {
     return String.fromCodePoint(65 + col) + (row + 1);
 }
 
-export const ChessBoard: FC<Props> = (props) => {
-    let pieces = props.board.replaceAll("\n", "").replaceAll(" ", "").split("");
-    if (pieces.length != 64) throw new RangeError("Malformed literal: invalid size");
-    let [selected, setSelected] = useState<SelectedInfo>();
+export const ChessBoard: Component<Props> = (props) => {
+    let pieces = () => {
+        let value = props.board.replaceAll("\n", "").replaceAll(" ", "").split("");
+        if (value.length != 64) throw new RangeError("Malformed literal: invalid size");
+        return value;
+    };
+    let [selected, setSelected] = createSignal<SelectedInfo>();
     
-    function pieceClick(notation: string) {
-        if(!props.interactive) return;
-        if (selected === undefined) {
+    function pieceClick(notation: string, info?: SelectedInfo) {
+        if (!props.interactive) return;
+        if (info === undefined) {
             setSelected({notation});
         } else {
-            if (selected.notation === notation) {
+            if (info.notation === notation) {
                 setSelected(undefined);
             } else {
-                props.onMove(selected.notation, notation);
+                props.onMove(info.notation, notation);
                 setSelected(undefined);
             }
         }
     }
     
     return (
-        <div className={"select-none grid grid-cols-8 grid-rows-8 h-[30rem] w-[30rem] border-t-2 border-r-2"}>
-            {pieces.map((piece, i) => {
+        <div class={"select-none grid grid-cols-8 grid-rows-8 h-[30rem] w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
+            <Index each={pieces()}>{(piece, i) => {
                 let notation = indexToNotation(i);
                 let lightSquare = (Math.floor(i / 8) + i % 8) % 2 == 0;
-                let canMoveTo = selected !== undefined && props.possible.get(selected.notation)?.has(notation) === true;
+                
+                let canMoveTo = () => {
+                    let s = selected();
+                    return s !== undefined && props.possible.get(s.notation)?.has(notation) === true;
+                };
+                let isSelected = () => selected()?.notation === notation;
                 
                 return (
-                    <div key={i} onClick={() => pieceClick(notation)}
-                         className={"relative border-l-2 border-b-2 " +
-                             (lightSquare ? "bg-primary-50 " : "bg-primary-400 ") +
-                             (selected?.notation === notation ? "bg-primary-200 " : "")}>
-                        {canMoveTo && (
-                            <div className={"absolute t-0 l-0 w-full h-full z-10 opacity-20"}>
+                    <div onClick={() => pieceClick(notation, selected())}
+                         class={"relative border-l-2 border-b-2 "}
+                         classList={{"bg-primary-50": lightSquare, "bg-primary-200": isSelected()}}>
+                        <Show when={canMoveTo()} keyed={false}>
+                            <div class={"absolute t-0 l-0 w-full h-full z-10 opacity-20"}>
                                 <PossibleMoveIndicator></PossibleMoveIndicator>
                             </div>
-                        )}
-                        <div className={"p-1"}>
-                            <ChessPiece notation={piece} canMoveTo={canMoveTo}></ChessPiece>
+                        </Show>
+                        <div class={"p-1"}>
+                            <ChessPiece notation={piece()} canMoveTo={canMoveTo()}></ChessPiece>
                         </div>
                     </div>
                 );
-            })}
+            }}</Index>
         </div>
     )
 }

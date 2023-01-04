@@ -18,11 +18,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
+      - name: cd directory
+        run: cd client
+
+      - name: Add route for gh pages base path
+        run: mkdir /tmp/routes && cp -r ./src/routes/* /tmp/routes && mkdir ./src/routes/ai_playground && cp -r /tmp/routes/* ./src/routes/ai_playground/
+
       - name: Build page
-        run: cd client && npm install && npm run gh-pages
+        run: npm install && npm run gh-pages
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.1
         with:
           branch: gh-pages
-          folder: client/dist
+          folder: client/dist/public

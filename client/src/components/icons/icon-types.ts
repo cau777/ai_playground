@@ -1,5 +1,5 @@
-import {FC, SVGProps} from "react";
+import {Component, JSX} from "solid-js";
 
-type Props = SVGProps<SVGSVGElement>;
+type Props = JSX.SvgSVGAttributes<SVGSVGElement>;
 
-export type IconFC = FC<Props>;
+export type IconFC = Component<Props>;

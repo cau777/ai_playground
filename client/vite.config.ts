@@ -1,7 +1,11 @@
-import {defineConfig} from 'vite'
-import react from '@vitejs/plugin-react'
+import solid from "solid-start/vite";
+import { defineConfig } from "vite";
+// @ts-ignore
+import ssg from "solid-start-static";
 
-// https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [react()],
-})
+  plugins: [solid({
+    adapter: ssg({}),
+    prerenderRoutes: ["/en/digits", "/pt/digits"]
+  })],
+});

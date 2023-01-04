@@ -1,7 +1,7 @@
-import {FC, useEffect, useState} from "react";
 import {NavControls} from "../NavControls";
 import {ChessBoard} from "./ChessBoard";
 import * as server from "../../utils/server-interface";
+import {Component, createSignal, onMount} from "solid-js";
 
 const INITIAL_BOARD = `
 r n b q k b n r
@@ -35,10 +35,13 @@ function createMapSet(possible: [string, string][]) {
     return result;
 }
 
-export const ChessPlayground: FC = () => {
-    let [game, setGame] = useState<BoardState>();
+export const ChessPlayground: Component = () => {
+    let [game, setGame] = createSignal<BoardState>();
+    let state = () => game()?.state;
+    let opening = () => game()?.opening;
+    let board = () => game()?.board ?? INITIAL_BOARD;
     
-    useEffect(() => {
+    onMount(() => {
         server.chess_start_game(true)
             .then(o => {
                 setGame({
@@ -49,17 +52,17 @@ export const ChessPlayground: FC = () => {
                     opening: o.opening,
                 });
             });
-    }, []);
+    });
     
-    async function moved(from: string, to: string) {
-        if (game === undefined) return;
-        if (!game.possible.get(from)?.has(to))
+    async function moved(from: string, to: string, g?: BoardState) {
+        if (g === undefined) return;
+        if (!g.possible.get(from)?.has(to))
             return;
         console.log(from, to);
         
-        let response = await server.chess_move(game.gameId, from, to);
+        let response = await server.chess_move(g.gameId, from, to);
         setGame({
-            gameId: game.gameId,
+            gameId: g.gameId,
             possible: createMapSet(response.possible),
             board: response.board,
             state: response.game_state,
@@ -67,14 +70,13 @@ export const ChessPlayground: FC = () => {
         });
     }
     
-    
     return (
         <NavControls>
-            <div className={"mx-12"}>
-                <h6>{game?.state}</h6>
-                <h6>{game?.opening}</h6>
-                <ChessBoard interactive={game?.state === "gameResultUndefined"} board={game?.board ?? INITIAL_BOARD}
-                            possible={game?.possible ?? new Map()} onMove={moved}></ChessBoard>
+            <div class={"mx-12"}>
+                <h6>{state()}</h6>
+                <h6>{opening()}</h6>
+                <ChessBoard interactive={state() === "gameResultUndefined"} board={board()}
+                            possible={game()?.possible ?? new Map()} onMove={(from, to) => moved(from, to, game())}></ChessBoard>
             </div>
         </NavControls>
     )
