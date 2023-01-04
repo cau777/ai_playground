@@ -1,0 +1,493 @@
+{
+  "/*404": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/_...404_.c03a6b8d.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HttpStatusCode.eb7e14be.js"
+    }
+  ],
+  "/en": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/en.aa4ce5eb.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/en/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.8ff0d7b5.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HomePage.25fe7068.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    }
+  ],
+  "/en/chess/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.dd31bcbf.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/ChessPlayground.c2c50f2b.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    }
+  ],
+  "/en/digits/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.6903790c.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/DigitsPlayground.1c65addc.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    }
+  ],
+  "/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.bf4771d0.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/pt": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/pt.f0659546.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/pt/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.7a8a4e3d.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HomePage.25fe7068.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    }
+  ],
+  "/pt/chess/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.a5402ae8.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/ChessPlayground.c2c50f2b.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    }
+  ],
+  "/pt/digits/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.f8add59d.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/DigitsPlayground.1c65addc.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    }
+  ],
+  "/ai_playground/*404": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/_...404_.f82627eb.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HttpStatusCode.eb7e14be.js"
+    }
+  ],
+  "/ai_playground/en": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/en.4e903760.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/ai_playground/en/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.bc903c56.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HomePage.25fe7068.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    }
+  ],
+  "/ai_playground/en/chess/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.4d066fe0.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/ChessPlayground.c2c50f2b.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    }
+  ],
+  "/ai_playground/en/digits/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.b045bb7f.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/DigitsPlayground.1c65addc.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    }
+  ],
+  "/ai_playground/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.162600e9.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/ai_playground/pt": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/pt.f888a7c6.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "/ai_playground/pt/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.04608977.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/HomePage.25fe7068.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    }
+  ],
+  "/ai_playground/pt/chess/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.0a0e9a8d.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/ChessPlayground.c2c50f2b.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    }
+  ],
+  "/ai_playground/pt/digits/": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/index.c405d255.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/DigitsPlayground.1c65addc.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/server-interface.712c5e0a.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/LanguagesContext.8f7f1496.js"
+    },
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/NavControls.abe30714.js"
+    }
+  ],
+  "entry-client": [
+    {
+      "type": "script",
+      "href": "/ai_playground/assets/entry-client.06b58b80.js"
+    },
+    {
+      "type": "style",
+      "href": "/ai_playground/assets/entry-client.8c8c16e2.css"
+    }
+  ],
+  "index.html": []
+}
