@@ -55,7 +55,7 @@ impl TrainerScheduler {
                     Self::print_metrics(&metrics);
                 }
                 TrainingStrategy::FullGames => {
-                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::DepthFirst {total_full_paths: 12});
+                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::DepthFirst { min_full_paths: 12});
                     Self::print_metrics(&result);
                     all_metrics.push(result);
                     if all_metrics.len() > 10 {
@@ -63,7 +63,7 @@ impl TrainerScheduler {
                     }
                 }
                 TrainingStrategy::OpponentsResponses => {
-                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BreadthFirst {total_iterations: 100});
+                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BreadthFirst { min_nodes_explored: 4000});
                     Self::print_metrics(&result);
                     queue.push(TrainingStrategy::FullGames);
                     queue.push(TrainingStrategy::FullGames);

@@ -13,8 +13,8 @@ type OnGameResultParams<'a> = (GameResult, &'a DecisionTree, usize);
 
 #[derive(Copy, Clone)]
 pub enum NextNodeStrategy {
-    DepthFirst { total_full_paths: usize },
-    BreadthFirst { total_iterations: usize },
+    DepthFirst { min_full_paths: usize },
+    BreadthFirst { min_nodes_explored: usize },
 }
 
 pub struct DecisionTreesBuilder {
@@ -22,6 +22,13 @@ pub struct DecisionTreesBuilder {
     initial_cursors: Vec<TreeCursor>,
     strategy: NextNodeStrategy,
     batch_size: usize,
+}
+
+#[derive(Default)]
+struct LimitingFactors {
+    explored_nodes: usize,
+    explored_paths: usize,
+    iterations: usize,
 }
 
 fn scale_output(x: f32) -> f32 {
@@ -54,13 +61,11 @@ impl DecisionTreesBuilder {
         let mut queue = Vec::with_capacity(count);
         let mut completed: Vec<_> = (0..count).collect();
 
-        let mut explored_paths = 0;
-        let mut explored_nodes = 0;
-        let mut i = 0;;
-        while self.should_continue(explored_paths, explored_nodes) {
+        let mut limiting_factors = LimitingFactors::default();
+        while self.should_continue(&limiting_factors) {
             for c in completed {
                 let new = self.create_request(&mut trees, &mut cursors,
-                                              &mut curr_nodes, c, &mut on_game_result, &mut explored_paths);
+                                              &mut curr_nodes, c, &mut on_game_result, &mut limiting_factors);
                 queue.push(new);
             }
 
@@ -75,30 +80,27 @@ impl DecisionTreesBuilder {
                     let value = *out.first().unwrap();
                     let value = scale_output(value);
 
-                    // if input_index % 100 == 0 {
-                    //     println!("output = {:?} -> {:?}", out.first().unwrap(), value);
-                    // }
-
                     queue[*queue_index].submit(*local_index, value, false, false);
                 }
             }
 
             completed = self.clear_completed(&mut trees, &mut queue, &mut curr_nodes);
 
-            explored_nodes += completed.len();
+            limiting_factors.explored_nodes += completed.len();
+            limiting_factors.iterations += 1;
         }
 
         (trees, cursors)
     }
 
-    fn should_continue(&self, explored_paths: usize, iterations: usize) -> bool {
+    fn should_continue(&self, limiting: &LimitingFactors) -> bool {
         match self.strategy {
-            NextNodeStrategy::DepthFirst { total_full_paths } => explored_paths < total_full_paths,
-            NextNodeStrategy::BreadthFirst { total_iterations } => iterations < total_iterations,
+            NextNodeStrategy::DepthFirst { min_full_paths } => limiting.explored_paths < min_full_paths,
+            NextNodeStrategy::BreadthFirst { min_nodes_explored } => limiting.explored_nodes < min_nodes_explored,
         }
     }
 
-    fn decide_next_node(&self, prev_node: usize, tree: &DecisionTree) -> Option<usize> {
+    fn decide_next_node(&self, prev_node: usize, tree: &DecisionTree, limiting: &mut LimitingFactors) -> Option<usize> {
         if tree.len() == 1 {
             return Some(0);
         }
@@ -108,6 +110,7 @@ impl DecisionTreesBuilder {
                 let next = tree.get_continuation_at(prev_node);
                 next.and_then(|o| {
                     if tree.is_ending_at(o) {
+                        limiting.explored_paths += 1;
                         tree.get_unexplored_node()
                     } else {
                         Some(o)
@@ -168,18 +171,22 @@ impl DecisionTreesBuilder {
         let owner = agg.owner;
         let tree = &mut trees[owner];
         let node = curr_nodes[owner];
-        tree.submit_node_children(node, &agg.arrange());
+        let arrange = agg.arrange();
+        if arrange.len() == 0 {
+            eprintln!("Unexpected zero-length children in node {} in tree {}", node, tree.to_svg());
+        } else {
+            tree.submit_node_children(node, &arrange);
+        }
     }
 
     fn create_request(&self, trees: &mut [DecisionTree], cursors: &mut [TreeCursor], prev_nodes: &mut [usize],
-                      x: usize, on_game_result: &mut impl FnMut(OnGameResultParams), explored_paths: &mut usize) -> ResultsAggregator {
+                      x: usize, on_game_result: &mut impl FnMut(OnGameResultParams), limiting: &mut LimitingFactors) -> ResultsAggregator {
         let prev_node = prev_nodes[x];
 
         let mut rng = thread_rng();
-        let node = match self.decide_next_node(prev_node, &trees[x]) {
+        let node = match self.decide_next_node(prev_node, &trees[x], limiting) {
             Some(v) => v,
             None => {
-                *explored_paths += 1;
                 trees[x] = self.initial_trees[x].clone();
                 cursors[x] = self.initial_cursors[x].clone();
                 0
@@ -215,7 +222,7 @@ impl DecisionTreesBuilder {
                 let index = agg.push(m, None);
                 // Openings are usually good for both sides
                 // Add a small random value so the AI can choose from different openings
-                agg.submit(index, rng.gen_range(0.0..1.0) * 0.00001, false, true);
+                agg.submit(index, rng.gen_range(0.0..1.0) * 0.0001, false, true);
             }
         }
 

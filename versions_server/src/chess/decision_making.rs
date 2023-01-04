@@ -45,7 +45,7 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
     let builder = DecisionTreesBuilder::new(
         vec![DecisionTree::new(controller.side_to_play())],
         vec![TreeCursor::new(controller)],
-        NextNodeStrategy::BreadthFirst { total_iterations: 10 },
+        NextNodeStrategy::BreadthFirst { min_nodes_explored: 10 },
         64,
     );
     let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), || {});
