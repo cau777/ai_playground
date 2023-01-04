@@ -7,11 +7,13 @@ mod node;
 mod best_path_iterator;
 pub mod cursor;
 mod svg_export;
+pub mod building;
+mod results_aggregator;
 
 pub use node::NodeExtraInfo;
 use crate::chess::board::Board;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DecisionTree {
     start_side: bool,
     nodes: Vec<Node>,
@@ -126,6 +128,11 @@ impl DecisionTree {
 
     pub fn get_depth_at(&self, index: usize) -> usize {
         self.nodes[index].depth
+    }
+
+    pub fn get_continuation_at(&self, index: usize) -> Option<usize> {
+        self.nodes[index].get_ordered_children(self.start_side)
+            .and_then(|mut o| o.next()).copied()
     }
 }
 

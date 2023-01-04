@@ -16,6 +16,7 @@ impl LoadedModel {
         }
     }
 
+    // TODO: more efficient mutability
     pub fn assert_loaded(&mut self, target: u32, file_manager: &FileManager) -> GenericResult<()> {
         if self.version != target {
             let storage = file_manager.get_storage(target)?;

@@ -29,10 +29,9 @@ pub struct BoardRecord {
     pieces: BoardArray<BoardPiece>,
 }
 
-// TODO:private
 #[derive(Clone, Debug)]
 pub struct BoardController {
-    pub board_repetitions: HashMap<BoardRecord, u8>,
+    board_repetitions: HashMap<BoardRecord, u8>,
     boards: Vec<BoardInfo>,
     openings: Option<Arc<OpeningsTree>>,
 }

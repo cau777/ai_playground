@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use crate::chess::board_controller::BoardController;
 use crate::chess::decision_tree::node::Node;
 
+#[derive(Clone)]
 pub struct TreeCursor {
     current: usize,
     controller: BoardController,

@@ -1,7 +1,7 @@
-use codebase::chess::decision_tree::NodeExtraInfo;
-use codebase::chess::movement::Movement;
-use codebase::utils::ArrayDynF;
-use itertools::{Zip};
+use std::iter::zip;
+use crate::ArrayDynF;
+use crate::chess::decision_tree::NodeExtraInfo;
+use crate::chess::movement::Movement;
 
 pub struct ResultsAggregator {
     pub owner: usize,
@@ -48,7 +48,7 @@ impl ResultsAggregator {
     }
 
     pub fn arrange(&self) -> Vec<(Movement, f32, NodeExtraInfo)> {
-        Zip::from((&self.moves, &self.buffer))
+        zip(&self.moves, &self.buffer)
             .map(|(m, (e, info))| (*m, *e, *info))
             .collect()
     }

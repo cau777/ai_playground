@@ -94,10 +94,11 @@ impl DecisionTree {
         let max_depth = self.nodes.iter().map(|o| o.depth as u64).max().unwrap();
 
         format!(
-            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='100%' height='100%' viewPort='0 0 {} {}'>\
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='{0}' height='{1}' viewPort='0 0 {0} {1}'>\
             <defs><style>line {{ stroke:rgb(255,0,0);stroke-width:5 }} circle {{ stroke:black;stroke-width=4px; }} text {{ text-anchor:middle;font-size:9px;font-family:Verdana,Arial,sans-serif }}</style></defs>\
-            {}{}{}</svg>",
-            current_col * CELL_SIZE, max_depth * CELL_SIZE,
+            {2}{3}{4}</svg>",
+            current_col * CELL_SIZE,
+            (max_depth + 2) * CELL_SIZE,
             create_lines(&positions, &self.nodes),
             create_circles(&positions),
             create_text(&positions, &self.nodes),

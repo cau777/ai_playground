@@ -1,6 +1,6 @@
 use crate::chess::movement::Movement;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
     pub parent: usize,
     pub movement: Movement,

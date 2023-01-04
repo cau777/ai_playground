@@ -1,8 +1,10 @@
+#[derive(Clone, Debug)]
 pub enum WinReason {
     Checkmate,
     Timeout,
 }
 
+#[derive(Clone, Debug)]
 pub enum DrawReason {
     Stalemate,
     InsufficientMaterial,
@@ -11,6 +13,7 @@ pub enum DrawReason {
     Repetition,
 }
 
+#[derive(Clone, Debug)]
 pub enum GameResult {
     Undefined,
     Win(bool, WinReason),

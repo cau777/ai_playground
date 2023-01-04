@@ -1,14 +1,14 @@
 use std::fmt::Debug;
 use std::time::{SystemTime, UNIX_EPOCH};
+use codebase::chess::decision_tree::building::NextNodeStrategy;
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
-use itertools::all;
 use crate::chess::endgames_trainer::EndgamesTrainer;
 use crate::chess::NAME;
 use crate::{EnvConfig, ServerClient};
 use crate::chess::game_metrics::GameMetrics;
-use crate::chess::games_trainer::{GamesTrainer, NextNodeStrategy};
+use crate::chess::games_trainer::{GamesTrainer};
 
 pub struct TrainerScheduler {
     endgames_trainer: EndgamesTrainer,
@@ -63,7 +63,7 @@ impl TrainerScheduler {
                     }
                 }
                 TrainingStrategy::OpponentsResponses => {
-                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BreadthFirst {total_iterations: 5_000});
+                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BreadthFirst {total_iterations: 100});
                     Self::print_metrics(&result);
                     queue.push(TrainingStrategy::FullGames);
                     queue.push(TrainingStrategy::FullGames);
