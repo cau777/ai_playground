@@ -36,7 +36,7 @@ impl EndgamesTrainer {
             for _ in 0..BATCH_SIZE {
                 let chosen = picker.pick(&mut rng);
                 let result = &self.endgames[chosen][0..3];
-                let result = if result == "1-0" { 1.0 } else { -1.0 };
+                let result = if result == "1-0" { 1.0 } else { 0.0 };
                 let game = &self.endgames[chosen][4..];
                 all_chosen.push((result, game));
             }

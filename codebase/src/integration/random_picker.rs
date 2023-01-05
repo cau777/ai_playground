@@ -14,7 +14,6 @@ impl RandomPicker {
     
     pub fn pick(&mut self, rng:  &mut impl rand::RngCore) -> usize {
         let chosen = rng.gen_range(0..self.possible.len());
-        self.possible.swap_remove(chosen);
-        self.possible[chosen]
+        self.possible.swap_remove(chosen)
     }
 }

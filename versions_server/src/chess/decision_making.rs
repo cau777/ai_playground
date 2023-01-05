@@ -48,7 +48,7 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
         NextNodeStrategy::BreadthFirst { min_nodes_explored: 10 },
         64,
     );
-    let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), || {});
+    let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), |_| {});
     let tree = trees.pop().unwrap();
     // println!("{}", tree.to_svg());
     // std::fs::OpenOptions::new().write(true).create(true).open(
