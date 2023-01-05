@@ -41,6 +41,7 @@ impl Board {
 
     pub fn to_array(&self) -> Array3F {
         let mut result = Array3F::zeros((6, 8, 8));
+
         for row in 0..8 {
             for col in 0..8 {
                 let piece = self.pieces[row][col];
@@ -48,6 +49,19 @@ impl Board {
                     result[(piece.ty as usize - 1, row, col)] = if piece.side { 1.0 } else { -1.0 };
                 }
             }
+        }
+
+        if self.castle_rights[true].king_side {
+            result[(5, 0, 7)] = 0.5;
+        }
+        if self.castle_rights[false].king_side {
+            result[(5, 7, 7)] = -0.5;
+        }
+        if self.castle_rights[true].queen_side {
+            result[(5, 0, 0)] = 0.5;
+        }
+        if self.castle_rights[false].queen_side {
+            result[(5, 7, 0)] = -0.5;
         }
         result
     }
