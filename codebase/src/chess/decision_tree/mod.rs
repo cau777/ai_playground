@@ -1,3 +1,4 @@
+use ndarray_rand::rand::Rng;
 use crate::chess::decision_tree::best_path_iterator::BestPathIterator;
 use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::node::{Node};
@@ -9,6 +10,8 @@ pub mod cursor;
 mod svg_export;
 pub mod building;
 mod results_aggregator;
+pub mod building_exp;
+mod results_aggregator_exp;
 
 pub use node::NodeExtraInfo;
 use crate::chess::board::Board;
@@ -70,7 +73,7 @@ impl DecisionTree {
         c.go_to(target, &self.nodes)
     }
 
-    pub fn get_unexplored_node(&self) -> Option<usize> {
+    pub fn get_best_path_variant(&self) -> Option<usize> {
         BestPathIterator::new(&self.nodes, self.start_side, true)
             .filter_map(|o| self.nodes[o].get_ordered_children(self.start_side))
             // Get the best and second best unexplored options for a node
@@ -94,6 +97,27 @@ impl DecisionTree {
             })
             .min_by(|(v1, _), (v2, _)| v1.total_cmp(v2))
             .map(|(_, n)| *n)
+    }
+
+    pub fn get_best_path_random_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
+        BestPathIterator::new(&self.nodes, self.start_side, true)
+            .filter_map(|o| self.nodes[o].get_ordered_children(self.start_side))
+            .flat_map(|o|
+                o.filter(|o| {
+                    let node = &self.nodes[**o];
+                    node.children.is_none() && !node.info.is_ending
+                })
+            )
+            .copied()
+            .max_by_key(|_| rand.gen_range(0..10_000_000))
+    }
+
+    pub fn get_random_unexplored_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
+        self.nodes.iter()
+            .enumerate()
+            .filter(|(_, o)| o.children.is_none() && !o.info.is_ending)
+            .map(|(i, _)| i)
+            .max_by_key(|_| rand.gen_range(0..10_000_000))
     }
 
     fn path_to_root(&self, mut index: usize) -> Vec<usize> {
@@ -133,6 +157,10 @@ impl DecisionTree {
     pub fn get_continuation_at(&self, index: usize) -> Option<usize> {
         self.nodes[index].get_ordered_children(self.start_side)
             .and_then(|mut o| o.next()).copied()
+    }
+
+    pub fn nodes(&self) -> impl Iterator<Item=&Node> {
+        self.nodes.iter()
     }
 }
 
@@ -182,13 +210,13 @@ mod tests {
             (Movement::from_notations("A4", "A7"), 0.3, Default::default()),
         ]);
 
-        assert_eq!(tree.get_unexplored_node(), Some(2));
+        assert_eq!(tree.get_best_path_variant(), Some(2));
 
         tree.submit_node_children(2, &[
             (Movement::from_notations("A5", "A7"), -5.0, Default::default()),
         ]);
 
-        assert_eq!(tree.get_unexplored_node(), Some(4));
+        assert_eq!(tree.get_best_path_variant(), Some(4));
     }
 }
 

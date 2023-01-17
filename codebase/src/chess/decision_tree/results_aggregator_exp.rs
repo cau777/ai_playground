@@ -2,6 +2,7 @@ use std::iter::zip;
 use crate::ArrayDynF;
 use crate::chess::decision_tree::NodeExtraInfo;
 use crate::chess::movement::Movement;
+use crate::nn::layers::nn_layers::GenericStorage;
 
 pub struct ResultsAggregator {
     pub owner: usize,
@@ -9,7 +10,7 @@ pub struct ResultsAggregator {
     target_count: usize,
     moves: Vec<Movement>,
     arrays: Vec<Option<ArrayDynF>>,
-    buffer: Vec<(f32, NodeExtraInfo)>
+    buffer: Vec<(f32, NodeExtraInfo, Option<GenericStorage>)>
 }
 
 impl ResultsAggregator {
@@ -37,10 +38,10 @@ impl ResultsAggregator {
             .filter_map(|(i, o)| o.as_ref().map(|o| (i, o)))
     }
 
-    pub fn submit(&mut self, index: usize, value: f32, is_ending: bool, is_opening: bool) {
+    pub fn submit(&mut self, index: usize, value: f32, is_ending: bool, is_opening: bool, cache: Option<GenericStorage>) {
         self.count += 1;
         self.arrays[index] = None;
-        self.buffer[index] = (value, NodeExtraInfo{is_ending, is_opening });
+        self.buffer[index] = (value, NodeExtraInfo{is_ending, is_opening }, cache);
     }
 
     pub fn is_ready(&self) -> bool {
@@ -49,7 +50,11 @@ impl ResultsAggregator {
 
     pub fn arrange(&self) -> Vec<(Movement, f32, NodeExtraInfo)> {
         zip(&self.moves, &self.buffer)
-            .map(|(m, (e, info))| (*m, *e, *info))
+            .map(|(m, (e, info, _))| (*m, *e, *info))
             .collect()
+    }
+    
+    pub fn get_cache(&self) -> impl Iterator<Item=Option<&GenericStorage>> {
+        self.buffer.iter().map(|o| o.2.as_ref())
     }
 }

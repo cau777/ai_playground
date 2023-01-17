@@ -1,9 +1,9 @@
-use ndarray::{s};
+use ndarray::s;
 use crate::Array4F;
 use crate::nn::generic_storage::remove_from_storage1;
+use crate::nn::layers::filtering::{pad4d, remove_padding_4d};
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
-use crate::nn::utils::{pad4d, remove_padding_4d};
-use crate::utils::{get_dims_after_filter_4};
+use crate::utils::get_dims_after_filter_4;
 
 #[derive(Clone, Debug)]
 pub struct MaxPoolConfig {
@@ -86,7 +86,7 @@ mod tests {
     use ndarray::{array, Axis, stack};
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::max_pool_layer::{MaxPoolConfig, MaxPoolLayer};
+    use crate::nn::layers::filtering::max_pool::{MaxPoolConfig, MaxPoolLayer};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
     use crate::utils::{Array3F, ArrayDynF};
 
@@ -134,6 +134,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
+                prev_iteration_cache: None,
                 gpu: None,
             }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap()
         }

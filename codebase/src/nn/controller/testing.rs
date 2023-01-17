@@ -29,6 +29,7 @@ impl NNController {
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
                 batch_config: &config,
+                prev_iteration_cache: None,
                 gpu
             },
         )?;

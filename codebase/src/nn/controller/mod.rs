@@ -3,11 +3,11 @@ mod training;
 mod testing;
 
 use std::sync::{Arc, RwLock};
+use crate::gpu::gpu_data::{GlobalGpu, GpuData};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
-use crate::nn::loss::loss_func::{LossFunc};
-use crate::utils::{GenericResult};
-use crate::gpu::shader_runner::{GlobalGpu, GpuData};
+use crate::nn::loss::loss_func::LossFunc;
+use crate::utils::GenericResult;
 
 /// Main struct to train and use the AI model
 /// ```

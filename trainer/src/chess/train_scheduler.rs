@@ -53,9 +53,14 @@ impl TrainerScheduler {
                 TrainingStrategy::Endgames => {
                     let metrics = self.endgames_trainer.train_version(&mut self.controller, config);
                     Self::print_metrics(&metrics);
+                    queue.push(TrainingStrategy::FullGames);
+                    queue.push(TrainingStrategy::FullGames);
                 }
                 TrainingStrategy::FullGames => {
-                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::DepthFirst { min_full_paths: 12});
+                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::ContinueLineThenBestVariantOrRandom {
+                        min_full_paths: 12 ,
+                        random_node_chance: 0.2,
+                    });
                     Self::print_metrics(&result);
                     all_metrics.push(result);
                     if all_metrics.len() > 10 {
@@ -63,9 +68,11 @@ impl TrainerScheduler {
                     }
                 }
                 TrainingStrategy::OpponentsResponses => {
-                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BreadthFirst { min_nodes_explored: 4000});
+                    let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BestOrRandomNode {
+                        min_nodes_explored: 10_000,
+                        random_node_chance: 0.5,
+                    });
                     Self::print_metrics(&result);
-                    queue.push(TrainingStrategy::FullGames);
                     queue.push(TrainingStrategy::FullGames);
                 }
             }
@@ -86,10 +93,11 @@ impl TrainerScheduler {
     }
 
     fn choose_next(metrics: &[GameMetrics]) -> TrainingStrategy {
+        // return TrainingStrategy::FullGames;
         if metrics.len() < 10 {
             return TrainingStrategy::FullGames;
         }
-        
+
         let mut avg_metrics = GameMetrics::default();
         for m in metrics {
             avg_metrics.add(m);
@@ -99,8 +107,8 @@ impl TrainerScheduler {
         let win_rate = avg_metrics.white_win_rate + avg_metrics.black_win_rate;
         if (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3 {
             TrainingStrategy::OpponentsResponses
-        } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.1 {
-            TrainingStrategy::Endgames
+        } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.2 {
+            TrainingStrategy::OpponentsResponses // TODO: fix endgames
         } else {
             TrainingStrategy::FullGames
         }

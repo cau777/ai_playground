@@ -1,7 +1,8 @@
 use crate::Array4F;
-use crate::gpu::shader_runner::{GlobalGpu, ShaderRunner};
+use crate::gpu::gpu_data::GlobalGpu;
+use crate::gpu::shader_runner::ShaderRunner;
 use crate::gpu::shaders;
-use crate::nn::layers::convolution::convolution_layer::ConvolutionConfig;
+use crate::nn::layers::filtering::convolution::convolution_layer::ConvolutionConfig;
 use crate::utils::{GenericResult, get_dims_after_filter_4, ShapeAsArray};
 
 pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<Array4F> {
@@ -25,13 +26,12 @@ pub fn calc_inputs_grad_gpu(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, 
             out_width: out_shape.3 as u32,
         })?;
 
-    let results_buffer = runner.create_write_buffer(out_shape.0 * out_shape.1 * out_shape.2 * out_shape.3)?;
-    runner.create_read_buffer(kernel)?;
-    runner.create_read_buffer(grad)?;
+    let results_buffer = runner.create_download_buffer(out_shape.0 * out_shape.1 * out_shape.2 * out_shape.3)?;
+    runner.create_gpu_only_buffer(kernel)?;
+    runner.create_gpu_only_buffer(grad)?;
 
     runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32), shaders::convolution_inputs_grad::BLOCK_SIZE)?;
-    let read = results_buffer.read()?;
-    let vec = read.to_vec();
+    let vec = results_buffer.read()?.to_vec();
 
     Ok(Array4F::from_shape_vec(out_shape, vec)?)
 }
@@ -53,9 +53,9 @@ pub fn calc_forward_gpu(inputs: &Array4F, kernel: &Array4F, gpu: GlobalGpu, laye
         input_width: ish[3] as u32,
     })?;
 
-    let results_buffer = runner.create_write_buffer(out_shape.0 * out_shape.1 * out_shape.2 * out_shape.3)?;
-    runner.create_read_buffer(kernel)?;
-    runner.create_read_buffer(inputs)?;
+    let results_buffer = runner.create_download_buffer(out_shape.0 * out_shape.1 * out_shape.2 * out_shape.3)?;
+    runner.create_gpu_only_buffer(kernel)?;
+    runner.create_gpu_only_buffer(inputs)?;
 
     runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32),
                    shaders::convolution_forward::BLOCK_SIZE)?;
@@ -64,3 +64,10 @@ pub fn calc_forward_gpu(inputs: &Array4F, kernel: &Array4F, gpu: GlobalGpu, laye
 
     Ok(Array4F::from_shape_vec(out_shape, vec)?)
 }
+
+// fn read(mut buffer: Arc<CpuBufferPoolChunk<f32>>) -> GenericResult<Vec<f32>> {
+//     let mut vec = Vec::with_capacity(buffer.len());
+//     buffer.into_buffer_slice().
+//     let b: &[f32] = vulkano::buffer::BufferContents::from_bytes(&vec)?;
+//     Ok(b.to_vec())
+// }

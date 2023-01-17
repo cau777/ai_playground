@@ -231,6 +231,7 @@ mod tests {
                 storage: &mut storage,
                 inputs: input,
                 forward_cache: &mut GenericStorage::new(),
+                prev_iteration_cache: None,
                 gpu: None,
             },
             &config,

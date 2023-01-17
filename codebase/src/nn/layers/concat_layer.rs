@@ -28,7 +28,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
+    fn forward(mut data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
         let mut results = Vec::with_capacity(layer_config.layers.len());
         let mut splits = Vec::with_capacity(layer_config.layers.len());
         let key = data.assigner.get_key(gen_name(layer_config));
@@ -42,6 +42,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
                 gpu: data.gpu.clone(),
                 assigner: data.assigner,
                 batch_config: data.batch_config,
+                prev_iteration_cache: data.prev_iteration_cache.as_deref_mut(),
             })?;
 
             splits.push(result.shape()[dim]);
@@ -142,6 +143,7 @@ mod tests {
             inputs,
             assigner: &mut KeyAssigner::new(),
             storage: &GenericStorage::new(),
+            prev_iteration_cache: None,
         }, &config).unwrap();
 
         assert!(arrays_almost_equal(&result, &expected));

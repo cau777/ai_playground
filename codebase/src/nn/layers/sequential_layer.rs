@@ -18,8 +18,10 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
         Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &SequentialConfig) -> LayerResult {
+    fn forward(mut data: ForwardData, layer_config: &SequentialConfig) -> LayerResult {
         let mut inputs = data.inputs;
+        // let prev_iteration_cache = data.prev_iteration_cache;
+
         for layer in layer_config.layers.iter() {
             let data = ForwardData {
                 inputs,
@@ -28,6 +30,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
                 storage: data.storage,
                 batch_config: data.batch_config,
                 gpu: data.gpu.clone(),
+                prev_iteration_cache: data.prev_iteration_cache.as_deref_mut(),
             };
             inputs = forward_layer(layer, data)?;
         }
@@ -121,6 +124,7 @@ mod tests {
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
             forward_cache: &mut GenericStorage::new(),
+            prev_iteration_cache: None,
             gpu: None,
         };
 

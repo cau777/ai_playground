@@ -6,3 +6,6 @@ pub mod lr_calculators;
 pub mod key_assigner;
 pub mod generic_storage;
 mod utils;
+
+#[cfg(test)]
+mod integration_testing;

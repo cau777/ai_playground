@@ -28,5 +28,5 @@ codegen-units = 1
 panic = "abort"
 
 [[bench]]
-name = "conv_layer"
+name = "building"
 harness = false

@@ -9,7 +9,7 @@ use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 
 use criterion::*;
-use codebase::gpu::shader_runner::GpuData;
+use codebase::gpu::gpu_data::GpuData;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let config = dense_layer::DenseConfig {
@@ -34,6 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),
             forward_cache: &mut GenericStorage::new(),
+            prev_iteration_cache: None,
             gpu: None,
         }, &config).unwrap();
     }));

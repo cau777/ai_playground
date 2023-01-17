@@ -1,15 +1,21 @@
+use std::collections::HashMap;
+use std::iter::zip;
 use ndarray::{Axis, stack};
 use ndarray_rand::rand::{Rng, thread_rng};
 use crate::ArrayDynF;
 use crate::chess::board_controller::BoardController;
 use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::DecisionTree;
-use crate::chess::decision_tree::results_aggregator::ResultsAggregator;
+use crate::chess::decision_tree::results_aggregator_exp::ResultsAggregator;
 use crate::chess::game_result::{GameResult};
 use crate::chess::movement::Movement;
 use crate::nn::controller::NNController;
+use crate::nn::generic_storage::{combine_storages, split_storages};
+use crate::nn::layers::nn_layers::GenericStorage;
 
 type OnGameResultParams<'a> = (GameResult, &'a DecisionTree, usize);
+// type Cache = Vec<HashMap<usize, GenericStorage>>;
+type Cache = Vec<Vec<Option<GenericStorage>>>;
 
 #[derive(Copy, Clone)]
 pub enum NextNodeStrategy {
@@ -41,6 +47,7 @@ fn scale_output(x: f32) -> f32 {
     }
 }
 
+
 impl DecisionTreesBuilder {
     pub fn new(initial_trees: Vec<DecisionTree>, initial_cursors: Vec<TreeCursor>, strategy: NextNodeStrategy, batch_size: usize) -> Self {
         if initial_trees.len() != initial_cursors.len() {
@@ -62,6 +69,7 @@ impl DecisionTreesBuilder {
         let mut curr_nodes = vec![0; count];
         let mut queue = Vec::with_capacity(count);
         let mut completed: Vec<_> = (0..count).collect();
+        let mut caches = vec![vec![None]; count];
 
         let mut limiting_factors = LimitingFactors::default();
         while self.should_continue(&limiting_factors) {
@@ -71,22 +79,34 @@ impl DecisionTreesBuilder {
                 queue.push(new);
             }
 
-            let to_eval = self.get_requests(&queue, count);
+            let to_eval = self.get_requests(&queue, &curr_nodes, count, &caches);
             if !to_eval.is_empty() {
-                let inputs: Vec<_> = to_eval.iter().map(|(_, _, arr)| arr.view()).collect();
+                let inputs: Vec<_> = to_eval.iter().map(|(_, _, arr, _)| arr.view()).collect();
                 let inputs = stack(Axis(0), &inputs).unwrap();
-                let output = controller.eval_batch(inputs).unwrap();
 
-                for (input_index, out) in output.outer_iter().enumerate() {
-                    let (queue_index, local_index, _) = &to_eval[input_index];
+                let storages: Vec<_> = to_eval.iter().map(|(_, _, _, storage)| storage.as_ref()).collect();
+
+                let combined = if storages.iter().all(|o| o.is_some()) {
+                    combine_storages(&storages.into_iter().flatten().collect::<Vec<_>>())
+                } else {
+                    None
+                };
+
+                let (output, storage) = controller.eval_with_cache(inputs, combined).unwrap();
+
+                let split = split_storages(storage, self.batch_size)
+                    .expect("Should split cache");
+
+                for ((input_index, out), split) in zip(output.outer_iter().enumerate(), split.into_iter()) {
+                    let (queue_index, local_index, _, _) = &to_eval[input_index];
                     let value = *out.first().unwrap();
                     let value = scale_output(value);
 
-                    queue[*queue_index].submit(*local_index, value, false, false);
+                    queue[*queue_index].submit(*local_index, value, false, false, Some(split));
                 }
             }
 
-            completed = self.clear_completed(&mut trees, &mut queue, &mut curr_nodes);
+            completed = self.clear_completed(&mut trees, &mut queue, &mut curr_nodes, &mut caches);
 
             limiting_factors.explored_nodes += completed.len();
             limiting_factors.iterations += 1;
@@ -94,7 +114,7 @@ impl DecisionTreesBuilder {
 
         (trees, cursors)
     }
-    
+
     fn should_continue(&self, limiting: &LimitingFactors) -> bool {
         match self.strategy {
             NextNodeStrategy::ContinueLineThenBestVariant { min_full_paths } => limiting.explored_paths < min_full_paths,
@@ -161,47 +181,55 @@ impl DecisionTreesBuilder {
             }
             GameResult::Draw(_) => {
                 let index = agg.push(m, None);
-                agg.submit(index, 0.5, true, false);
+                agg.submit(index, 0.5, true, false, None);
             }
             GameResult::Win(side, _) => {
                 let index = agg.push(m, None);
-                agg.submit(index, if side { 1.0 } else { 0.0 }, true, false);
+                agg.submit(index, if side { 1.0 } else { 0.0 }, true, false, None);
             }
         }
     }
 
-    fn get_requests(&self, queue: &[ResultsAggregator], count: usize) -> Vec<(usize, usize, ArrayDynF)> {
+    fn get_requests(&self, queue: &[ResultsAggregator], curr_nodes: &[usize], count: usize, cache: &Cache) -> Vec<(usize, usize, ArrayDynF, Option<GenericStorage>)> {
         let mut result = Vec::with_capacity(self.batch_size);
         for i in 0..count {
-            let requests = queue[i].requests_to_eval()
+            let requests = queue[i]
+                .requests_to_eval()
                 .take(self.batch_size - result.len())
-                .map(|(local_i, o)| (i, local_i, o.clone()));
+                .map(|(local_i, o)| {
+                    (i, local_i, o.clone(), cache[i][curr_nodes[queue[i].owner]].clone())
+                });
             result.extend(requests);
         }
         result
     }
 
     fn clear_completed(&self, trees: &mut [DecisionTree], queue: &mut Vec<ResultsAggregator>,
-                       curr_nodes: &mut [usize]) -> Vec<usize> {
+                       curr_nodes: &mut [usize], cache: &mut Cache) -> Vec<usize> {
         let mut result = Vec::with_capacity(queue.len());
         while let Some(agg) = queue.get(0) {
             if !agg.is_ready() { break; }
             result.push(agg.owner);
-            self.apply(trees, agg, curr_nodes);
+            self.apply(trees, agg, curr_nodes, cache);
             queue.remove(0);
         }
         result
     }
 
-    fn apply(&self, trees: &mut [DecisionTree], agg: &ResultsAggregator, curr_nodes: &mut [usize]) {
+    fn apply(&self, trees: &mut [DecisionTree], agg: &ResultsAggregator, curr_nodes: &mut [usize], caches: &mut Cache) {
         let owner = agg.owner;
         let tree = &mut trees[owner];
         let node = curr_nodes[owner];
         let arrange = agg.arrange();
-        if arrange.len() == 0 {
+        // caches[owner][node] = None; TODO
+
+        if arrange.is_empty() {
             eprintln!("Unexpected zero-length children in node {} in tree {}", node, tree.to_svg());
         } else {
             tree.submit_node_children(node, &arrange);
+            for c in agg.get_cache() {
+                caches[owner].push(c.cloned());
+            }
         }
     }
 
@@ -227,7 +255,6 @@ impl DecisionTreesBuilder {
         tree.move_cursor(c, node);
         let mut controller = c.get_controller().clone();
         let continuations = controller.get_opening_continuations();
-        // println!("Continuations from {} = {:?}", controller.current(), continuations);
         let mut agg;
 
         if continuations.is_empty() {
@@ -248,7 +275,7 @@ impl DecisionTreesBuilder {
                 let index = agg.push(m, None);
                 // Openings are usually good for both sides
                 // Add a small random value so the AI can choose from different openings
-                agg.submit(index, rng.gen_range(0.5 + (-1.0)..1.0) * 0.001, false, true);
+                agg.submit(index, rng.gen_range(0.5 + (-1.0)..1.0) * 0.001, false, true, None);
             }
         }
 

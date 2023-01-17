@@ -1,4 +1,4 @@
-use crate::nn::generic_storage::{clone_from_storage1, get_mut_from_storage, remove_from_storage1};
+use crate::nn::generic_storage::{clone_from_storage1, clone_from_storage2, get_mut_from_storage, remove_from_storage1};
 use crate::nn::layers::nn_layers::{
     BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult, TrainData,
     TrainableLayerOps,
@@ -9,9 +9,9 @@ use ndarray::{ErrorKind, ShapeError};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::ops::AddAssign;
-use crate::nn::layers::convolution::convolution_cpu::{calc_forward, calc_inputs_grad, calc_kernel_grad};
-use crate::nn::layers::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
-use crate::nn::utils::pad4d;
+use crate::nn::layers::filtering::convolution::convolution_cpu::{calc_forward, calc_forward_with_cache, calc_inputs_grad, calc_kernel_grad};
+use crate::nn::layers::filtering::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
+use crate::nn::layers::filtering::pad4d;
 
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
@@ -70,7 +70,7 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
     }
 
     fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
-        let ForwardData { inputs, storage, assigner, forward_cache, .. } = data;
+        let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
 
         let inputs: Array4F = inputs.into_dimensionality()?;
         let key = assigner.get_key(gen_name(layer_config));
@@ -78,20 +78,46 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         let [kernel] = clone_from_storage1(storage, &key);
         let kernel: Array4F = kernel.into_dimensionality()?;
 
+        // let prev_values = match prev_iteration_cache {
+        //     Some(v) => Some(clone_from_storage2(v, &key)),
+        //     None => None,
+        // };
+        let prev_values = prev_iteration_cache.as_mut()
+            .and_then(|o| o.get(&key))
+            .and_then(|o| match o.as_slice() {
+                [a, b] => Some([a.clone(), b.clone()]),
+                _ => None,
+            });
+
         let inputs = pad4d(inputs, layer_config.padding);
-        let result = match data.gpu {
-            Some(gpu) => match calc_forward_gpu(&inputs, &kernel, gpu, layer_config) {
-                Ok(v) => v,
-                Err(e) => {
-                    eprintln!("{:?}", e);
-                    calc_forward(&inputs, &kernel, layer_config)?
+
+        let result = match prev_values {
+            Some([prev_inputs, prev_result]) => {
+                calc_forward_with_cache(&inputs, &prev_inputs.into_dimensionality()?,
+                                        &prev_result.into_dimensionality()?, &kernel, layer_config)?
+            }
+            None => {
+                match data.gpu {
+                    Some(gpu) => match calc_forward_gpu(&inputs, &kernel, gpu, layer_config) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("{:?}", e);
+                            calc_forward(&inputs, &kernel, layer_config)?
+                        }
+                    }
+                    None => calc_forward(&inputs, &kernel, layer_config)?
                 }
             }
-            None => calc_forward(&inputs, &kernel, layer_config)?
         };
 
-        forward_cache.insert(key, vec![inputs.into_dyn()]);
-        Ok(result.into_dyn())
+        let result = result.into_dyn();
+        let inputs = inputs.into_dyn();
+
+        forward_cache.insert(key.clone(), vec![inputs.clone()]);
+        if let Some(cache) = prev_iteration_cache {
+            cache.insert(key, vec![inputs, result.clone()]);
+        }
+        Ok(result)
     }
 
     fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerResult {
@@ -159,8 +185,8 @@ impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer {
 mod tests {
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::convolution::convolution_layer::ConvolutionInitMode::{HeNormal, Kernel};
-    use crate::nn::layers::convolution::convolution_layer::{ConvolutionConfig, ConvolutionLayer};
+    use crate::nn::layers::filtering::convolution::convolution_layer::ConvolutionInitMode::{HeNormal, Kernel};
+    use crate::nn::layers::filtering::convolution::convolution_layer::{ConvolutionConfig, ConvolutionLayer};
     use crate::nn::layers::nn_layers::{
         BackwardData, ForwardData, GenericStorage, InitData, LayerOps, init_layer, Layer,
     };
@@ -171,8 +197,8 @@ mod tests {
     use ndarray::{array, stack, Axis};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
-    use crate::nn::layers::convolution::convolution_cpu::{calc_kernel_grad};
-    use crate::nn::layers::convolution::convolution_layer;
+    use crate::nn::layers::filtering::convolution::convolution_cpu::{calc_kernel_grad};
+    use crate::nn::layers::filtering::convolution::convolution_layer;
 
     #[test]
     #[ignore]
@@ -229,6 +255,7 @@ mod tests {
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
                 batch_config: &BatchConfig::new_train(),
+                prev_iteration_cache: None,
                 gpu: None,
             },
             &config,

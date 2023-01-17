@@ -1,9 +1,9 @@
 use std::ops::AddAssign;
-use ndarray::{Axis, s, ShapeError, stack};
+use ndarray::{ArrayView3, ArrayViewMut3, Axis, s, ShapeError, stack, Zip};
 use ndarray::parallel::prelude::*;
 use crate::Array4F;
-use crate::nn::layers::convolution::convolution_layer::ConvolutionConfig;
-use crate::nn::utils::remove_padding_4d;
+use crate::nn::layers::filtering::convolution::convolution_layer::ConvolutionConfig;
+use crate::nn::layers::filtering::{find_useful_from_prev, remove_padding_4d};
 use crate::utils::{Array2F, Array3F, Array5F, get_dims_after_filter_4, GetBatchSize};
 
 pub fn calc_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_config: &ConvolutionConfig) -> Array4F {
@@ -96,28 +96,14 @@ pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &Convolu
 pub fn calc_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &ConvolutionConfig) -> Result<Array4F, ShapeError> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
 
-    let [_, _, new_height, new_width] = get_dims_after_filter_4(&inputs, *kernel_size, *stride);
+    let [_, _, new_height, new_width] = get_dims_after_filter_4(inputs, *kernel_size, *stride);
     let mut batches = Vec::with_capacity(inputs.batch_size());
     inputs.outer_iter().into_par_iter()
         .map(|batch| {
             let mut result = Array3F::zeros((layer_config.out_channels, new_height, new_width));
             for h in 0..new_height {
                 for w in 0..new_width {
-                    let h_offset = h * stride;
-                    let w_offset = w * stride;
-                    let area = batch.slice(s![
-                            ..,
-                            h_offset..(h_offset + kernel_size),
-                            w_offset..(w_offset + kernel_size)
-                        ]);
-                    let area = area.insert_axis(Axis(0));
-                    let out: Array4F = &area * kernel;
-
-
-                    out.outer_iter()
-                        .map(|o| o.sum())
-                        .enumerate()
-                        .for_each(|(index, o)| result[(index, h, w)] = o);
+                    apply_conv_filter(kernel, stride, kernel_size, &batch, &mut result.view_mut(), h, w);
                 }
             }
             result
@@ -129,13 +115,64 @@ pub fn calc_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &Convoluti
     stack(Axis(0), &views)
 }
 
+pub fn calc_forward_with_cache(inputs: &Array4F, prev_inputs: &Array4F, prev_results: &Array4F, kernel: &Array4F, layer_config: &ConvolutionConfig) -> Result<Array4F, ShapeError> {
+    let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
+
+    let [batch, _, new_height, new_width] = get_dims_after_filter_4(inputs, *kernel_size, *stride);
+
+    let useful_cache = find_useful_from_prev(prev_inputs, prev_results, inputs, *kernel_size, *stride);
+    let mut result = Array4F::zeros((batch, layer_config.out_channels, new_height, new_width));
+
+    Zip::from(inputs.outer_iter())
+        .and(useful_cache.outer_iter())
+        .and(result.outer_iter_mut())
+        .into_par_iter()
+        .for_each(|(inputs, cache, mut result)| {
+            for h in 0..new_height {
+                for w in 0..new_width {
+                    for och in 0..layer_config.out_channels {
+                        let cached = cache[(och, h, w)];
+                        match cached {
+                            Some(v) => {
+                                result[(och, h, w)] = v;
+                            }
+                            None => {
+                                apply_conv_filter(kernel, stride, kernel_size, &inputs, &mut result, h, w);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    Ok(result)
+}
+
+fn apply_conv_filter(kernel: &Array4F, stride: &usize, kernel_size: &usize, batch: &ArrayView3<f32>, result: &mut ArrayViewMut3<f32>, h: usize, w: usize) {
+    let h_offset = h * stride;
+    let w_offset = w * stride;
+    let area = batch.slice(s![
+        ..,
+        h_offset..(h_offset + kernel_size),
+        w_offset..(w_offset + kernel_size)
+    ]);
+    let area = area.insert_axis(Axis(0));
+    let out: Array4F = &area * kernel;
+
+    out.outer_iter()
+        .map(|o| o.sum())
+        .enumerate()
+        .for_each(|(index, o)| result[(index, h, w)] = o);
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
-    use crate::gpu::shader_runner::{GpuData};
-    use crate::nn::layers::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
-    use crate::nn::layers::convolution::ConvolutionInitMode::HeNormal;
+    use crate::gpu::gpu_data::GpuData;
+    use crate::nn::layers::filtering::convolution::convolution_gpu::{calc_forward_gpu, calc_inputs_grad_gpu};
+    use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
     use crate::utils::arrays_almost_equal;

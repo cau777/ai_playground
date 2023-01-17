@@ -73,6 +73,7 @@ mod tests {
             forward_cache: &mut cache,
             storage: &GenericStorage::new(),
             batch_config:  &batch_config,
+            prev_iteration_cache: None,
             gpu: None,
         };
         let result = DropoutLayer::forward(forward_data, &config);

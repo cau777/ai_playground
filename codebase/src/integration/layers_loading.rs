@@ -103,6 +103,7 @@ fn load_main_layer(element: &Element) -> Result<Layer> {
 
 fn load_layer(element: &Element) -> Result<Layer> {
     use crate::nn::layers::*;
+    use crate::nn::layers::filtering::{convolution, max_pool};
     match element.name.as_str() {
         "Sequential" => {
             let mut layers = Vec::new();
@@ -146,7 +147,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
             }))
         }
         "MaxPool" => {
-            Ok(Layer::MaxPool(max_pool_layer::MaxPoolConfig {
+            Ok(Layer::MaxPool(max_pool::MaxPoolConfig {
                 size: get_usize_attr(element, "size")?,
                 stride: get_usize_attr(element, "stride")?,
                 padding: get_usize_attr(element, "padding")?,

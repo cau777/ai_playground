@@ -3,30 +3,25 @@ use codebase::chess::board_controller::BoardController;
 use codebase::chess::decision_tree::building::{DecisionTreesBuilder, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
-use codebase::chess::game_result::GameResult;
 use codebase::chess::movement::Movement;
 use crate::{ChessGamesPoolDep, FileManagerDep, LoadedModelDep};
 
 type Res<T> = Result<T, String>;
 
 pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelDep, pool: &ChessGamesPoolDep, id: &str) -> Res<()> {
-    println!("1");
     let controller = {
         let pool = pool.read().await;
         let controller = pool.get_controller(id).ok_or("Game not found")?;
         controller.clone()
     };
-    println!("2");
 
     let chosen = decide(file_manager, loaded, controller).await?;
 
-    println!("3");
     {
         let mut pool = pool.write().await;
         let controller = pool.get_controller_mut(id).ok_or("Game not found")?;
         controller.apply_move(chosen);
     }
-    println!("4");
     Ok(())
 }
 
@@ -45,15 +40,17 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
     let builder = DecisionTreesBuilder::new(
         vec![DecisionTree::new(controller.side_to_play())],
         vec![TreeCursor::new(controller)],
-        NextNodeStrategy::BreadthFirst { min_nodes_explored: 10 },
+        NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
         64,
     );
     let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), |_| {});
     let tree = trees.pop().unwrap();
     // println!("{}", tree.to_svg());
-    // std::fs::OpenOptions::new().write(true).create(true).open(
-    //     format!("../out/{}.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-    // )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
+    // println!("{:?}", loaded.get_loaded().unwrap().export());
+    // println!("{:?}", c[0].get_controller().current().to_array());
+    std::fs::OpenOptions::new().write(true).create(true).open(
+        format!("../out/{}.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
+    )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
 
     let m = tree.best_path_moves().copied().next();
     m.ok_or_else(|| "No move generated".to_owned())
