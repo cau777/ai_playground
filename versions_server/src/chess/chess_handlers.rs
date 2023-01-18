@@ -26,6 +26,7 @@ struct StartResponse {
 pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
     let id = {
         let mut pool = pool.write().await;
+        pool.clear_expired();
         pool.start()
     };
 
