@@ -133,7 +133,7 @@ mod tests {
 
         let mut cursor = TreeCursor::new(BoardController::new_start());
         cursor.go_to(7, nodes);
-        assert_eq!(cursor.controller.current(), &Board::from_literal("\
+        assert_eq!(&cursor.controller.current().pieces, &Board::from_literal("\
         r n b q k b n r
         p _ p p p p p p
         _ _ _ _ _ _ _ _
@@ -141,10 +141,10 @@ mod tests {
         P _ _ _ P _ _ _
         _ _ _ _ _ _ _ _
         _ P P P _ P P P
-        R N B Q K B N R"));
+        R N B Q K B N R").pieces);
 
         cursor.go_to(5, nodes);
-        assert_eq!(cursor.controller.current(), &Board::from_literal("\
+        assert_eq!(&cursor.controller.current().pieces, &Board::from_literal("\
         r n b q k b n r
         _ p p p p p p p
         _ _ _ _ _ _ _ _
@@ -152,10 +152,10 @@ mod tests {
         P _ P _ _ _ _ _
         _ _ _ _ _ _ _ _
         _ P _ P P P P P
-        R N B Q K B N R"));
+        R N B Q K B N R").pieces);
 
         cursor.go_to(6, nodes);
-        assert_eq!(cursor.controller.current(), &Board::from_literal("\
+        assert_eq!(&cursor.controller.current().pieces, &Board::from_literal("\
         r n b q k b n r
         _ p p p p p p p
         _ _ _ _ _ _ _ _
@@ -163,6 +163,6 @@ mod tests {
         P _ _ P _ _ _ _
         _ _ _ _ _ _ _ _
         _ P P _ P P P P
-        R N B Q K B N R "));
+        R N B Q K B N R").pieces);
     }
 }

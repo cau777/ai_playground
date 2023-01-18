@@ -35,10 +35,11 @@ fn test_tree_building() {
         ],
     }), LossFunc::Mse).unwrap();
 
+    let nodes = 100;
     let builder = building::DecisionTreesBuilder::new(
         vec![DecisionTree::new(true)],
         vec![TreeCursor::new(BoardController::new_start())],
-        building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 5 },
+        building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: nodes },
         20,
     );
     let (tree1, _) = builder.build(&controller, |_| {});
@@ -46,7 +47,7 @@ fn test_tree_building() {
     let builder = building_exp::DecisionTreesBuilder::new(
         vec![DecisionTree::new(true)],
         vec![TreeCursor::new(BoardController::new_start())],
-        building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 5 },
+        building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: nodes },
         20,
     );
     let (tree2, _) = builder.build(&controller, |_| {});
