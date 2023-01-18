@@ -221,7 +221,8 @@ impl DecisionTreesBuilder {
         let tree = &mut trees[owner];
         let node = curr_nodes[owner];
         let arrange = agg.arrange();
-        // caches[owner][node] = None; TODO
+        // Remove the parent's cache because it's no longer useful
+        caches[owner][node] = None;
 
         if arrange.is_empty() {
             eprintln!("Unexpected zero-length children in node {} in tree {}", node, tree.to_svg());

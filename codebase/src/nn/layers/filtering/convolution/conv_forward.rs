@@ -100,18 +100,6 @@ pub fn cpu_forward_cache(inputs: &Array4F, prev_inputs: &Array4F, prev_results: 
                     } else {
                         apply_conv_filter(kernel, stride, kernel_size, &inputs, &mut result, h, w);
                     }
-                    // for och in 0..layer_config.out_channels {
-                    //     let cached = cache[(och, h, w)];
-                    //     match cached {
-                    //         Some(v) => {
-                    //             result[(och, h, w)] = v;
-                    //         }
-                    //         None => {
-                    //             apply_conv_filter(kernel, stride, kernel_size, &inputs, &mut result, h, w);
-                    //             break;
-                    //         }
-                    //     }
-                    // }
                 }
             }
         });

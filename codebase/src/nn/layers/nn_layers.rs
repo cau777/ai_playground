@@ -9,7 +9,6 @@ use crate::nn::layers::filtering::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use crate::nn::layers::filtering::max_pool::MaxPoolConfig;
 
-// TODO: struct-like enums
 /// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
 pub enum Layer {

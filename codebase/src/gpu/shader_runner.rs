@@ -93,15 +93,24 @@ impl ShaderRunner {
         Ok(buffer)
     }
 
-    pub fn execute(&mut self, total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<()> {
-        if (0..3).into_iter().any(|o| total_times[o] % block_size[o] != 0) {
-            Err("Invalid groups: not divisible")?; // TODO: better error
+    fn create_groups(total_times: [u32; 3], block_size: [u32; 3]) -> Result<[u32; 3], String> {
+        for x in 0..3 {
+            let total = total_times[x];
+            let block = block_size[x];
+            if total < block {
+                return Err(format!("Invalid groups: {} is smaller than the block size {} in group {}", total, block, x));
+            }
+
+            if total % block != 0 {
+                return Err(format!("Invalid groups: {} is not divisible by {} in group {}", total, block, x));
+            }
         }
 
-        let group_counts = [total_times[0] / block_size[0], total_times[1] / block_size[1], total_times[2] / block_size[2]];
-        if group_counts.iter().copied().any(|o| o == 0) {
-            Err("Invalid groups: count = 0")?; // TODO: better error
-        }
+        Ok([total_times[0] / block_size[0], total_times[1] / block_size[1], total_times[2] / block_size[2]])
+    }
+
+    pub fn execute(&mut self, total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<()> {
+        let group_counts = Self::create_groups(total_times, block_size)?;
 
         let layouts = self.pipeline.layout().set_layouts();
         let layout = layouts.get(0).ok_or("No layouts found")?;
