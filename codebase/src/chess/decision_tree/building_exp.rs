@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::iter::zip;
 use ndarray::{Axis, stack};
 use ndarray_rand::rand::{Rng, thread_rng};
@@ -94,7 +93,7 @@ impl DecisionTreesBuilder {
 
                 let (output, storage) = controller.eval_with_cache(inputs, combined).unwrap();
 
-                let split = split_storages(storage, self.batch_size)
+                let split = split_storages(storage, to_eval.len())
                     .expect("Should split cache");
 
                 for ((input_index, out), split) in zip(output.outer_iter().enumerate(), split.into_iter()) {
@@ -197,7 +196,8 @@ impl DecisionTreesBuilder {
                 .requests_to_eval()
                 .take(self.batch_size - result.len())
                 .map(|(local_i, o)| {
-                    (i, local_i, o.clone(), cache[i][curr_nodes[queue[i].owner]].clone())
+                    let owner = queue[i].owner;
+                    (i, local_i, o.clone(), cache[owner][curr_nodes[owner]].clone())
                 });
             result.extend(requests);
         }
