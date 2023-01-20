@@ -1,19 +1,18 @@
 mod move_applying;
 mod finding_moves;
 mod game_result;
+mod board_repetitions;
 
-use std::collections::{HashMap};
-use std::hash::{Hash};
 use std::sync::Arc;
 use crate::chess::board::Board;
+use crate::chess::board_controller::board_repetitions::{BoardRecord, BoardRepetitions};
 use crate::chess::coord::Coord;
 use crate::chess::movement::Movement;
 use crate::chess::openings::openings_tree::OpeningsTree;
-use crate::chess::pieces::board_piece::BoardPiece;
 use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
-use crate::chess::utils::{BoardArray, CoordIndexed};
+use crate::chess::utils::{CoordIndexed};
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 struct BoardInfo {
@@ -24,14 +23,9 @@ struct BoardInfo {
     reset_50mr: bool,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Debug)]
-pub struct BoardRecord {
-    pieces: BoardArray<BoardPiece>,
-}
-
 #[derive(Clone, Debug)]
 pub struct BoardController {
-    board_repetitions: HashMap<BoardRecord, u8>,
+    board_repetitions: BoardRepetitions,
     boards: Vec<BoardInfo>,
     openings: Option<Arc<OpeningsTree>>,
 }
@@ -40,7 +34,7 @@ impl BoardController {
     pub fn new_start() -> Self {
         let mut result = Self {
             boards: Vec::new(),
-            board_repetitions: HashMap::new(),
+            board_repetitions: BoardRepetitions::new(),
             openings: None,
         };
 
@@ -89,7 +83,7 @@ impl BoardController {
 
         let mut result = Self {
             boards: Vec::new(),
-            board_repetitions: HashMap::new(),
+            board_repetitions: BoardRepetitions::new(),
             openings: None,
         };
         result.push(BoardInfo {
@@ -104,8 +98,7 @@ impl BoardController {
 
     fn push(&mut self, info: BoardInfo) {
         let record = BoardRecord { pieces: info.board.pieces };
-        let prev = *self.board_repetitions.get(&record).unwrap_or(&0);
-        self.board_repetitions.insert(record, prev + 1);
+        self.board_repetitions.increment_rep(record);
 
         self.boards.push(info);
     }
@@ -127,12 +120,7 @@ impl BoardController {
             let removed = self.boards.pop().map(|o| o.board).unwrap();
 
             let record = BoardRecord { pieces: removed.pieces };
-            let prev = *self.board_repetitions.get(&record).unwrap();
-            if prev == 1 {
-                self.board_repetitions.remove(&record);
-            } else {
-                self.board_repetitions.insert(record, prev - 1);
-            }
+            self.board_repetitions.decrease_rep(&record);
 
             Some(removed)
         } else {

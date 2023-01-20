@@ -1,6 +1,6 @@
 use std::io::Write;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building::{DecisionTreesBuilder, NextNodeStrategy};
+use codebase::chess::decision_tree::building_exp::{DecisionTreesBuilder, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::movement::Movement;
@@ -38,7 +38,7 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
     let builder = DecisionTreesBuilder::new(
         vec![DecisionTree::new(controller.side_to_play())],
         vec![TreeCursor::new(controller)],
-        NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
+        NextNodeStrategy::BestNodeAlways { min_nodes_explored: 30 },
         64,
     );
 

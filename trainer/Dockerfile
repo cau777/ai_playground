@@ -23,7 +23,7 @@ WORKDIR /app/codebase
 COPY ./codebase/Cargo.toml .
 # Removes benchmarks from dependencies
 RUN sed -i 's|\[\[bench.*||g' Cargo.toml &&  \
-    sed -i 's|name = "conv_layer"||g' Cargo.toml &&  \
+    sed -i 's|name = ".*_bench"||g' Cargo.toml &&  \
     sed -i 's|harness = false||g' Cargo.toml
 
 # Download and compile codebase dependencies

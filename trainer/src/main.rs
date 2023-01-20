@@ -15,6 +15,7 @@ use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
 
 fn main() {
+    // _profile_code();return;
     let config = &EnvConfig::new();
     let client = &ServerClient::new(config);
 
@@ -40,4 +41,49 @@ fn init(model_config: ModelXmlConfig, client: &ServerClient, name: &str) -> Gene
     let storage = controller.export();
     client.submit(&storage, 100_000.0, name);
     storage
+}
+
+
+
+
+
+
+fn _profile_code() {
+    use codebase::nn::layers::*;
+    use codebase::nn::layers::nn_layers::*;
+    use codebase::nn::layers::filtering::*;
+    use codebase::nn::layers::filtering::convolution::*;
+    use codebase::nn::lr_calculators::lr_calculator::*;
+    use codebase::nn::lr_calculators::constant_lr::*;
+    use codebase::nn::loss::loss_func::*;
+    let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
+        layers: vec![
+            Layer::Convolution(convolution::ConvolutionConfig {
+                in_channels: 6,
+                stride: 1,
+                kernel_size: 3,
+                init_mode: convolution::ConvolutionInitMode::HeNormal(),
+                out_channels: 2,
+                padding: 0,
+                lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            }),
+            Layer::Flatten,
+            Layer::Dense(dense_layer::DenseConfig {
+                init_mode: dense_layer::DenseLayerInit::Random(),
+                biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                out_values: 1,
+                in_values: 6 * 6 * 2,
+            }),
+        ],
+    }), LossFunc::Mse).unwrap();
+
+    let builder = codebase::chess::decision_tree::building_exp::DecisionTreesBuilder::new(
+        vec![codebase::chess::decision_tree::DecisionTree::new(true)],
+        vec![codebase::chess::decision_tree::cursor::TreeCursor::new(codebase::chess::board_controller::BoardController::new_start())],
+        codebase::chess::decision_tree::building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 1_000 },
+        32,
+    );
+    let (tree, _) = builder.build(&controller, |_| {});
+    println!("tree_len = {}", tree[0].len());
 }

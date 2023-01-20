@@ -46,26 +46,3 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         conv_backward::backward(data, layer_config)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::nn::batch_config::BatchConfig;
-    use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::nn_layers::{
-        BackwardData, ForwardData, GenericStorage, InitData, LayerOps, init_layer, Layer,
-    };
-    use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
-    use crate::nn::lr_calculators::lr_calculator::LrCalc;
-    use crate::utils::{arrays_almost_equal, ArrayDynF};
-    use crate::Array4F;
-    use ndarray::{array, stack, Axis};
-    use ndarray_rand::rand_distr::Normal;
-    use ndarray_rand::RandomExt;
-
-
-
-
-
-
-}

@@ -36,7 +36,7 @@ impl BoardController {
         } else if self.half_moves_since_50mr_reset() >= 100 {
             GameResult::Draw(DrawReason::FiftyMoveRule)
             // Check if a position was repeated 3 times 
-        } else if self.board_repetitions.iter().any(|(_, value)| *value >= 3) {
+        } else if self.board_repetitions.has_repetitions() {
             GameResult::Draw(DrawReason::Repetition)
         } else if self.half_moves() > 400 {
             // Internal rule: a game can't last more than 200 FULL moves

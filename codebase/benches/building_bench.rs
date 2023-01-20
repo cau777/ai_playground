@@ -1,3 +1,4 @@
+use std::time::Duration;
 use codebase::nn::batch_config::BatchConfig;
 use codebase::nn::key_assigner::KeyAssigner;
 use codebase::nn::layers::*;
@@ -18,6 +19,9 @@ use codebase::nn::layers::filtering::convolution;
 use codebase::nn::loss::loss_func::LossFunc;
 
 fn criterion_benchmark(c: &mut Criterion) {
+    let mut group = c.benchmark_group("funcs");
+    group.measurement_time(Duration::from_secs(30));
+
     let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
         layers: vec![
             Layer::Convolution(convolution::ConvolutionConfig {
@@ -35,30 +39,32 @@ fn criterion_benchmark(c: &mut Criterion) {
                 biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                 weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                 out_values: 1,
-                in_values: 6*6*2,
-            })
+                in_values: 6 * 6 * 2,
+            }),
         ],
     }), LossFunc::Mse).unwrap();
 
-    c.bench_function("normal", |b| b.iter(|| {
+    group.bench_function("normal", |b| b.iter(|| {
         let builder = building::DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
-            building::NextNodeStrategy::BestNodeAlways {min_nodes_explored: 5},
-            20
+            building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
+            32,
         );
-        let (_tree1, _)  = builder.build(&controller, |_|{});
+        let (_tree1, _) = builder.build(&controller, |_| {});
     }));
 
-    c.bench_function("optimized", |b| b.iter(|| {
+    group.bench_function("optimized", |b| b.iter(|| {
         let builder = building_exp::DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
-            building_exp::NextNodeStrategy::BestNodeAlways {min_nodes_explored: 5},
-            20
+            building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
+            32,
         );
-        let (_tree2, _)  = builder.build(&controller, |_|{});
+        let (_tree2, _) = builder.build(&controller, |_| {});
     }));
+
+    group.finish();
 }
 
 criterion_group!(benches, criterion_benchmark);

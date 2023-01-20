@@ -58,7 +58,7 @@ impl TrainerScheduler {
                 }
                 TrainingStrategy::FullGames => {
                     let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::ContinueLineThenBestVariantOrRandom {
-                        min_full_paths: 12 ,
+                        min_full_paths: 20 ,
                         random_node_chance: 0.2,
                     });
                     Self::print_metrics(&result);
@@ -108,7 +108,7 @@ impl TrainerScheduler {
         if (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3 {
             TrainingStrategy::OpponentsResponses
         } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.2 {
-            TrainingStrategy::OpponentsResponses // TODO: fix endgames
+            TrainingStrategy::Endgames // TODO: fix endgames
         } else {
             TrainingStrategy::FullGames
         }
