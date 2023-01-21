@@ -44,21 +44,21 @@ fn criterion_benchmark(c: &mut Criterion) {
         ],
     }), LossFunc::Mse).unwrap();
 
-    group.bench_function("normal", |b| b.iter(|| {
-        let builder = building::DecisionTreesBuilder::new(
-            vec![DecisionTree::new(true)],
-            vec![TreeCursor::new(BoardController::new_start())],
-            building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
-            32,
-        );
-        let (_tree1, _) = builder.build(&controller, |_| {});
-    }));
+    // group.bench_function("normal", |b| b.iter(|| {
+    //     let builder = building::DecisionTreesBuilder::new(
+    //         vec![DecisionTree::new(true)],
+    //         vec![TreeCursor::new(BoardController::new_start())],
+    //         building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
+    //         32,
+    //     );
+    //     let (_tree1, _) = builder.build(&controller, |_| {});
+    // }));
 
     group.bench_function("optimized", |b| b.iter(|| {
         let builder = building_exp::DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
-            building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
+            building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 600 },
             32,
         );
         let (_tree2, _) = builder.build(&controller, |_| {});

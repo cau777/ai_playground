@@ -47,13 +47,15 @@ impl BoardPiece {
     }
 
     pub fn from_notation(notation: &str) -> Self {
-        Self::try_from_notation(notation).expect(&format!("Could not parse {} as BoardPiece", notation))
+        Self::try_from_notation(notation)
+            .unwrap_or_else(|| panic!("Could not parse {} as BoardPiece", notation))
     }
 
     pub fn try_from_notation(notation: &str) -> Option<Self> {
         Some(BoardPiece::new(PieceType::try_from_notation(notation)?, notation.chars().next()?.is_ascii_uppercase()))
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.ty == PieceType::Empty
     }

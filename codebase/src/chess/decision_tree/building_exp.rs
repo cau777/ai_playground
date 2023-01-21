@@ -82,25 +82,27 @@ impl DecisionTreesBuilder {
             if !to_eval.is_empty() {
                 let inputs: Vec<_> = to_eval.iter().map(|(_, _, arr, _)| arr.view()).collect();
                 let inputs = stack(Axis(0), &inputs).unwrap();
+                /*for (queue_index, local_index, _, _) in &to_eval {
+                    queue[*queue_index].submit(*local_index, 0.5, false, false, None);
+                }*/
 
                 let storages: Vec<_> = to_eval.iter().map(|(_, _, _, storage)| storage.as_ref()).collect();
-
+                
                 let combined = if storages.iter().all(|o| o.is_some()) {
                     combine_storages(&storages.into_iter().flatten().collect::<Vec<_>>())
                 } else {
                     None
                 };
-
+                
                 let (output, storage) = controller.eval_with_cache(inputs, combined).unwrap();
-
                 let split = split_storages(storage, to_eval.len())
                     .expect("Should split cache");
-
+                
                 for ((input_index, out), split) in zip(output.outer_iter().enumerate(), split.into_iter()) {
                     let (queue_index, local_index, _, _) = &to_eval[input_index];
                     let value = *out.first().unwrap();
                     let value = scale_output(value);
-
+                
                     queue[*queue_index].submit(*local_index, value, false, false, Some(split));
                 }
             }
