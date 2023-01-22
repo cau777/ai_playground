@@ -97,7 +97,7 @@ impl BoardController {
     }
 
     fn push(&mut self, info: BoardInfo) {
-        let record = BoardRecord { pieces: info.board.pieces };
+        let record = BoardRecord::new(info.board.pieces);
         self.board_repetitions.increment_rep(record);
 
         self.boards.push(info);
@@ -119,7 +119,7 @@ impl BoardController {
         if self.boards.len() > 1 {
             let removed = self.boards.pop().map(|o| o.board).unwrap();
 
-            let record = BoardRecord { pieces: removed.pieces };
+            let record = BoardRecord::new(removed.pieces);
             self.board_repetitions.decrease_rep(&record);
 
             Some(removed)
