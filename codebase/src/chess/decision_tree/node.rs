@@ -4,7 +4,9 @@ use crate::chess::movement::Movement;
 pub struct Node {
     pub parent: usize,
     pub movement: Movement,
-    pub eval: f32,
+    pub pre_eval: f32,
+    pub children_eval: Option<f32>,
+    // pub eval: f32,
     pub depth: usize,
     pub info: NodeExtraInfo,
 
@@ -23,10 +25,11 @@ impl Node {
         Self {
             parent: usize::MAX, // This is just to throw errors when the parent is used
             movement,
-            eval: 0.0,
+            pre_eval: 0.0,
             depth,
             children,
             info: NodeExtraInfo::default(),
+            children_eval: None,
         }
     }
 
@@ -34,10 +37,11 @@ impl Node {
         Self {
             parent,
             movement,
-            eval,
+            pre_eval: eval,
             info,
             depth,
             children,
+            children_eval: None,
         }
     }
 
@@ -52,24 +56,18 @@ impl Node {
         })
     }
 
-    pub fn refresh_children(&self, mut children: Vec<usize>, all_nodes: &[Node], start_side: bool) -> (Vec<usize>, f32) {
-        children.sort_unstable_by(|a, b| all_nodes[*a].eval.total_cmp(&all_nodes[*b].eval));
+    pub fn refresh_children(&mut self, all_nodes: &[Node], start_side: bool) {
+        let side = self.get_current_side(start_side);
+        if let Some(children) = self.children.as_mut() {
+            children.sort_unstable_by(|&a, &b| all_nodes[a].eval().total_cmp(&all_nodes[b].eval()));
+            let best_node = if side {
+                *children.last().unwrap()
+            } else {
+                children[0]
+            };
 
-        let best_node = if self.get_current_side(start_side) {
-            *children.last().unwrap()
-        } else {
-            children[0]
-        };
-        (children, all_nodes[best_node].eval)
-    }
-
-    pub fn apply_children(&mut self, children: Vec<usize>, eval: f32) {
-        self.children = Some(children);
-        self.eval = eval;
-    }
-
-    pub fn clone_children(&self) -> Option<Vec<usize>> {
-        self.children.clone()
+            self.children_eval = Some(all_nodes[best_node].eval());
+        }
     }
 
     /// Get the current side based on the node depth in the tree and the start side
@@ -80,5 +78,10 @@ impl Node {
         // | F T = F |
         // | F F = T |
         (self.depth % 2 == 0) == start_side
+    }
+
+    #[inline]
+    pub fn eval(&self) -> f32 {
+        self.children_eval.unwrap_or(self.pre_eval)
     }
 }

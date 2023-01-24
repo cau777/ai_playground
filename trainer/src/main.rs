@@ -15,7 +15,7 @@ use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
 
 fn main() {
-    // _profile_code();return;
+    //_profile_code();return;
     let config = &EnvConfig::new();
     let client = &ServerClient::new(config);
 
@@ -81,7 +81,7 @@ fn _profile_code() {
     let builder = codebase::chess::decision_tree::building_exp::DecisionTreesBuilder::new(
         vec![codebase::chess::decision_tree::DecisionTree::new(true)],
         vec![codebase::chess::decision_tree::cursor::TreeCursor::new(codebase::chess::board_controller::BoardController::new_start())],
-        codebase::chess::decision_tree::building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 1_000 },
+        codebase::chess::decision_tree::building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 5_000 },
         32,
     );
     let (tree, _) = builder.build(&controller, |_| {});

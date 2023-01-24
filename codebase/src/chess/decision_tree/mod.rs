@@ -1,17 +1,16 @@
 use ndarray_rand::rand::Rng;
 use crate::chess::decision_tree::best_path_iterator::BestPathIterator;
 use crate::chess::decision_tree::cursor::TreeCursor;
-use crate::chess::decision_tree::node::{Node};
+use crate::chess::decision_tree::node::Node;
 use crate::chess::movement::Movement;
 
-mod node;
+pub(crate) mod node;
 mod best_path_iterator;
 pub mod cursor;
 mod svg_export;
 pub mod building;
 mod results_aggregator;
 pub mod building_exp;
-mod results_aggregator_exp;
 
 pub use node::NodeExtraInfo;
 use crate::chess::board::Board;
@@ -50,11 +49,11 @@ impl DecisionTree {
 
         self.nodes[parent].children = Some(nodes);
 
-        for node in self.path_to_root(parent) {
-            let children = self.nodes[node].clone_children();
-            let result = self.nodes[node].refresh_children(children.unwrap(), &self.nodes, self.start_side);
-
-            self.nodes[node].apply_children(result.0, result.1);
+        for node_index in self.path_to_root(parent) {
+            // This clone is probably optimized at compilation
+            let mut node = self.nodes[node_index].clone();
+            node.refresh_children(&self.nodes, self.start_side);
+            self.nodes[node_index] = node;
         }
 
         *self.nodes[parent].get_ordered_children(self.start_side)
@@ -93,7 +92,7 @@ impl DecisionTree {
             .map(|(a, b)| {
                 let node_a = &self.nodes[*a];
                 let node_b = &self.nodes[*b];
-                ((node_a.eval - node_b.eval).abs(), b)
+                ((node_a.eval() - node_b.eval()).abs(), b)
             })
             .min_by(|(v1, _), (v2, _)| v1.total_cmp(v2))
             .map(|(_, n)| *n)
@@ -142,7 +141,7 @@ impl DecisionTree {
             .filter(|(_, o)| !o.info.is_opening)
             .map(|(i, o)| {
                 c.go_to(i, &self.nodes);
-                (c.get_controller().current().clone(), o.eval)
+                (c.get_controller().current().clone(), o.eval())
             })
     }
 

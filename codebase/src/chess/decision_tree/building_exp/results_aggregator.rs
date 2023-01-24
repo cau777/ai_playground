@@ -4,6 +4,7 @@ use crate::chess::decision_tree::NodeExtraInfo;
 use crate::chess::movement::Movement;
 use crate::nn::layers::nn_layers::GenericStorage;
 
+#[derive(Clone)]
 pub struct ResultsAggregator {
     pub owner: usize,
     count: usize,

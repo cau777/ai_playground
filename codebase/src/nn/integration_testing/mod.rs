@@ -35,26 +35,46 @@ fn test_tree_building() {
         ],
     }), LossFunc::Mse).unwrap();
 
-    let nodes = 100;
+    const COUNT: usize = 2;
+
+    fn build() -> (Vec<DecisionTree>, Vec<TreeCursor>) {
+        let mut ds = Vec::new();
+        let mut cs = Vec::new();
+        for _ in 0..COUNT {
+            ds.push(DecisionTree::new(true));
+            let mut c = BoardController::new_start();
+            // c.add_openings_tree(Arc::new(OpeningsTree::load_from_string("||1,2,3\n|a2a3|\n|b2b3|\n|c2c3|").unwrap()));
+            cs.push(TreeCursor::new(c));
+        }
+        (ds, cs)
+    }
+
+    let nodes = 200;
+    let (trees, cursors) = build();
     let builder = building::DecisionTreesBuilder::new(
-        vec![DecisionTree::new(true)],
-        vec![TreeCursor::new(BoardController::new_start())],
+        trees,
+        cursors,
         building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: nodes },
         32,
     );
     let (tree1, _) = builder.build(&controller, |_| {});
 
+    let (trees, cursors) = build();
     let builder = building_exp::DecisionTreesBuilder::new(
-        vec![DecisionTree::new(true)],
-        vec![TreeCursor::new(BoardController::new_start())],
+        trees,
+        cursors,
         building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: nodes },
         32,
     );
     let (tree2, _) = builder.build(&controller, |_| {});
 
-    assert!(zip(tree1[0].nodes().map(|o| o.eval).collect::<Vec<_>>(),
-                tree2[0].nodes().map(|o| o.eval).collect::<Vec<_>>())
-        .all(|(a, b)| (a - b).abs() < 0.0001));
+    for i in 0..COUNT {
+        // println!("{:?}", tree1[i].nodes().collect::<Vec<_>>());
+        // println!("{:?}", tree2[i].nodes().collect::<Vec<_>>());
+        assert!(zip(tree1[i].nodes().map(|o| o.eval()).collect::<Vec<_>>(),
+                    tree2[i].nodes().map(|o| o.eval()).collect::<Vec<_>>())
+            .all(|(a, b)| (a - b).abs() < 0.0001));
+    }
 }
 
 #[test]

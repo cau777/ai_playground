@@ -1,9 +1,8 @@
 use std::fs::OpenOptions;
-use std::io::Write;
 use std::sync::Arc;
 use codebase::chess::board::Board;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building::{DecisionTreesBuilder, NextNodeStrategy};
+use codebase::chess::decision_tree::building_exp::{DecisionTreesBuilder, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::game_result::{DrawReason, GameResult};
@@ -11,6 +10,7 @@ use codebase::chess::openings::openings_tree::OpeningsTree;
 use codebase::nn::controller::NNController;
 use codebase::utils::{Array2F};
 use codebase::utils::ndarray::{Axis, stack};
+use rand::{Rng, thread_rng};
 use crate::chess::BATCH_SIZE;
 use crate::chess::game_metrics::GameMetrics;
 use crate::EnvConfig;
@@ -93,8 +93,18 @@ impl GamesTrainer {
         //     )).unwrap().write_all(trees[1].to_svg().as_bytes()).unwrap();
 
         let mut result = Vec::new();
+        let mut rng = thread_rng();
+
         for i in 0..count {
-            result.extend(trees[i].trainable_nodes(&mut cursors[i]));
+            const SHIFT: f32 = 0.0005;
+
+            let nodes = trees[i]
+                .trainable_nodes(&mut cursors[i])
+                .map(|(b, v)| (b, v.max(0.005)))
+                .map(|(b, v)| (b, v.min(0.995)))
+                // Shift the value by a small random to avoid loops in training
+                .map(|(b, v)| (b, v * (1.0 + rng.gen_range((-SHIFT)..SHIFT))));
+            result.extend(nodes);
         }
         (result, metrics)
     }

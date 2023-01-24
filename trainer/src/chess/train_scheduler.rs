@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use std::time::{SystemTime, UNIX_EPOCH};
-use codebase::chess::decision_tree::building::NextNodeStrategy;
+use codebase::chess::decision_tree::building_exp::NextNodeStrategy;
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
@@ -108,7 +108,7 @@ impl TrainerScheduler {
         if (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3 {
             TrainingStrategy::OpponentsResponses
         } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.2 {
-            TrainingStrategy::Endgames // TODO: fix endgames
+            TrainingStrategy::Endgames
         } else {
             TrainingStrategy::FullGames
         }

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::num::Wrapping;
 use nohash_hasher::{BuildNoHashHasher, IsEnabled};
 use crate::chess::pieces::board_piece::BoardPiece;
 use crate::chess::utils::BoardArray;
