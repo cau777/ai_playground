@@ -11,7 +11,7 @@ pub struct Node {
     pub info: NodeExtraInfo,
 
     // This array will always be sorted in ascending order based on the node's evals
-    pub(crate) children: Option<Vec<usize>>,
+    pub children: Option<Vec<usize>>,
 }
 
 #[derive(Debug, Default, Copy, Clone)]

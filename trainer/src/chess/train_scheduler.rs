@@ -77,14 +77,16 @@ impl TrainerScheduler {
                 }
             }
 
-            // For now, the only criteria to evaluate the model's performance is the time spent training
-            let start = SystemTime::now();
-            let since_the_epoch = start
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards");
+            if version != 0 && version % 2 == 0 {
+                // For now, the only criteria to evaluate the model's performance is the time spent training
+                let start = SystemTime::now();
+                let since_the_epoch = start
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Time went backwards");
 
-            let export = &self.controller.export();
-            client.submit(export, -(since_the_epoch.as_millis() as f64), NAME);
+                let export = &self.controller.export();
+                client.submit(export, -(since_the_epoch.as_millis() as f64), NAME);
+            }
         }
     }
 

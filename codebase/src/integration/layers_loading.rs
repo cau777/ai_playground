@@ -195,6 +195,9 @@ fn load_layer(element: &Element) -> Result<Layer> {
             Ok(Layer::Dropout(dropout_layer::DropoutConfig {
                 drop: get_f32_attr(element, "drop")?,
             }))
+        },
+        "TwoComplementsTransformer" => {
+            Ok(Layer::TwoComplementsTransformer)
         }
         _ => Err(XmlError::UnexpectedTag(element.name.clone())),
     }
@@ -206,26 +209,14 @@ fn load_lr(element: &Element) -> Result<LrCalc> {
     match element.name.as_str() {
         "Adam" => {
             let mut config = adam_lr::AdamConfig::default();
-            match get_f32_attr(element, "alpha") {
-                Ok(v) => config.alpha = v,
-                _ => {}
-            };
-            match get_f32_attr(element, "decay1") {
-                Ok(v) => config.decay1 = v,
-                _ => {}
-            };
-            match get_f32_attr(element, "decay2") {
-                Ok(v) => config.decay2 = v,
-                _ => {}
-            };
+            if let Ok(v) = get_f32_attr(element, "alpha") { config.alpha = v };
+            if let Ok(v) = get_f32_attr(element, "decay1") { config.decay1 = v };
+            if let Ok(v) = get_f32_attr(element, "decay2") { config.decay2 = v };
             Ok(LrCalc::Adam(config))
         }
         "Constant" => {
             let mut config = constant_lr::ConstantLrConfig::default();
-            match get_f32_attr(element, "lr") {
-                Ok(v) => config.lr = v,
-                _ => {}
-            };
+            if let Ok(v) = get_f32_attr(element, "lr") { config.lr = v };
             Ok(LrCalc::Constant(config))
         }
         _ => Err(XmlError::UnexpectedTag(element.name.clone())),
@@ -252,7 +243,7 @@ fn load_single_child<'a>(element: &'a Element) -> Result<&'a Element> {
     }
 }
 
-fn iter_elements<'a>(elements: &'a Vec<xmltree::XMLNode>) -> impl Iterator<Item = &'a Element> {
+fn iter_elements(elements: &Vec<xmltree::XMLNode>) -> impl Iterator<Item=&Element> {
     elements.iter().filter_map(|o| o.as_element())
 }
 

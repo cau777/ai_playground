@@ -18,7 +18,7 @@ use crate::chess::board::Board;
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
     start_side: bool,
-    nodes: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 impl DecisionTree {
@@ -131,20 +131,6 @@ impl DecisionTree {
         result
     }
 
-    pub fn trainable_nodes<'a>(&'a self, c: &'a mut TreeCursor) -> impl Iterator<Item=(Board, f32)> +'a {
-        self.nodes
-            .iter()
-            .enumerate()
-            // Ignore leaf nodes
-            .filter(|(_ ,o)| !o.info.is_ending && o.children.is_some())
-            // Ignore openings, because there isn't much to learn from them
-            .filter(|(_, o)| !o.info.is_opening)
-            .map(|(i, o)| {
-                c.go_to(i, &self.nodes);
-                (c.get_controller().current().clone(), o.eval())
-            })
-    }
-
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
@@ -156,10 +142,6 @@ impl DecisionTree {
     pub fn get_continuation_at(&self, index: usize) -> Option<usize> {
         self.nodes[index].get_ordered_children(self.start_side)
             .and_then(|mut o| o.next()).copied()
-    }
-
-    pub fn nodes(&self) -> impl Iterator<Item=&Node> {
-        self.nodes.iter()
     }
 }
 

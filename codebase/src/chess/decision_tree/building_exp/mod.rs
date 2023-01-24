@@ -33,10 +33,10 @@ pub struct DecisionTreesBuilder {
 }
 
 fn scale_output(x: f32) -> f32 {
-    if x < 0.95 && x > 0.05 {
+    if x < 2.0 && x > -2.0 {
         x
     } else {
-        0.998 / (1.0 + f32::exp(-6.54 * (x - 0.5)))
+        4.5 / (1.0 + f32::exp(-1.4 * x)) - 2.25
     }
 }
 
@@ -196,11 +196,11 @@ impl DecisionTreesBuilder {
             }
             GameResult::Draw(_) => {
                 let index = agg.push(m, None);
-                agg.submit(index, 0.5, true, false, None);
+                agg.submit(index, 0.0, true, false, None);
             }
             GameResult::Win(side, _) => {
                 let index = agg.push(m, None);
-                agg.submit(index, if side { 1.0 } else { 0.0 }, true, false, None);
+                agg.submit(index, if side { 1.0 } else { -1.0 }, true, false, None);
             }
         }
     }
@@ -289,7 +289,7 @@ impl DecisionTreesBuilder {
                 let index = agg.push(m, None);
                 // Openings are usually good for both sides
                 // Add a small random value so the AI can choose from different openings
-                agg.submit(index, rng.gen_range(0.5 + (-1.0)..1.0) * 0.001, false, true, None);
+                agg.submit(index, rng.gen_range(0.0 + (-1.0)..1.0) * 0.001, false, true, None);
             }
         }
 

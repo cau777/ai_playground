@@ -70,6 +70,9 @@ pub enum Layer {
     /// Feed the same input to all its immediate children and concatenate the result
     /// No extra axis is created
     Concat(concat_layer::ConcatConfig),
+
+    /// TODO: docs
+    TwoComplementsTransformer,
 }
 
 pub struct InitData<'a> {
@@ -163,6 +166,7 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::init(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::init(data, c),
         Concat(c) => concat_layer::ConcatLayer::init(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::init(data, &()),
     }
 }
 
@@ -183,6 +187,7 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::forward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::forward(data, c),
         Concat(c) => concat_layer::ConcatLayer::forward(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::forward(data, &()),
     }
 }
 
@@ -203,6 +208,7 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::backward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::backward(data, c),
         Concat(c) => concat_layer::ConcatLayer::backward(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::backward(data, &()),
     }
 }
 
