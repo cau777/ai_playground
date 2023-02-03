@@ -28,22 +28,25 @@ export const ChessBoard: Component<Props> = (props) => {
     };
     let [selected, setSelected] = createSignal<SelectedInfo>();
     
-    function pieceClick(notation: string, info?: SelectedInfo) {
+    function pieceClick(piece: string, notation: string, selected?: SelectedInfo) {
         if (!props.interactive) return;
-        if (info === undefined) {
+        
+        if (selected === undefined) {
+            if (piece === "_") return;
             setSelected({notation});
         } else {
-            if (info.notation === notation) {
+            if (selected.notation === notation) {
                 setSelected(undefined);
             } else {
-                props.onMove(info.notation, notation);
+                props.onMove(selected.notation, notation);
                 setSelected(undefined);
             }
         }
     }
     
     return (
-        <div class={"select-none grid grid-cols-8 grid-rows-8 h-[30rem] w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
+        <div
+            class={"select-none grid grid-cols-8 grid-rows-8 h-[30rem] w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
             <Index each={pieces()}>{(piece, i) => {
                 let notation = indexToNotation(i);
                 let lightSquare = (Math.floor(i / 8) + i % 8) % 2 == 0;
@@ -55,7 +58,7 @@ export const ChessBoard: Component<Props> = (props) => {
                 let isSelected = () => selected()?.notation === notation;
                 
                 return (
-                    <div onClick={() => pieceClick(notation, selected())}
+                    <div onClick={() => pieceClick(piece(), notation, selected())}
                          class={"relative border-l-2 border-b-2 "}
                          classList={{"bg-primary-50": lightSquare, "bg-primary-200": isSelected()}}>
                         <Show when={canMoveTo()} keyed={false}>
@@ -64,7 +67,7 @@ export const ChessBoard: Component<Props> = (props) => {
                             </div>
                         </Show>
                         <div class={"p-1"}>
-                            <ChessPiece notation={piece()} canMoveTo={canMoveTo()}></ChessPiece>
+                            <ChessPiece notation={piece()}></ChessPiece>
                         </div>
                     </div>
                 );

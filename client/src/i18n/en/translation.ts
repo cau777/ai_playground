@@ -11,5 +11,25 @@ export default {
     },
     "chess": {
         "title": "Chess",
+        "opening": "Opening",
+        "gameResult": "Game Result",
+        "gameResultUndefined": "Undefined",
+        "gameResultAborted": "Aborted",
+        "gameResultFiftyMoveRule": "Draw by the Fifty Move Rule",
+        "gameResultRepetition": "Draw by 3-fold repetition",
+        "gameResultStalemate": "Stalemate",
+        "gameResultInsufficientMaterial": "Draw by insufficient material",
+        "gameResultCheckmateWhite": "White won by checkmate",
+        "gameResultCheckmateBlack": "Black won by checkmate",
+        "playerTurn": "It's your turn to move",
+        "aiTurn": "The AI is deciding...",
+    },
+    "home": {
+        "title": "Home",
+        "welcome": "Welcome",
+        "description": "This is a big project that I'm developing in my free time. " +
+            "It aims to explore some of the capabilities of AI in many interactive projects. " +
+            "To achieve that, I'm writing a Deep Learning library in Rust almost from scratch. " +
+            "All the code is open-source in my "
     }
 }

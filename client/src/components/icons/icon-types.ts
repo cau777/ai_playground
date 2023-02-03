@@ -2,4 +2,4 @@ import {Component, JSX} from "solid-js";
 
 type Props = JSX.SvgSVGAttributes<SVGSVGElement>;
 
-export type IconFC = Component<Props>;
+export type IconComponent = Component<Props>;

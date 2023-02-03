@@ -9,5 +9,25 @@ export default {
     },
     "chess": {
         "title": "Xadrez",
+        "opening": "Abertura",
+        "gameResult": "Conclusão do jogo",
+        "gameResultUndefined": "Indefinido",
+        "gameResultAborted": "Abortado",
+        "gameResultFiftyMoveRule": "Empate pela Regra dos Cinquenta Movimentos",
+        "gameResultRepetition": "Empate por repetição de 3 níveis",
+        "gameResultStalemate": "Empate por afogamento",
+        "gameResultInsufficientMaterial": "Empate por material insuficiente",
+        "gameResultCheckmateWhite": "Brancas ganharam por cheque-mate",
+        "gameResultCheckmateBlack": "Pretas ganharam por cheque-mate",
+        "playerTurn": "É sua vez de jogar",
+        "aiTurn": "A IA está decidindo...",
+    },
+    "home": {
+        "title":"Página Inicial",
+        "welcome": "Bem-vindo(a)",
+        "description": "Esse é um grande projeto que estou desenvolvendo em meu tempo livre. " +
+            "Ele visa explorar algumas capacidades de IA em vários projetos interativos. " +
+            "Para isso, estou escrevendo uma biblioteca de Deep Learning em Rust, praticamente do zero. " +
+            "Todo o código se encontra open-source no meu "
     }
 }

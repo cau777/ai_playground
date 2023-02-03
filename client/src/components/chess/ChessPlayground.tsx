@@ -2,6 +2,9 @@ import {NavControls} from "../NavControls";
 import {ChessBoard} from "./ChessBoard";
 import * as server from "../../utils/server-interface";
 import {Component, createSignal, onMount} from "solid-js";
+import {useChessT} from "~/components/LanguagesContext";
+import {BoardState} from "~/components/chess/board_state";
+import {GameInfo} from "~/components/chess/GameInfo";
 
 const INITIAL_BOARD = `
 r n b q k b n r
@@ -12,14 +15,6 @@ _ _ _ _ _ _ _ _
 _ _ _ _ _ _ _ _
 P P P P P P P P
 R N B Q K B N R`;
-
-type BoardState = {
-    board: string;
-    possible: Map<string, Set<string>>;
-    gameId: string;
-    state: string;
-    opening: string;
-}
 
 function createMapSet(possible: [string, string][]) {
     let result = new Map<string, Set<string>>();
@@ -37,9 +32,10 @@ function createMapSet(possible: [string, string][]) {
 
 export const ChessPlayground: Component = () => {
     let [game, setGame] = createSignal<BoardState>();
-    let state = () => game()?.state;
-    let opening = () => game()?.opening;
+    let [busy, setBusy] = createSignal(false);
+    
     let board = () => game()?.board ?? INITIAL_BOARD;
+    let t = useChessT();
     
     onMount(() => {
         server.chess_start_game(true)
@@ -55,11 +51,12 @@ export const ChessPlayground: Component = () => {
     });
     
     async function moved(from: string, to: string, g?: BoardState) {
+        if (busy()) return;
         if (g === undefined) return;
         if (!g.possible.get(from)?.has(to))
             return;
-        console.log(from, to);
         
+        setBusy(true);
         let response = await server.chess_move(g.gameId, from, to);
         setGame({
             gameId: g.gameId,
@@ -68,15 +65,19 @@ export const ChessPlayground: Component = () => {
             state: response.game_state,
             opening: response.opening,
         });
+        setBusy(false);
     }
     
+    let interactive = () => game()?.state === "gameResultUndefined" && !busy();
     return (
         <NavControls>
-            <div class={"mx-12"}>
-                <h6>{state()}</h6>
-                <h6>{opening()}</h6>
-                <ChessBoard interactive={state() === "gameResultUndefined"} board={board()}
-                            possible={game()?.possible ?? new Map()} onMove={(from, to) => moved(from, to, game())}></ChessBoard>
+            <div class={"m-12"}>
+                <h1 class={"text-3xl font-black text-primary-100 mb-3"}>{t.title}</h1>
+                {/*TODO: description*/}
+                <GameInfo opening={game()?.opening} result={game()?.state} playerTurn={!busy()}></GameInfo>
+                <ChessBoard interactive={interactive()} board={board()}
+                            possible={game()?.possible ?? new Map()}
+                            onMove={(from, to) => moved(from, to, game())}></ChessBoard>
             </div>
         </NavControls>
     )

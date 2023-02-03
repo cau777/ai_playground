@@ -32,3 +32,9 @@
     justify-items: center;
   }
 }
+
+@layer utilities {
+  .simple-link {
+    @apply text-primary-100 hover:text-primary-200 underline-offset-1 underline;
+  }
+}
