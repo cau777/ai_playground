@@ -1,4 +1,4 @@
-FROM rust:latest as builder
+FROM rust:1.67.0 as builder
 WORKDIR /app
 
 RUN mkdir codebase
@@ -12,7 +12,7 @@ WORKDIR /app/codebase
 COPY ./codebase/Cargo.toml .
 # Removes benchmarks from dependencies
 RUN sed -i 's|\[\[bench.*||g' Cargo.toml &&  \
-    sed -i 's|name = "conv_layer"||g' Cargo.toml &&  \
+    sed -i 's|name = ".*_bench"||g' Cargo.toml &&  \
     sed -i 's|harness = false||g' Cargo.toml
 
 # Download and compile codebase dependencies
@@ -43,6 +43,7 @@ WORKDIR /app/build
 ENV MOUNTED_PATH="/app/files"
 ENV HOST_ADDRESS="0.0.0.0"
 ENV PORT="443"
+ENV KEEP_VERSIONS="101"
 
 RUN mkdir /app/files
 RUN chmod -R 777 /app/files

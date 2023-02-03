@@ -6,6 +6,8 @@ pub struct EnvConfig {
     pub epochs_per_version: u32,
     pub mounted_path: String,
     pub name: String,
+    pub profile: bool,
+    pub max_node_cache: usize,
 }
 
 fn get_path(name: &str) -> Result<String, VarError> {
@@ -32,6 +34,8 @@ impl EnvConfig {
             epochs_per_version,
             versions,
             name: var("NAME").unwrap_or_else(|_| "digits".to_owned()).to_ascii_lowercase(),
+            profile: var("PROFILE").is_ok(),
+            max_node_cache: var("MAX_NODE_CACHE").unwrap_or_else(|_|"1000".to_owned()).parse().unwrap(),
         })
     }
 }

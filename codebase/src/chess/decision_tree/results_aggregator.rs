@@ -14,7 +14,7 @@ pub struct ResultsAggregator {
 
 impl ResultsAggregator {
     pub fn new(owner: usize, target_count: usize) -> Self {
-        Self{
+        Self {
             owner,
             count: 0,
             target_count,

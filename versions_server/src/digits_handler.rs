@@ -1,6 +1,8 @@
 use codebase::utils::Array2F;
+use tokio::sync::{RwLockWriteGuard};
 use warp::{reply, Reply};
-use crate::{FileManagerDep, LoadedModelDep, StatusCode};
+use crate::{FileManagerDep, LoadedModel, LoadedModelDep, StatusCode};
+use crate::loaded_model::assert_model_loaded;
 use crate::utils::{data_err_proc, EndpointResult};
 
 pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
@@ -8,8 +10,7 @@ pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: Load
         // Code block to free write lock asap
         let file_manager = file_manager.read().await;
         let target = file_manager.best();
-        let mut loaded = loaded.write().await;
-        match loaded.assert_loaded(target, &file_manager) {
+        match assert_model_loaded(&loaded, target, &file_manager).await {
             Ok(_) => {}
             Err(e) => return data_err_proc(e, reply::json(&"Loading error"))
         };

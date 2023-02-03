@@ -1,4 +1,4 @@
-use crate::nn::layers::nn_layers::{backward_layer, BackwardData, EmptyLayerResult, forward_layer, ForwardData, init_layer, InitData, Layer, LayerOps, LayerResult, train_layer, TrainableLayerOps, TrainData};
+use crate::nn::layers::nn_layers::*;
 
 #[derive(Clone, Debug)]
 pub struct SequentialConfig {
@@ -18,8 +18,9 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
         Ok(())
     }
 
-    fn forward(data: ForwardData, layer_config: &SequentialConfig) -> LayerResult {
+    fn forward(mut data: ForwardData, layer_config: &SequentialConfig) -> LayerResult {
         let mut inputs = data.inputs;
+
         for layer in layer_config.layers.iter() {
             let data = ForwardData {
                 inputs,
@@ -28,6 +29,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
                 storage: data.storage,
                 batch_config: data.batch_config,
                 gpu: data.gpu.clone(),
+                prev_iteration_cache: data.prev_iteration_cache.as_deref_mut(),
             };
             inputs = forward_layer(layer, data)?;
         }
@@ -121,6 +123,7 @@ mod tests {
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
             forward_cache: &mut GenericStorage::new(),
+            prev_iteration_cache: None,
             gpu: None,
         };
 

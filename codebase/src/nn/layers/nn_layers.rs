@@ -1,13 +1,13 @@
 use std::collections::HashMap;
-use crate::gpu::shader_runner::{GlobalGpu};
+use crate::gpu::gpu_data::GlobalGpu;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::*;
 use crate::nn::layers::activation::*;
 use crate::utils::{ArrayDynF, GenericResult};
-use crate::nn::layers::convolution::ConvolutionConfig;
+use crate::nn::layers::filtering::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
-use super::max_pool_layer::MaxPoolConfig;
+use crate::nn::layers::filtering::max_pool::MaxPoolConfig;
 
 /// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
@@ -67,12 +67,18 @@ pub enum Layer {
     /// https://machinelearningmastery.com/dropout-for-regularizing-deep-neural-networks/
     Dropout(dropout_layer::DropoutConfig),
 
-    // TODO: docs
+    /// Feed the same input to all its immediate children and concatenate the result
+    /// No extra axis is created
     Concat(concat_layer::ConcatConfig),
+
+    /// TODO: docs
+    TwoComplementsTransformer,
 }
 
 pub struct InitData<'a> {
     pub assigner: &'a mut KeyAssigner,
+
+    /// Persistent storage to store/update things like weights
     pub storage: &'a mut GenericStorage,
 }
 
@@ -80,8 +86,15 @@ pub struct ForwardData<'a> {
     pub inputs: ArrayDynF,
     pub batch_config: &'a BatchConfig,
     pub assigner: &'a mut KeyAssigner,
+
+    /// Persistent storage to store things like weights
     pub storage: &'a GenericStorage,
+
+    /// Temporary storage that will be fed to `backward()`.
     pub forward_cache: &'a mut GenericStorage,
+
+    /// Temporary storage used to reuse computations from the previous iteration, if available 
+    pub prev_iteration_cache: Option<&'a mut GenericStorage>,
     pub gpu: Option<GlobalGpu>,
 }
 
@@ -89,16 +102,26 @@ pub struct BackwardData<'a> {
     pub grad: ArrayDynF,
     pub batch_config: &'a BatchConfig,
     pub assigner: &'a mut KeyAssigner,
+    
+    /// Persistent storage to store things like weights
     pub storage: &'a GenericStorage,
+
+    /// Temporary storage that comes from `forward()`.
     pub forward_cache: &'a mut GenericStorage,
+
+    /// Temporary storage that will be fed to `train()`.
     pub backward_cache: &'a mut GenericStorage,
     pub gpu: Option<GlobalGpu>,
 }
 
 pub struct TrainData<'a> {
     pub batch_config: &'a BatchConfig,
+    
     pub assigner: &'a mut KeyAssigner,
+    /// Persistent storage to store/update things like weights
     pub storage: &'a mut GenericStorage,
+    
+    /// Temporary storage that comes from `backward()`.
     pub backward_cache: &'a mut GenericStorage,
 }
 
@@ -126,9 +149,10 @@ pub trait TrainableLayerOps<T> {
     fn train(data: TrainData, layer_config: &T) -> EmptyLayerResult;
 }
 
-/// Call **init** in the appropriate layer. Not intended to be called directly.
+/// Call `ìnit()` in the appropriate layer. Not intended to be called directly.
 pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
     use Layer::*;
+    use crate::nn::layers::filtering::{convolution, max_pool};
     match layer {
         Dense(c) => dense_layer::DenseLayer::init(data, c),
         Relu => relu_layer::ReluLayer::init(data, &()),
@@ -137,17 +161,19 @@ pub fn init_layer(layer: &Layer, data: InitData) -> EmptyLayerResult {
         Sequential(c) => sequential_layer::SequentialLayer::init(data, c),
         Debug(c) => debug_layer::DebugLayer::init(data, c),
         Convolution(c) => convolution::ConvolutionLayer::init(data, c),
-        MaxPool(c) => max_pool_layer::MaxPoolLayer::init(data, c),
+        MaxPool(c) => max_pool::MaxPoolLayer::init(data, c),
         Flatten => flatten_layer::FlattenLayer::init(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::init(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::init(data, c),
         Concat(c) => concat_layer::ConcatLayer::init(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::init(data, &()),
     }
 }
 
-/// Call **forward** in the appropriate layer. Not intended to be called directly.
+/// Call `forward()` in the appropriate layer. Not intended to be called directly.
 pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
     use Layer::*;
+    use crate::nn::layers::filtering::{convolution, max_pool};
     match layer {
         Dense(c) => dense_layer::DenseLayer::forward(data, c),
         Sequential(c) => sequential_layer::SequentialLayer::forward(data, c),
@@ -156,17 +182,19 @@ pub fn forward_layer(layer: &Layer, data: ForwardData) -> LayerResult {
         Relu => relu_layer::ReluLayer::forward(data, &()),
         Debug(c) => debug_layer::DebugLayer::forward(data, c),
         Convolution(c) => convolution::ConvolutionLayer::forward(data, c),
-        MaxPool(c) => max_pool_layer::MaxPoolLayer::forward(data, c),
+        MaxPool(c) => max_pool::MaxPoolLayer::forward(data, c),
         Flatten => flatten_layer::FlattenLayer::forward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::forward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::forward(data, c),
         Concat(c) => concat_layer::ConcatLayer::forward(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::forward(data, &()),
     }
 }
 
-/// Call **backward** in the appropriate layer. Not intended to be called directly.
+/// Call `backward()` in the appropriate layer. Not intended to be called directly.
 pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
     use Layer::*;
+    use crate::nn::layers::filtering::{convolution, max_pool};
     match layer {
         Dense(c) => dense_layer::DenseLayer::backward(data, c),
         Sequential(c) => sequential_layer::SequentialLayer::backward(data, c),
@@ -175,18 +203,20 @@ pub fn backward_layer(layer: &Layer, data: BackwardData) -> LayerResult {
         Relu => relu_layer::ReluLayer::backward(data, &()),
         Debug(c) => debug_layer::DebugLayer::backward(data, c),
         Convolution(c) => convolution::ConvolutionLayer::backward(data, c),
-        MaxPool(c) => max_pool_layer::MaxPoolLayer::backward(data, c),
+        MaxPool(c) => max_pool::MaxPoolLayer::backward(data, c),
         Flatten => flatten_layer::FlattenLayer::backward(data, &()),
         ExpandDim(c) => expand_dim_layer::ExpandDimLayer::backward(data, c),
         Dropout(c) => dropout_layer::DropoutLayer::backward(data, c),
         Concat(c) => concat_layer::ConcatLayer::backward(data, c),
+        TwoComplementsTransformer => two_complements_transformer_layer::TwoComplementsTransformerLayer::backward(data, &()),
     }
 }
 
-/// Call **train** in the appropriate layer. If the layer doesn't provide an implementation, nothing
+/// Call `train()` in the appropriate layer. If the layer doesn't provide an implementation, nothing
 /// will happen. Not intended to be called directly.
 pub fn train_layer(layer: &Layer, data: TrainData) -> EmptyLayerResult {
     use Layer::*;
+    use crate::nn::layers::filtering::convolution;
     match layer {
         Dense(c) => dense_layer::DenseLayer::train(data, c),
         Sequential(c) => sequential_layer::SequentialLayer::train(data, c),

@@ -49,3 +49,4 @@ export const useTranslation = () => useContext(LanguagesContext);
 export const useT = () => useTranslation()!.t;
 export const useDigitsT = () => useT().digits;
 export const useChessT = () => useT().chess;
+export const useHomeT = () => useT().home;

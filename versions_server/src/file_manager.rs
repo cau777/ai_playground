@@ -125,7 +125,6 @@ impl FileManager {
     }
 
     fn open_storage(&self, id: u32, options: &mut OpenOptions) -> io::Result<File> {
-        // println!("{}/{}.model", self.base_path, id);
         options.open(format!("{}/{}.model", self.base_path, id))
     }
 

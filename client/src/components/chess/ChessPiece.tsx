@@ -2,7 +2,6 @@ import {Component, Match, Show, Switch} from "solid-js";
 
 type Props = {
     notation: string;
-    canMoveTo: boolean;
 }
 
 // Source: Wikipedia Commons (slightly edited)

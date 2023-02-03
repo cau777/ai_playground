@@ -13,6 +13,8 @@ pub struct GameMetrics {
     pub black_win_rate: f64,
     pub draw_rate: f64,
     pub average_len: f64,
+
+    pub average_confidence: f64,
 }
 
 impl GameMetrics {
@@ -31,6 +33,7 @@ impl GameMetrics {
         self.black_win_rate *= factor;
         self.draw_rate *= factor;
         self.average_len *= factor;
+        self.average_confidence *= factor;
     }
 
     pub fn add(&mut self, rhs: &GameMetrics) {
@@ -43,5 +46,6 @@ impl GameMetrics {
         self.black_win_rate += rhs.black_win_rate;
         self.draw_rate += rhs.draw_rate;
         self.average_len += rhs.average_len;
+        self.average_confidence += rhs.average_confidence;
     }
 }

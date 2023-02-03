@@ -68,7 +68,7 @@ pub async fn post_config(name: String, body: warp::hyper::body::Bytes, file_mana
             let file_manager = file_manager.read().await;
             match file_manager.set_config_bytes(&body) {
                 Ok(_) => Ok(StatusCode::OK),
-                Err(e) => return stderr_proc(e)
+                Err(e) => stderr_proc(e),
             }
         }
         Err(_) => Ok(StatusCode::BAD_REQUEST)

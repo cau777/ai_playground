@@ -77,7 +77,7 @@ fn create_text(positions: &Positions, nodes: &[Node]) -> String {
         result += &format!(
             "<text x=\"{}\" y=\"{}\">{:.4}</text>",
             cell_to_pixel(col) + HALF_CELL, cell_to_pixel(row+0.15) + HALF_CELL,
-            node.eval
+            node.eval()
         );
     }
 

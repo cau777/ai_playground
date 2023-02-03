@@ -1,22 +1,22 @@
+use ndarray_rand::rand::Rng;
 use crate::chess::decision_tree::best_path_iterator::BestPathIterator;
-use crate::chess::decision_tree::cursor::TreeCursor;
-use crate::chess::decision_tree::node::{Node};
+use crate::chess::decision_tree::node::Node;
 use crate::chess::movement::Movement;
 
-mod node;
+pub(crate) mod node;
 mod best_path_iterator;
 pub mod cursor;
 mod svg_export;
 pub mod building;
 mod results_aggregator;
+pub mod building_exp;
 
 pub use node::NodeExtraInfo;
-use crate::chess::board::Board;
 
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
     start_side: bool,
-    nodes: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 impl DecisionTree {
@@ -47,11 +47,11 @@ impl DecisionTree {
 
         self.nodes[parent].children = Some(nodes);
 
-        for node in self.path_to_root(parent) {
-            let children = self.nodes[node].clone_children();
-            let result = self.nodes[node].refresh_children(children.unwrap(), &self.nodes, self.start_side);
-
-            self.nodes[node].apply_children(result.0, result.1);
+        for node_index in self.path_to_root(parent) {
+            // This clone is probably optimized at compilation
+            let mut node = self.nodes[node_index].clone();
+            node.refresh_children(&self.nodes, self.start_side);
+            self.nodes[node_index] = node;
         }
 
         *self.nodes[parent].get_ordered_children(self.start_side)
@@ -70,7 +70,7 @@ impl DecisionTree {
         c.go_to(target, &self.nodes)
     }
 
-    pub fn get_unexplored_node(&self) -> Option<usize> {
+    pub fn get_best_path_variant(&self) -> Option<usize> {
         BestPathIterator::new(&self.nodes, self.start_side, true)
             .filter_map(|o| self.nodes[o].get_ordered_children(self.start_side))
             // Get the best and second best unexplored options for a node
@@ -90,10 +90,31 @@ impl DecisionTree {
             .map(|(a, b)| {
                 let node_a = &self.nodes[*a];
                 let node_b = &self.nodes[*b];
-                ((node_a.eval - node_b.eval).abs(), b)
+                ((node_a.eval() - node_b.eval()).abs(), b)
             })
             .min_by(|(v1, _), (v2, _)| v1.total_cmp(v2))
             .map(|(_, n)| *n)
+    }
+
+    pub fn get_best_path_random_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
+        BestPathIterator::new(&self.nodes, self.start_side, true)
+            .filter_map(|o| self.nodes[o].get_ordered_children(self.start_side))
+            .flat_map(|o|
+                o.filter(|o| {
+                    let node = &self.nodes[**o];
+                    node.children.is_none() && !node.info.is_ending
+                })
+            )
+            .copied()
+            .max_by_key(|_| rand.gen_range(0..10_000_000))
+    }
+
+    pub fn get_random_unexplored_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
+        self.nodes.iter()
+            .enumerate()
+            .filter(|(_, o)| o.children.is_none() && !o.info.is_ending)
+            .map(|(i, _)| i)
+            .max_by_key(|_| rand.gen_range(0..10_000_000))
     }
 
     fn path_to_root(&self, mut index: usize) -> Vec<usize> {
@@ -106,20 +127,6 @@ impl DecisionTree {
         result.push(0);
 
         result
-    }
-
-    pub fn trainable_nodes<'a>(&'a self, c: &'a mut TreeCursor) -> impl Iterator<Item=(Board, f32)> +'a {
-        self.nodes
-            .iter()
-            .enumerate()
-            // Ignore leaf nodes
-            .filter(|(_ ,o)| !o.info.is_ending && o.children.is_some())
-            // Ignore openings, because there isn't much to learn from them
-            .filter(|(_, o)| !o.info.is_opening)
-            .map(|(i, o)| {
-                c.go_to(i, &self.nodes);
-                (c.get_controller().current().clone(), o.eval)
-            })
     }
 
     pub fn len(&self) -> usize {
@@ -182,13 +189,13 @@ mod tests {
             (Movement::from_notations("A4", "A7"), 0.3, Default::default()),
         ]);
 
-        assert_eq!(tree.get_unexplored_node(), Some(2));
+        assert_eq!(tree.get_best_path_variant(), Some(2));
 
         tree.submit_node_children(2, &[
             (Movement::from_notations("A5", "A7"), -5.0, Default::default()),
         ]);
 
-        assert_eq!(tree.get_unexplored_node(), Some(4));
+        assert_eq!(tree.get_best_path_variant(), Some(4));
     }
 }
 

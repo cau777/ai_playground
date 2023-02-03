@@ -13,8 +13,10 @@ type OnGameResultParams<'a> = (GameResult, &'a DecisionTree, usize);
 
 #[derive(Copy, Clone)]
 pub enum NextNodeStrategy {
-    DepthFirst { min_full_paths: usize },
-    BreadthFirst { min_nodes_explored: usize },
+    ContinueLineThenBestVariant { min_full_paths: usize },
+    ContinueLineThenBestVariantOrRandom { min_full_paths: usize, random_node_chance: f64 },
+    BestNodeAlways { min_nodes_explored: usize },
+    BestOrRandomNode { min_nodes_explored: usize, random_node_chance: f64 },
 }
 
 pub struct DecisionTreesBuilder {
@@ -73,9 +75,9 @@ impl DecisionTreesBuilder {
             if !to_eval.is_empty() {
                 let inputs: Vec<_> = to_eval.iter().map(|(_, _, arr)| arr.view()).collect();
                 let inputs = stack(Axis(0), &inputs).unwrap();
-                let output = controller.eval_for_train(inputs).unwrap();
+                let output = controller.eval_batch(inputs).unwrap();
 
-                for (input_index, out) in output.output.outer_iter().enumerate() {
+                for (input_index, out) in output.outer_iter().enumerate() {
                     let (queue_index, local_index, _) = &to_eval[input_index];
                     let value = *out.first().unwrap();
                     let value = scale_output(value);
@@ -92,33 +94,57 @@ impl DecisionTreesBuilder {
 
         (trees, cursors)
     }
-
+    
     fn should_continue(&self, limiting: &LimitingFactors) -> bool {
         match self.strategy {
-            NextNodeStrategy::DepthFirst { min_full_paths } => limiting.explored_paths < min_full_paths,
-            NextNodeStrategy::BreadthFirst { min_nodes_explored } => limiting.explored_nodes < min_nodes_explored,
+            NextNodeStrategy::ContinueLineThenBestVariant { min_full_paths } => limiting.explored_paths < min_full_paths,
+            NextNodeStrategy::ContinueLineThenBestVariantOrRandom { min_full_paths, .. } => limiting.explored_paths < min_full_paths,
+            NextNodeStrategy::BestNodeAlways { min_nodes_explored } => limiting.explored_nodes < min_nodes_explored,
+            NextNodeStrategy::BestOrRandomNode { min_nodes_explored, .. } => limiting.explored_nodes < min_nodes_explored,
         }
     }
 
-    fn decide_next_node(&self, prev_node: usize, tree: &DecisionTree, limiting: &mut LimitingFactors) -> Option<usize> {
+    fn decide_next_node(&self, prev_node: usize, tree: &DecisionTree, limiting: &mut LimitingFactors, rng: &mut impl Rng) -> Option<usize> {
         if tree.len() == 1 {
             return Some(0);
         }
 
         match self.strategy {
-            NextNodeStrategy::DepthFirst { .. } => {
+            NextNodeStrategy::ContinueLineThenBestVariant { .. } => {
                 let next = tree.get_continuation_at(prev_node);
                 next.and_then(|o| {
                     if tree.is_ending_at(o) {
                         limiting.explored_paths += 1;
-                        tree.get_unexplored_node()
+                        tree.get_best_path_variant()
                     } else {
                         Some(o)
                     }
                 })
             }
-            NextNodeStrategy::BreadthFirst { .. } => {
-                tree.get_unexplored_node()
+            NextNodeStrategy::ContinueLineThenBestVariantOrRandom { random_node_chance, .. } => {
+                let next = tree.get_continuation_at(prev_node);
+                next.and_then(|o| {
+                    if tree.is_ending_at(o) {
+                        limiting.explored_paths += 1;
+                        if rng.gen_range(0.0..1.0) < random_node_chance {
+                            tree.get_best_path_random_node(rng)
+                        } else {
+                            tree.get_best_path_variant()
+                        }
+                    } else {
+                        Some(o)
+                    }
+                })
+            }
+            NextNodeStrategy::BestNodeAlways { .. } => {
+                tree.get_best_path_variant()
+            }
+            NextNodeStrategy::BestOrRandomNode { random_node_chance, .. } => {
+                if rng.gen_range(0.0..1.0) < random_node_chance {
+                    tree.get_random_unexplored_node(rng)
+                } else {
+                    tree.get_best_path_variant()
+                }
             }
         }
     }
@@ -184,7 +210,7 @@ impl DecisionTreesBuilder {
         let prev_node = prev_nodes[x];
 
         let mut rng = thread_rng();
-        let node = match self.decide_next_node(prev_node, &trees[x], limiting) {
+        let node = match self.decide_next_node(prev_node, &trees[x], limiting, &mut rng) {
             Some(v) => v,
             None => {
                 trees[x] = self.initial_trees[x].clone();
@@ -222,7 +248,7 @@ impl DecisionTreesBuilder {
                 let index = agg.push(m, None);
                 // Openings are usually good for both sides
                 // Add a small random value so the AI can choose from different openings
-                agg.submit(index, rng.gen_range(0.0..1.0) * 0.0001, false, true);
+                agg.submit(index, rng.gen_range(0.5 + (-1.0)..1.0) * 0.001, false, true);
             }
         }
 
