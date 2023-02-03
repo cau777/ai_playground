@@ -1,6 +1,6 @@
 {
   "src/entry-client.tsx": {
-    "file": "assets/entry-client.9986a708.js",
+    "file": "assets/entry-client.9c4986bc.js",
     "src": "src/entry-client.tsx",
     "isEntry": true,
     "dynamicImports": [
@@ -26,122 +26,125 @@
       "src/routes/ai_playground/pt/digits/index.tsx"
     ],
     "css": [
-      "assets/entry-client.0def4b60.css"
+      "assets/entry-client.865eddc9.css"
     ]
   },
   "src/routes/[...404].tsx": {
-    "file": "assets/_...404_.6679aa8b.js",
+    "file": "assets/_...404_.873babe0.js",
     "src": "src/routes/[...404].tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_HttpStatusCode.5f2ec7de.js"
+      "_HttpStatusCode.1b057dfc.js"
     ]
   },
-  "_HttpStatusCode.5f2ec7de.js": {
-    "file": "assets/HttpStatusCode.5f2ec7de.js",
+  "_HttpStatusCode.1b057dfc.js": {
+    "file": "assets/HttpStatusCode.1b057dfc.js",
     "imports": [
       "src/entry-client.tsx"
     ]
   },
   "src/routes/en.tsx": {
-    "file": "assets/en.e9265fd5.js",
+    "file": "assets/en.fa8308bf.js",
     "src": "src/routes/en.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_LanguagesContext.ddaf9c98.js",
+      "_LanguagesContext.ad3fefa0.js",
       "src/entry-client.tsx"
     ]
   },
-  "_LanguagesContext.ddaf9c98.js": {
-    "file": "assets/LanguagesContext.ddaf9c98.js",
+  "_LanguagesContext.ad3fefa0.js": {
+    "file": "assets/LanguagesContext.ad3fefa0.js",
     "imports": [
       "src/entry-client.tsx"
     ]
   },
   "src/routes/en/index.tsx": {
-    "file": "assets/index.68824d0b.js",
+    "file": "assets/index.b1ec3464.js",
     "src": "src/routes/en/index.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_HomePage.da6c6e13.js",
+      "_HomePage.54187ad1.js",
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPiece.ffad8b09.js"
+      "_NavControls.d6e7c214.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPiece.24f725db.js"
     ]
   },
-  "_HomePage.da6c6e13.js": {
-    "file": "assets/HomePage.da6c6e13.js",
+  "_HomePage.54187ad1.js": {
+    "file": "assets/HomePage.54187ad1.js",
     "imports": [
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPiece.ffad8b09.js"
+      "_NavControls.d6e7c214.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPiece.24f725db.js"
     ]
   },
-  "_NavControls.aeb6e851.js": {
-    "file": "assets/NavControls.aeb6e851.js",
+  "_NavControls.d6e7c214.js": {
+    "file": "assets/NavControls.d6e7c214.js",
     "imports": [
       "src/entry-client.tsx",
-      "_LanguagesContext.ddaf9c98.js"
+      "_LanguagesContext.ad3fefa0.js"
     ]
   },
-  "_ChessPiece.ffad8b09.js": {
-    "file": "assets/ChessPiece.ffad8b09.js",
+  "_ChessPiece.24f725db.js": {
+    "file": "assets/ChessPiece.24f725db.js",
     "imports": [
       "src/entry-client.tsx"
     ]
   },
   "src/routes/en/chess/index.tsx": {
-    "file": "assets/index.11ff6d00.js",
+    "file": "assets/index.8c83c68d.js",
     "src": "src/routes/en/chess/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPlayground.8313b98c.js",
-      "_NavControls.aeb6e851.js",
-      "_ChessPiece.ffad8b09.js",
-      "_server-interface.712c5e0a.js"
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPlayground.fe2e08cf.js",
+      "_NavControls.d6e7c214.js",
+      "_ChessPiece.24f725db.js",
+      "_PlaygroundContainer.19b9a5ab.js"
     ]
   },
-  "_ChessPlayground.8313b98c.js": {
-    "file": "assets/ChessPlayground.8313b98c.js",
+  "_ChessPlayground.fe2e08cf.js": {
+    "file": "assets/ChessPlayground.fe2e08cf.js",
     "imports": [
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_ChessPiece.ffad8b09.js",
-      "_server-interface.712c5e0a.js",
-      "_LanguagesContext.ddaf9c98.js"
+      "_NavControls.d6e7c214.js",
+      "_ChessPiece.24f725db.js",
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_LanguagesContext.ad3fefa0.js"
     ]
   },
-  "_server-interface.712c5e0a.js": {
-    "file": "assets/server-interface.712c5e0a.js"
+  "_PlaygroundContainer.19b9a5ab.js": {
+    "file": "assets/PlaygroundContainer.19b9a5ab.js",
+    "imports": [
+      "src/entry-client.tsx"
+    ]
   },
   "src/routes/en/digits/index.tsx": {
-    "file": "assets/index.3f2f25b6.js",
+    "file": "assets/index.cdad2e29.js",
     "src": "src/routes/en/digits/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_DigitsPlayground.54d43a32.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_server-interface.712c5e0a.js",
-      "_NavControls.aeb6e851.js"
+      "_DigitsPlayground.3f0772d0.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_NavControls.d6e7c214.js"
     ]
   },
-  "_DigitsPlayground.54d43a32.js": {
-    "file": "assets/DigitsPlayground.54d43a32.js",
+  "_DigitsPlayground.3f0772d0.js": {
+    "file": "assets/DigitsPlayground.3f0772d0.js",
     "imports": [
       "src/entry-client.tsx",
-      "_server-interface.712c5e0a.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_NavControls.aeb6e851.js"
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_NavControls.d6e7c214.js"
     ]
   },
   "src/routes/index.tsx": {
-    "file": "assets/index.3f4b9ccb.js",
+    "file": "assets/index.3c2c2ac7.js",
     "src": "src/routes/index.tsx",
     "isDynamicEntry": true,
     "imports": [
@@ -149,108 +152,108 @@
     ]
   },
   "src/routes/pt.tsx": {
-    "file": "assets/pt.3c7aed7d.js",
+    "file": "assets/pt.a04575f6.js",
     "src": "src/routes/pt.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_LanguagesContext.ddaf9c98.js",
+      "_LanguagesContext.ad3fefa0.js",
       "src/entry-client.tsx"
     ]
   },
   "src/routes/pt/index.tsx": {
-    "file": "assets/index.5dd2ddec.js",
+    "file": "assets/index.7cc34f58.js",
     "src": "src/routes/pt/index.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_HomePage.da6c6e13.js",
+      "_HomePage.54187ad1.js",
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPiece.ffad8b09.js"
+      "_NavControls.d6e7c214.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPiece.24f725db.js"
     ]
   },
   "src/routes/pt/chess/index.tsx": {
-    "file": "assets/index.e9876275.js",
+    "file": "assets/index.bd3acb8b.js",
     "src": "src/routes/pt/chess/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPlayground.8313b98c.js",
-      "_NavControls.aeb6e851.js",
-      "_ChessPiece.ffad8b09.js",
-      "_server-interface.712c5e0a.js"
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPlayground.fe2e08cf.js",
+      "_NavControls.d6e7c214.js",
+      "_ChessPiece.24f725db.js",
+      "_PlaygroundContainer.19b9a5ab.js"
     ]
   },
   "src/routes/pt/digits/index.tsx": {
-    "file": "assets/index.ac504a84.js",
+    "file": "assets/index.d41fa829.js",
     "src": "src/routes/pt/digits/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_DigitsPlayground.54d43a32.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_server-interface.712c5e0a.js",
-      "_NavControls.aeb6e851.js"
+      "_DigitsPlayground.3f0772d0.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_NavControls.d6e7c214.js"
     ]
   },
   "src/routes/ai_playground/[...404].tsx": {
-    "file": "assets/_...404_.87cf1beb.js",
+    "file": "assets/_...404_.f4e58288.js",
     "src": "src/routes/ai_playground/[...404].tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_HttpStatusCode.5f2ec7de.js"
+      "_HttpStatusCode.1b057dfc.js"
     ]
   },
   "src/routes/ai_playground/en.tsx": {
-    "file": "assets/en.fcdc8eba.js",
+    "file": "assets/en.f7a8208e.js",
     "src": "src/routes/ai_playground/en.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_LanguagesContext.ddaf9c98.js",
+      "_LanguagesContext.ad3fefa0.js",
       "src/entry-client.tsx"
     ]
   },
   "src/routes/ai_playground/en/index.tsx": {
-    "file": "assets/index.34cadc8a.js",
+    "file": "assets/index.bd407545.js",
     "src": "src/routes/ai_playground/en/index.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_HomePage.da6c6e13.js",
+      "_HomePage.54187ad1.js",
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPiece.ffad8b09.js"
+      "_NavControls.d6e7c214.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPiece.24f725db.js"
     ]
   },
   "src/routes/ai_playground/en/chess/index.tsx": {
-    "file": "assets/index.ec428fb3.js",
+    "file": "assets/index.3c7c6e14.js",
     "src": "src/routes/ai_playground/en/chess/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPlayground.8313b98c.js",
-      "_NavControls.aeb6e851.js",
-      "_ChessPiece.ffad8b09.js",
-      "_server-interface.712c5e0a.js"
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPlayground.fe2e08cf.js",
+      "_NavControls.d6e7c214.js",
+      "_ChessPiece.24f725db.js",
+      "_PlaygroundContainer.19b9a5ab.js"
     ]
   },
   "src/routes/ai_playground/en/digits/index.tsx": {
-    "file": "assets/index.e1d60659.js",
+    "file": "assets/index.98b4ef82.js",
     "src": "src/routes/ai_playground/en/digits/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_DigitsPlayground.54d43a32.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_server-interface.712c5e0a.js",
-      "_NavControls.aeb6e851.js"
+      "_DigitsPlayground.3f0772d0.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_NavControls.d6e7c214.js"
     ]
   },
   "src/routes/ai_playground/index.tsx": {
-    "file": "assets/index.8519d9f0.js",
+    "file": "assets/index.bd3ca9b8.js",
     "src": "src/routes/ai_playground/index.tsx",
     "isDynamicEntry": true,
     "imports": [
@@ -258,53 +261,53 @@
     ]
   },
   "src/routes/ai_playground/pt.tsx": {
-    "file": "assets/pt.c2dfac66.js",
+    "file": "assets/pt.0ea634b3.js",
     "src": "src/routes/ai_playground/pt.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_LanguagesContext.ddaf9c98.js",
+      "_LanguagesContext.ad3fefa0.js",
       "src/entry-client.tsx"
     ]
   },
   "src/routes/ai_playground/pt/index.tsx": {
-    "file": "assets/index.8dcedae3.js",
+    "file": "assets/index.98e2406f.js",
     "src": "src/routes/ai_playground/pt/index.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_HomePage.da6c6e13.js",
+      "_HomePage.54187ad1.js",
       "src/entry-client.tsx",
-      "_NavControls.aeb6e851.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPiece.ffad8b09.js"
+      "_NavControls.d6e7c214.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPiece.24f725db.js"
     ]
   },
   "src/routes/ai_playground/pt/chess/index.tsx": {
-    "file": "assets/index.b72c0c26.js",
+    "file": "assets/index.62fe206c.js",
     "src": "src/routes/ai_playground/pt/chess/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_LanguagesContext.ddaf9c98.js",
-      "_ChessPlayground.8313b98c.js",
-      "_NavControls.aeb6e851.js",
-      "_ChessPiece.ffad8b09.js",
-      "_server-interface.712c5e0a.js"
+      "_LanguagesContext.ad3fefa0.js",
+      "_ChessPlayground.fe2e08cf.js",
+      "_NavControls.d6e7c214.js",
+      "_ChessPiece.24f725db.js",
+      "_PlaygroundContainer.19b9a5ab.js"
     ]
   },
   "src/routes/ai_playground/pt/digits/index.tsx": {
-    "file": "assets/index.ee688fba.js",
+    "file": "assets/index.89eeaead.js",
     "src": "src/routes/ai_playground/pt/digits/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "src/entry-client.tsx",
-      "_DigitsPlayground.54d43a32.js",
-      "_LanguagesContext.ddaf9c98.js",
-      "_server-interface.712c5e0a.js",
-      "_NavControls.aeb6e851.js"
+      "_DigitsPlayground.3f0772d0.js",
+      "_LanguagesContext.ad3fefa0.js",
+      "_PlaygroundContainer.19b9a5ab.js",
+      "_NavControls.d6e7c214.js"
     ]
   },
   "src/entry-client.css": {
-    "file": "assets/entry-client.0def4b60.css",
+    "file": "assets/entry-client.865eddc9.css",
     "src": "src/entry-client.css"
   }
 }
