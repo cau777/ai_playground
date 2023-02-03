@@ -59,7 +59,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
             building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 600 },
-            32,
+            32, 5_000,
         );
         let (_tree2, _) = builder.build(&controller, |_| {});
     }));

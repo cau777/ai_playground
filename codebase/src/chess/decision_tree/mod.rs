@@ -1,6 +1,5 @@
 use ndarray_rand::rand::Rng;
 use crate::chess::decision_tree::best_path_iterator::BestPathIterator;
-use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::node::Node;
 use crate::chess::movement::Movement;
 
@@ -13,7 +12,6 @@ mod results_aggregator;
 pub mod building_exp;
 
 pub use node::NodeExtraInfo;
-use crate::chess::board::Board;
 
 #[derive(Debug, Clone)]
 pub struct DecisionTree {

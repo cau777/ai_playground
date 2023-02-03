@@ -38,13 +38,14 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
         vec![DecisionTree::new(controller.side_to_play())],
         vec![TreeCursor::new(controller)],
         NextNodeStrategy::BestNodeAlways { min_nodes_explored: 30 },
-        64,
+        64, 1_000
     );
 
     let loaded = loaded.read().await;
     let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), |_| {});
     let tree = trees.pop().unwrap();
 
+    // use std::io::Write;
     // std::fs::OpenOptions::new().write(true).create(true).open(
     //     format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
     //     )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();

@@ -1,4 +1,4 @@
-FROM rust:latest
+FROM rust:1.67.0
 WORKDIR /app
 
 RUN mkdir codebase
@@ -46,9 +46,10 @@ COPY trainer/src ./src
 RUN cargo build --release
 
 ENV MOUNTED_PATH="/app/files"
-ENV NAME="chess"
-ENV VERSIONS="1"
-ENV VERSIONS_SERVER_URL="https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io"
-ENV EPOCHS_PER_VERSION="2"
+#ENV NAME="chess"
+#ENV VERSIONS="1"
+#ENV VERSIONS_SERVER_URL="https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io"
+#ENV EPOCHS_PER_VERSION="2"
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+#ENTRYPOINT ["tail", "-f", "/dev/null"]
+CMD ["./target/release/trainer"]

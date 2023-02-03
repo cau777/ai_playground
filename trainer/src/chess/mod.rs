@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::layers::nn_layers::GenericStorage;
 use crate::{EnvConfig, ServerClient};
@@ -16,7 +17,7 @@ const BATCH_SIZE: usize = 128;
 //     fn train_version(&mut self, config: &EnvConfig);
 // }
 
-pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: &ServerClient) {
+pub fn train(initial: GenericStorage, model_config: ModelXmlConfig, config: &EnvConfig, client: Arc<ServerClient>) {
     let mut trainer = TrainerScheduler::new(initial, model_config, config);
     trainer.train_versions(config.versions, config, client);
 }

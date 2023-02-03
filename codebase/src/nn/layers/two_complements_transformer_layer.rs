@@ -1,5 +1,5 @@
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
-use crate::utils::{Array1F, Array2F};
+use crate::utils::{Array2F};
 
 pub struct TwoComplementsTransformerLayer;
 
@@ -28,7 +28,7 @@ impl LayerOps<()> for TwoComplementsTransformerLayer {
         }
 
         Ok(Array2F::from_shape_fn((grad.shape()[0], 2), |(b, i)| {
-            grad[(b, 0)] * if i == 0 { 0.5 } else { -0.5 }
+            if i == 0 { grad[(b, 0)] } else { -grad[(b, 0)] }
         }).into_dyn())
     }
 }

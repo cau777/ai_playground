@@ -64,7 +64,7 @@ fn test_tree_building() {
         trees,
         cursors,
         building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: nodes },
-        32,
+        32, 1_000,
     );
     let (tree2, _) = builder.build(&controller, |_| {});
 

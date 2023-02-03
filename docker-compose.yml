@@ -1,11 +1,18 @@
 version: "3"
 services:
-  trainer_profile:
+  trainer:
     build:
       context: .
       dockerfile: ./trainer/Dockerfile
     image: cau777/aipg-trainer
+    
+  trainer_profile:
+    build:
+      context: .
+      dockerfile: ./trainer/Dockerfile
     privileged: true
+    environment:
+      - PROFILE=TRUE
   versions:
     build:
       context: .

@@ -30,6 +30,7 @@ pub struct DecisionTreesBuilder {
     initial_cursors: Vec<TreeCursor>,
     strategy: NextNodeStrategy,
     batch_size: usize,
+    max_cache: usize,
 }
 
 fn scale_output(x: f32) -> f32 {
@@ -43,7 +44,8 @@ fn scale_output(x: f32) -> f32 {
 type Caches = Vec<Cache>;
 
 impl DecisionTreesBuilder {
-    pub fn new(initial_trees: Vec<DecisionTree>, initial_cursors: Vec<TreeCursor>, strategy: NextNodeStrategy, batch_size: usize) -> Self {
+    pub fn new(initial_trees: Vec<DecisionTree>, initial_cursors: Vec<TreeCursor>, strategy: NextNodeStrategy,
+               batch_size: usize, max_cache: usize) -> Self {
         if initial_trees.len() != initial_cursors.len() {
             panic!("initial_trees and initial_cursors should have the same length");
         }
@@ -53,6 +55,7 @@ impl DecisionTreesBuilder {
             initial_trees,
             initial_cursors,
             batch_size,
+            max_cache,
         }
     }
 
@@ -64,7 +67,7 @@ impl DecisionTreesBuilder {
         let mut curr_nodes = vec![0; count];
         let mut queue = Vec::with_capacity(count);
         let mut completed: Vec<_> = (0..count).collect();
-        let mut caches = vec![Cache::new(1_000); count];
+        let mut caches = vec![Cache::new(self.max_cache / count); count];
 
         let mut limiting_factors = LimitingFactors::default();
         while limiting_factors.should_continue(self.strategy) {
