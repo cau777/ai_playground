@@ -46,7 +46,7 @@ export const ChessBoard: Component<Props> = (props) => {
     
     return (
         <div
-            class={"select-none grid grid-cols-8 grid-rows-8 h-[30rem] w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
+            class={"select-none grid grid-cols-8 grid-rows-8 max-h-[30rem] max-w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
             <Index each={pieces()}>{(piece, i) => {
                 let notation = indexToNotation(i);
                 let lightSquare = (Math.floor(i / 8) + i % 8) % 2 == 0;

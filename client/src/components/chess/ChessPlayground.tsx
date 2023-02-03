@@ -5,6 +5,7 @@ import {Component, createSignal, onMount} from "solid-js";
 import {useChessT} from "~/components/LanguagesContext";
 import {BoardState} from "~/components/chess/board_state";
 import {GameInfo} from "~/components/chess/GameInfo";
+import {PlaygroundContainer} from "~/components/PlaygroundContainer";
 
 const INITIAL_BOARD = `
 r n b q k b n r
@@ -71,14 +72,14 @@ export const ChessPlayground: Component = () => {
     let interactive = () => game()?.state === "gameResultUndefined" && !busy();
     return (
         <NavControls>
-            <div class={"m-12"}>
+            <PlaygroundContainer>
                 <h1 class={"text-3xl font-black text-primary-100 mb-3"}>{t.title}</h1>
                 {/*TODO: description*/}
                 <GameInfo opening={game()?.opening} result={game()?.state} playerTurn={!busy()}></GameInfo>
                 <ChessBoard interactive={interactive()} board={board()}
                             possible={game()?.possible ?? new Map()}
                             onMove={(from, to) => moved(from, to, game())}></ChessBoard>
-            </div>
+            </PlaygroundContainer>
         </NavControls>
     )
 }

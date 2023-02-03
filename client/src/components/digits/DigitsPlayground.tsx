@@ -5,6 +5,7 @@ import {DigitsResultsGraph} from "./DigitsResultsGraph";
 import {NavControls} from "../NavControls";
 import {Component, createSignal} from "solid-js";
 import {useDigitsT} from "~/components/LanguagesContext";
+import {PlaygroundContainer} from "~/components/PlaygroundContainer";
 
 const SIZE = 200;
 const BORDER = 20;
@@ -116,7 +117,7 @@ export const DigitsPlayground: Component = () => {
     
     return (
         <NavControls>
-            <div class={"m-12 max-w-xl"}>
+            <PlaygroundContainer>
                 <h1 class={"text-3xl font-black text-primary-100 mb-3"}>{t.title}</h1>
                 <p class={""}>{t.instructions}</p>
                 <p class={"text-font-2"}>{t.limitations}</p>
@@ -135,7 +136,7 @@ export const DigitsPlayground: Component = () => {
                 <h2 class={"text-xl font-semibold mt-4"}>{t.examples}</h2>
                 <img alt={"MNIST examples"} class={"mt-2 max-h-64"}
                      src={"https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png"}/>
-            </div>
+            </PlaygroundContainer>
         </NavControls>
     )
 }
