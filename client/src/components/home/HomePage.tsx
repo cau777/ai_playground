@@ -22,8 +22,6 @@ export const HomePage: Component = () => {
             icon: <ChessPageIcon></ChessPageIcon>,
         }
     ];
-    // TODO: translate
-    // TODO: improve
     
     return (
         <NavControls>
@@ -37,7 +35,7 @@ export const HomePage: Component = () => {
                     </p>
                 </header>
                 
-                <main class={"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4"}>
+                <main class={"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 mx-2"}>
                     <For each={cards()}>{(c, _) => (
                         <A href={import.meta.env.BASE_URL + trans?.lang + c.href}>
                             <div class={"bg-back-1 rounded-xl px-2 py-3 h-full flex flex-col"}>

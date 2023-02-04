@@ -12,6 +12,7 @@ export default {
     "chess": {
         "title": "Chess",
         "opening": "Opening",
+        "loading": "Loading...",
         "gameResult": "Game Result",
         "gameResultUndefined": "Undefined",
         "gameResultAborted": "Aborted",

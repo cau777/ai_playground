@@ -10,6 +10,7 @@ export default {
     "chess": {
         "title": "Xadrez",
         "opening": "Abertura",
+        "loading": "Carregando...",
         "gameResult": "Conclusão do jogo",
         "gameResultUndefined": "Indefinido",
         "gameResultAborted": "Abortado",
