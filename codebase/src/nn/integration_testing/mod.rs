@@ -71,8 +71,8 @@ fn test_tree_building() {
     for i in 0..COUNT {
         // println!("{:?}", tree1[i].nodes().collect::<Vec<_>>());
         // println!("{:?}", tree2[i].nodes().collect::<Vec<_>>());
-        assert!(zip(tree1[i].nodes().map(|o| o.eval()).collect::<Vec<_>>(),
-                    tree2[i].nodes().map(|o| o.eval()).collect::<Vec<_>>())
+        assert!(zip(tree1[i].nodes.iter().map(|o| o.eval()).collect::<Vec<_>>(),
+                    tree2[i].nodes.iter().map(|o| o.eval()).collect::<Vec<_>>())
             .all(|(a, b)| (a - b).abs() < 0.0001));
     }
 }
