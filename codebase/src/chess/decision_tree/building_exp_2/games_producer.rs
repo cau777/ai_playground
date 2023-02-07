@@ -1,4 +1,6 @@
 use std::cell::RefCell;
+use std::iter::zip;
+use std::mem;
 use std::ops::RangeFrom;
 use std::sync::{Arc, RwLock};
 use ndarray_rand::rand::{Rng, thread_rng};
@@ -12,9 +14,12 @@ use crate::chess::decision_tree::building_exp_2::nodes_in_progress_set::NodesInP
 use crate::chess::game_result::GameResult;
 use crate::chess::movement::Movement;
 
+type IterItem = Option<Request>;
+
 pub struct GamesProducer<'a> {
     current_game: usize,
     workers: Vec<GamesProducerWorker<'a>>,
+    cached: Vec<Option<IterItem>>,
 }
 
 impl<'a> GamesProducer<'a> {
@@ -28,8 +33,9 @@ impl<'a> GamesProducer<'a> {
             panic!("Slice sizes don't match");
         }
 
+        let count = trees.len();
         let producer = Arc::new(RwLock::new(0..));
-        for i in 0..trees.len() {
+        for i in 0..count {
             workers.push(GamesProducerWorker {
                 game_index: i,
                 ids_producer: producer.clone(),
@@ -45,6 +51,13 @@ impl<'a> GamesProducer<'a> {
         Self {
             current_game: 0,
             workers,
+            cached: vec![None; count],
+        }
+    }
+
+    pub fn preprocess(&mut self) {
+        for (worker, cache) in zip(self.workers.iter_mut(), self.cached.iter_mut()) {
+            *cache = Some(worker.work());
         }
     }
 
@@ -57,9 +70,9 @@ impl<'a> Iterator for GamesProducer<'a> {
     type Item = Request;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.workers[self.current_game].work();
+        let result = mem::take(&mut self.cached[self.current_game]);
         self.cycle_game();
-        result
+        result.unwrap_or_else(|| self.workers[self.current_game].work())
     }
 }
 
@@ -77,12 +90,17 @@ struct GamesProducerWorker<'a> {
 }
 
 impl<'a> GamesProducerWorker<'a> {
-    pub fn work(&mut self) -> Option<Request> {
+    pub fn work(&mut self) -> IterItem {
         let tree = self.tree.borrow();
         let mut cursor = self.cursor.borrow_mut();
 
         if tree.len() == 1 {
-            return Some(self.generate_request(&tree, &mut cursor, 0));
+            return if self.in_progress.is_empty() {
+                self.in_progress.insert(0);
+                Some(self.generate_request(&tree, &mut cursor, 0))
+            } else {
+                None
+            }
         }
 
         self.in_progress.validate_all(&tree.nodes);
@@ -98,6 +116,7 @@ impl<'a> GamesProducerWorker<'a> {
                 self.tree.replace(self.initial_tree.clone());
                 *cursor = self.initial_cursor.clone();
 
+                self.in_progress.insert(0);
                 Some(self.generate_request(&self.tree.borrow(), &mut cursor, 0))
             }
         }
@@ -119,18 +138,20 @@ impl<'a> GamesProducerWorker<'a> {
             let side = tree.get_side_at(node);
             let mut controller = controller.clone();
             let moves = controller.get_possible_moves(side);
-            for m in moves {
+            for (i, m) in moves.into_iter().enumerate() {
                 controller.apply_move(m);
 
                 let moves = controller.get_possible_moves(!side);
                 let game_result = controller.get_game_result(&moves);
-                result.parts.push(self.handle_game_result(&controller, m, game_result, result.uuid));
+                result.parts.push(
+                    self.handle_game_result(&controller, m, game_result, &result, i)
+                );
 
                 controller.revert();
             };
         } else {
             const SHIFT: f32 = 0.0001;
-            for m in continuations {
+            for (i, m) in continuations.into_iter().enumerate() {
                 result.parts.push(RequestPart::Completed {
                     owner: result.uuid,
                     m,
@@ -139,6 +160,7 @@ impl<'a> GamesProducerWorker<'a> {
                     // Openings are usually good for both sides
                     // Add a small random value so the AI can choose from different openings
                     eval: rng.gen_range((-SHIFT)..SHIFT),
+                    index_in_owner: i,
                 })
             }
         }
@@ -146,31 +168,37 @@ impl<'a> GamesProducerWorker<'a> {
         result
     }
 
-    fn handle_game_result(&self, controller: &BoardController, m: Movement, game_result: GameResult, uuid: usize) -> RequestPart {
+    fn handle_game_result(&self, controller: &BoardController, m: Movement, game_result: GameResult,
+                           owner: &Request, index_in_owner: usize) -> RequestPart {
+        (self.options.on_game_result.lock().unwrap())((game_result.clone(), owner.game_index));
+
         match game_result {
             GameResult::Undefined => {
                 RequestPart::Pending {
-                    owner: uuid,
+                    owner: owner.uuid,
                     m,
                     array: controller.current().to_array().into_dyn(),
+                    index_in_owner,
                 }
             }
             GameResult::Win(side, _) => {
                 RequestPart::Completed {
-                    owner: uuid,
+                    owner: owner.uuid,
                     m,
                     info: NodeExtraInfo { is_ending: true, is_opening: false },
                     cache: None,
                     eval: if side { 1.0 } else { -1.0 },
+                    index_in_owner,
                 }
             }
             GameResult::Draw(_) => {
                 RequestPart::Completed {
-                    owner: uuid,
+                    owner: owner.uuid,
                     m,
                     info: NodeExtraInfo { is_ending: true, is_opening: false },
                     cache: None,
                     eval: 0.0,
+                    index_in_owner,
                 }
             }
         }
@@ -249,11 +277,6 @@ impl<'a> GamesProducerWorker<'a> {
 
                 if let Some(current) = result {
                     if let Some(new) = option {
-                        // if side && new.1 > current.1 {
-                        //     result = Some(new);
-                        // } else if !side && new.1 < current.1 {
-                        //     result = Some(new)
-                        // }
                         if new.1 > current.1 {
                             result = Some(new);
                         }

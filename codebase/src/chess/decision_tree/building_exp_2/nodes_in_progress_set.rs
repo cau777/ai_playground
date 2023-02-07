@@ -23,4 +23,8 @@ impl NodesInProgressSet {
     pub fn insert(&mut self, node: usize) {
         self.set.insert(node);
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.set.is_empty()
+    }
 }
