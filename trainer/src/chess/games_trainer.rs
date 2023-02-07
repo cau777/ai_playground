@@ -29,8 +29,8 @@ impl GamesTrainer {
         }
     }
 
-    pub fn train_version(&self, controller: &mut NNController, strategy: NextNodeStrategy) -> GameMetrics {
-        let (games, metrics) = self.analyze_games(controller, 8, strategy);
+    pub fn train_version(&self, controller: &mut NNController, strategy: NextNodeStrategy, sim_games: usize) -> GameMetrics {
+        let (games, metrics) = self.analyze_games(controller, sim_games, strategy);
 
         for chunk in games.chunks(BATCH_SIZE) {
             let inputs: Vec<_> = chunk.iter().map(|(b, _)| b.to_array()).collect();
@@ -86,7 +86,6 @@ impl GamesTrainer {
         metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
         metrics.rescale_by_branches();
         // TODO: better reescale
-        // TODO: use avg_confidence
 
         // std::fs::OpenOptions::new().write(true).create(true).open(
         //     format!("../out/{}_1.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()

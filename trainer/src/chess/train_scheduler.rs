@@ -4,7 +4,6 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use codebase::chess::decision_tree::building_exp::NextNodeStrategy;
 use codebase::integration::layers_loading::ModelXmlConfig;
-use codebase::integration::serialization::serialize_version;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
 use crate::chess::endgames_trainer::EndgamesTrainer;
@@ -85,7 +84,7 @@ impl TrainerScheduler {
                 let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::ContinueLineThenBestVariantOrRandom {
                     min_full_paths: 20,
                     random_node_chance: 0.2,
-                });
+                }, 8);
                 Self::print_metrics(&result);
                 all_metrics.push(result);
                 if all_metrics.len() > 10 {
@@ -94,11 +93,10 @@ impl TrainerScheduler {
             }
             TrainingStrategy::OpponentsResponses => {
                 let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BestOrRandomNode {
-                    min_nodes_explored: 10_000,
-                    random_node_chance: 0.5,
-                });
+                    min_nodes_explored: 5_000,
+                    random_node_chance: 0.92,
+                }, 1);
                 Self::print_metrics(&result);
-                queue.push(TrainingStrategy::FullGames);
                 queue.push(TrainingStrategy::FullGames);
             }
         }
@@ -131,10 +129,11 @@ impl TrainerScheduler {
         avg_metrics.rescale(1.0 / metrics.len() as f64);
 
         let win_rate = avg_metrics.white_win_rate + avg_metrics.black_win_rate;
-        if (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3 ||
-            avg_metrics.average_confidence < 0.92 ||
-            (version != 0 && version % 10 == 0) {
-            TrainingStrategy::OpponentsResponses
+        let unbalanced_win_rate = (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3;
+        let low_confidence = avg_metrics.average_confidence < 0.9;
+
+        if version % 10 == 0 && (unbalanced_win_rate || low_confidence) {
+            TrainingStrategy::FullGames // TODO: OpponentsResponses
         } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.2 {
             TrainingStrategy::Endgames
         } else {
