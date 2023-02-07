@@ -4,6 +4,7 @@ mod request;
 mod nodes_in_progress_set;
 mod limiting_factors;
 mod request_storage;
+mod cache;
 
 use std::cell::RefCell;
 use std::iter::zip;
@@ -13,8 +14,9 @@ use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::{DecisionTree, NodeExtraInfo};
 
 pub use options::*;
+pub use limiting_factors::*;
+use crate::chess::decision_tree::building_exp_2::cache::Cache;
 use crate::chess::decision_tree::building_exp_2::games_producer::GamesProducer;
-use crate::chess::decision_tree::building_exp_2::limiting_factors::{CurrentLimitingFactors};
 use crate::chess::decision_tree::building_exp_2::request::{RequestPart};
 use crate::chess::decision_tree::building_exp_2::request_storage::RequestStorage;
 use crate::chess::game_result::GameResult;
@@ -32,13 +34,13 @@ fn scale_output(x: f32) -> f32 {
     }
 }
 
-pub struct DecisionTreeBuilder {
+pub struct DecisionTreesBuilder {
     initial_trees: Vec<DecisionTree>,
     initial_cursors: Vec<TreeCursor>,
     options: BuilderOptions,
 }
 
-impl DecisionTreeBuilder {
+impl DecisionTreesBuilder {
     pub fn new(initial_trees: Vec<DecisionTree>, initial_cursors: Vec<TreeCursor>, options: BuilderOptions) -> Self {
         Self {
             initial_trees,
@@ -52,18 +54,17 @@ impl DecisionTreeBuilder {
         let cursors: Vec<_> = self.initial_cursors.iter().cloned().map(RefCell::new).collect();
         let mut producer = GamesProducer::new(&self.initial_trees, &self.initial_cursors,
                                               &trees, &cursors, &self.options);
-        let mut caches: Vec<Vec<Option<GenericStorage>>> = vec![vec![None]; self.initial_trees.len()];
+        let mut caches = vec![Cache::new(self.options.max_cache); self.initial_trees.len()];
 
         let mut requests = RequestStorage::new();
 
         let mut current_factors = CurrentLimitingFactors::default();
         while self.options.limits.should_continue(current_factors.clone()) {
-            // TODO: parallel using crossbeam::thread::scope
+            // TODO: parallel using crossbeam::thread::scope (maybe not necessary?)
             self.fill_requests(&mut requests, &mut producer);
-            println!("Requests len {}", requests.len());
 
             let parts = Self::take_parts(&requests, self.options.batch_size);
-            println!("Parts len {}", parts.len());
+
             if !parts.is_empty() {
                 let inputs: Vec<_> = parts.iter()
                     .map(|o| {
@@ -75,7 +76,7 @@ impl DecisionTreeBuilder {
                 let storages: Vec<_> = parts.iter()
                     .map(|o| o.owner())
                     .map(|o| requests.iter().find(|r| r.uuid == o).unwrap())
-                    .map(|o| &caches[o.game_index][o.node_index])
+                    .map(|o| caches[o.game_index].get(o.node_index))
                     .collect();
 
                 let combined = if storages.iter().all(|o| o.is_some()) {
@@ -164,7 +165,7 @@ impl DecisionTreeBuilder {
     }
 
     fn remove_completed(&self, requests: RequestStorage, trees: &[RefCell<DecisionTree>],
-                        caches: &mut [Vec<Option<GenericStorage>>]) -> RequestStorage {
+                        caches: &mut [Cache]) -> RequestStorage {
         let mut new_requests = RequestStorage::with_capacity(requests.len());
 
         for req in requests.into_iter() {
@@ -205,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_debug() {
-        let mut builder = DecisionTreeBuilder::new(
+        let mut builder = DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
             BuilderOptions {

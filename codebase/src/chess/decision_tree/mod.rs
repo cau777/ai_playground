@@ -10,7 +10,7 @@ mod svg_export;
 pub mod building;
 mod results_aggregator;
 pub mod building_exp;
-mod building_exp_2;
+pub mod building_exp_2;
 
 pub use node::NodeExtraInfo;
 
