@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
-use codebase::chess::decision_tree::building_exp::NextNodeStrategy;
+use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, LimiterFactors, NextNodeStrategy};
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
@@ -81,9 +81,14 @@ impl TrainerScheduler {
                 queue.push(TrainingStrategy::FullGames);
             }
             TrainingStrategy::FullGames => {
-                let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::ContinueLineThenBestVariantOrRandom {
-                    min_full_paths: 20,
+                let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
+                    limits: LimiterFactors {
+                        max_full_paths_explored: Some(20),
+                        ..LimiterFactors::default()
+                    },
                     random_node_chance: 0.2,
+                    next_node_strategy: NextNodeStrategy::Deepest,
+                    ..BuilderOptions::default()
                 }, 8);
                 Self::print_metrics(&result);
                 all_metrics.push(result);
@@ -92,9 +97,14 @@ impl TrainerScheduler {
                 }
             }
             TrainingStrategy::OpponentsResponses => {
-                let result = self.games_trainer.train_version(&mut self.controller, NextNodeStrategy::BestOrRandomNode {
-                    min_nodes_explored: 5_000,
+                let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
+                    limits: LimiterFactors {
+                        max_explored_nodes: Some(2_000),
+                        ..LimiterFactors::default()
+                    },
                     random_node_chance: 0.92,
+                    next_node_strategy: NextNodeStrategy::BestNode,
+                    ..BuilderOptions::default()
                 }, 1);
                 Self::print_metrics(&result);
                 queue.push(TrainingStrategy::FullGames);
@@ -126,15 +136,17 @@ impl TrainerScheduler {
         for m in metrics {
             avg_metrics.add(m);
         }
-        avg_metrics.rescale(1.0 / metrics.len() as f64);
+        let factor = 1.0 / metrics.len() as f64;
+        avg_metrics.branches.scale(factor);
+        avg_metrics.nodes.scale(factor);
 
-        let win_rate = avg_metrics.white_win_rate + avg_metrics.black_win_rate;
-        let unbalanced_win_rate = (avg_metrics.white_win_rate - avg_metrics.black_win_rate).abs() / win_rate > 0.3;
-        let low_confidence = avg_metrics.average_confidence < 0.9;
+        let win_rate = avg_metrics.branches.white_win_rate + avg_metrics.branches.black_win_rate;
+        let unbalanced_win_rate = (avg_metrics.branches.white_win_rate - avg_metrics.branches.black_win_rate).abs() / win_rate > 0.3;
+        let low_confidence = avg_metrics.nodes.average_confidence < 0.7;
 
-        if version % 10 == 0 && (unbalanced_win_rate || low_confidence) {
-            TrainingStrategy::FullGames // TODO: OpponentsResponses
-        } else if avg_metrics.aborted_rate > 0.1 || avg_metrics.stalemate_rate > 0.2 {
+        if version % 5 == 0 && (unbalanced_win_rate || low_confidence) {
+            TrainingStrategy::OpponentsResponses
+        } else if avg_metrics.branches.aborted_rate > 0.1 || avg_metrics.branches.stalemate_rate > 0.2 {
             TrainingStrategy::Endgames
         } else {
             TrainingStrategy::FullGames

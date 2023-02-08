@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::iter::zip;
 use std::mem;
 use std::ops::RangeFrom;
@@ -100,7 +101,7 @@ impl<'a> GamesProducerWorker<'a> {
                 Some(self.generate_request(&tree, &mut cursor, 0))
             } else {
                 None
-            }
+            };
         }
 
         self.in_progress.validate_all(&tree.nodes);
@@ -169,8 +170,8 @@ impl<'a> GamesProducerWorker<'a> {
     }
 
     fn handle_game_result(&self, controller: &BoardController, m: Movement, game_result: GameResult,
-                           owner: &Request, index_in_owner: usize) -> RequestPart {
-        (self.options.on_game_result.lock().unwrap())((game_result.clone(), owner.game_index));
+                          owner: &Request, index_in_owner: usize) -> RequestPart {
+        (self.options.on_game_result)((game_result.clone(), owner.game_index));
 
         match game_result {
             GameResult::Undefined => {
@@ -236,17 +237,28 @@ impl<'a> GamesProducerWorker<'a> {
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {
         tree.nodes.iter()
-            // Instead of accessing all the nodes directly, we call get_ordered_children on all parents
-            .filter_map(|o| o.get_ordered_children(tree.start_side))
-            .flatten()
-            .map(|&i| (i, &tree.nodes[i]))
+            .enumerate()
 
             .filter(|(_, o)| !o.info.is_ending)
             .filter(|(_, o)| o.children.is_none())
             .filter(|(i, _)| !self.in_progress.contains(*i))
 
-            // max_by_key() can't be used because it returns the last element if several elements are equally maximum
-            .reduce(|acc, item| if acc.1.depth >= item.1.depth { acc } else { item })
+            .reduce(|acc, item| {
+                match acc.1.depth.cmp(&item.1.depth) {
+                    Ordering::Greater => acc,
+                    Ordering::Less => item,
+                    Ordering::Equal => {
+                        // The side is the same for both
+                        let side = acc.1.get_current_side(tree.start_side);
+                        let factor = if side { 1.0 } else { -1.0 };
+                        if acc.1.eval() * factor > item.1.eval() * factor {
+                            acc
+                        } else {
+                            item
+                        }
+                    }
+                }
+            })
             .map(|(i, _)| i)
 
         // tree.nodes.iter()

@@ -1,8 +1,5 @@
 #[derive(Debug, Default, Clone)]
-pub struct GameMetrics {
-    pub total_branches: u64,
-    pub total_nodes: u64,
-
+pub struct MetricsByBranch {
     pub aborted_rate: f64,
     pub repetition_rate: f64,
     pub draw_50mr_rate: f64,
@@ -12,18 +9,11 @@ pub struct GameMetrics {
     pub white_win_rate: f64,
     pub black_win_rate: f64,
     pub draw_rate: f64,
-    pub average_len: f64,
-
-    pub average_confidence: f64,
+    pub average_branch_depth: f64,
 }
 
-impl GameMetrics {
-    pub fn rescale_by_branches(&mut self) {
-        let factor = 1.0 / self.total_branches as f64;
-        self.rescale(factor);
-    }
-
-    pub fn rescale(&mut self, factor: f64) {
+impl MetricsByBranch {
+    pub fn scale(&mut self, factor: f64) {
         self.aborted_rate *= factor;
         self.repetition_rate *= factor;
         self.draw_50mr_rate *= factor;
@@ -32,11 +22,10 @@ impl GameMetrics {
         self.white_win_rate *= factor;
         self.black_win_rate *= factor;
         self.draw_rate *= factor;
-        self.average_len *= factor;
-        self.average_confidence *= factor;
+        self.average_branch_depth *= factor;
     }
 
-    pub fn add(&mut self, rhs: &GameMetrics) {
+    pub fn add(&mut self, rhs: &MetricsByBranch) {
         self.aborted_rate += rhs.aborted_rate;
         self.repetition_rate += rhs.repetition_rate;
         self.draw_50mr_rate += rhs.draw_50mr_rate;
@@ -45,7 +34,38 @@ impl GameMetrics {
         self.white_win_rate += rhs.white_win_rate;
         self.black_win_rate += rhs.black_win_rate;
         self.draw_rate += rhs.draw_rate;
-        self.average_len += rhs.average_len;
+        self.average_branch_depth += rhs.average_branch_depth;
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct MetricsByNode {
+    pub average_confidence: f64,
+}
+
+impl MetricsByNode {
+    pub fn scale(&mut self, factor: f64) {
+        self.average_confidence *= factor;
+    }
+
+    pub fn add(&mut self, rhs: &MetricsByNode) {
         self.average_confidence += rhs.average_confidence;
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct GameMetrics {
+    pub total_branches: u64,
+    pub total_nodes: u64,
+    pub branches: MetricsByBranch,
+    pub nodes: MetricsByNode,
+}
+
+impl GameMetrics {
+    pub fn add(&mut self, rhs: &GameMetrics) {
+        self.branches.add(&rhs.branches);
+        self.nodes.add(&rhs.nodes);
+        self.total_nodes += rhs.total_nodes;
+        self.total_branches += rhs.total_branches;
     }
 }

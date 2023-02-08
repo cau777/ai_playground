@@ -8,7 +8,7 @@ mod cache;
 
 use std::cell::RefCell;
 use std::iter::zip;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use ndarray::{Axis, stack};
 use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::{DecisionTree, NodeExtraInfo};
@@ -22,9 +22,7 @@ use crate::chess::decision_tree::building_exp_2::request_storage::RequestStorage
 use crate::chess::game_result::GameResult;
 use crate::nn::controller::NNController;
 use crate::nn::generic_storage::{combine_storages, split_storages};
-use crate::nn::layers::nn_layers::GenericStorage;
-
-type OnGameResultFn = Box<Mutex<dyn FnMut((GameResult, usize)) + Send + Sync>>;
+type OnGameResultFn = Box<dyn Fn((GameResult, usize))>;
 
 fn scale_output(x: f32) -> f32 {
     if x < 2.0 && x > -2.0 {
@@ -137,6 +135,7 @@ impl DecisionTreesBuilder {
             }
 
             producer.preprocess();
+            // TODO: Finish all requests before stopping (accurate metrics)
         }
 
         (trees.into_iter().map(|o| o.into_inner()).collect(),
