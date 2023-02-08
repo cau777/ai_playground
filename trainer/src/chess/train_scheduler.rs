@@ -89,7 +89,7 @@ impl TrainerScheduler {
                     random_node_chance: 0.2,
                     next_node_strategy: NextNodeStrategy::Deepest,
                     ..BuilderOptions::default()
-                }, 8);
+                }, 5);
                 Self::print_metrics(&result);
                 all_metrics.push(result);
                 if all_metrics.len() > 10 {
@@ -142,7 +142,7 @@ impl TrainerScheduler {
 
         let win_rate = avg_metrics.branches.white_win_rate + avg_metrics.branches.black_win_rate;
         let unbalanced_win_rate = (avg_metrics.branches.white_win_rate - avg_metrics.branches.black_win_rate).abs() / win_rate > 0.3;
-        let low_confidence = avg_metrics.nodes.average_confidence < 0.7;
+        let low_confidence = avg_metrics.nodes.avg_confidence < 0.7;
 
         if version % 5 == 0 && (unbalanced_win_rate || low_confidence) {
             TrainingStrategy::OpponentsResponses

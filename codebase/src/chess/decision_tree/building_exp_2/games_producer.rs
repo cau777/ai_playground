@@ -248,8 +248,10 @@ impl<'a> GamesProducerWorker<'a> {
                     Ordering::Greater => acc,
                     Ordering::Less => item,
                     Ordering::Equal => {
+                        // This is a little tricky, because we need the side in the perspective of the parent
+                        // (the side that is going to decide what node to follow)
                         // The side is the same for both
-                        let side = acc.1.get_current_side(tree.start_side);
+                        let side = !acc.1.get_current_side(tree.start_side);
                         let factor = if side { 1.0 } else { -1.0 };
                         if acc.1.eval() * factor > item.1.eval() * factor {
                             acc
