@@ -2,7 +2,7 @@ use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, DecisionTreesBuilder, NextNodeStrategy};
+use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::game_result::{DrawReason, GameResult};
@@ -100,7 +100,12 @@ impl GamesTrainer {
         let factor = 1.0 / metrics.total_branches as f64;
         metrics.branches.scale(factor);
 
-        metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
+        for node in trees.iter().flat_map(|o| &o.nodes) {
+            metrics.total_nodes += 1;
+            metrics.nodes.avg_children += node.children.as_ref()
+                .map(|o| o.len()).unwrap_or_default() as f64;
+        }
+
         let factor = 1.0 / metrics.total_nodes as f64;
         metrics.nodes.scale(factor);
 
@@ -125,7 +130,7 @@ impl GamesTrainer {
                 .map(|&o| o as f64)
                 .sum::<f64>();
             let total_valid = confidence.iter().flatten().count() as f64;
-            metrics.nodes.average_confidence += total_confidence / total_valid / count as f64;
+            metrics.nodes.avg_confidence += total_confidence / total_valid / count as f64;
 
             let nodes = tree.nodes.iter()
                 .enumerate()
@@ -166,7 +171,8 @@ impl GamesTrainer {
 
         for (i, node) in tree.nodes.iter().enumerate().skip(1) {
             if let Some(val) = values[i] {
-                values[i] = Some(val * values[node.parent].unwrap())
+                let new = val * values[node.parent].unwrap();
+                values[i] = Some(new.max(0.1))
             }
         }
 

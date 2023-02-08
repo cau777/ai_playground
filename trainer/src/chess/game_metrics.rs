@@ -40,16 +40,19 @@ impl MetricsByBranch {
 
 #[derive(Debug, Default, Clone)]
 pub struct MetricsByNode {
-    pub average_confidence: f64,
+    pub avg_confidence: f64,
+    pub avg_children: f64,
 }
 
 impl MetricsByNode {
     pub fn scale(&mut self, factor: f64) {
-        self.average_confidence *= factor;
+        self.avg_confidence *= factor;
+        self.avg_children *= factor;
     }
 
     pub fn add(&mut self, rhs: &MetricsByNode) {
-        self.average_confidence += rhs.average_confidence;
+        self.avg_confidence += rhs.avg_confidence;
+        self.avg_children += rhs.avg_children;
     }
 }
 
