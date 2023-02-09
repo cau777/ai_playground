@@ -138,11 +138,11 @@ impl TrainerScheduler {
         }
         let factor = 1.0 / metrics.len() as f64;
         avg_metrics.branches.scale(factor);
-        avg_metrics.nodes.scale(factor);
+        avg_metrics.explored_nodes.scale(factor);
 
         let win_rate = avg_metrics.branches.white_win_rate + avg_metrics.branches.black_win_rate;
         let unbalanced_win_rate = (avg_metrics.branches.white_win_rate - avg_metrics.branches.black_win_rate).abs() / win_rate > 0.3;
-        let low_confidence = avg_metrics.nodes.avg_confidence < 0.7;
+        let low_confidence = avg_metrics.explored_nodes.avg_confidence < 0.7;
 
         if version % 5 == 0 && (unbalanced_win_rate || low_confidence) {
             TrainingStrategy::OpponentsResponses

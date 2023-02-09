@@ -1,7 +1,4 @@
 use std::cell::RefCell;
-use std::cmp::Ordering;
-use std::iter::zip;
-use std::mem;
 use std::ops::RangeFrom;
 use std::sync::{Arc, RwLock};
 use ndarray_rand::rand::{Rng, thread_rng};
@@ -11,6 +8,7 @@ use crate::chess::decision_tree::building_exp_2::{BuilderOptions, NextNodeStrate
 use crate::chess::decision_tree::building_exp_2::request::{Request, RequestPart};
 use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::{DecisionTree, NodeExtraInfo};
+use crate::chess::decision_tree::building_exp_2::building_error::BuildingError;
 use crate::chess::decision_tree::building_exp_2::nodes_in_progress_set::NodesInProgressSet;
 use crate::chess::game_result::GameResult;
 use crate::chess::movement::Movement;
@@ -20,7 +18,6 @@ type IterItem = Option<Request>;
 pub struct GamesProducer<'a> {
     current_game: usize,
     workers: Vec<GamesProducerWorker<'a>>,
-    cached: Vec<Option<IterItem>>,
 }
 
 impl<'a> GamesProducer<'a> {
@@ -40,11 +37,10 @@ impl<'a> GamesProducer<'a> {
             workers.push(GamesProducerWorker {
                 game_index: i,
                 ids_producer: producer.clone(),
-                initial_tree: &initial_trees[i],
-                initial_cursor: &initial_cursors[i],
                 tree: &trees[i],
                 cursor: &cursors[i],
                 options,
+                finished: false,
                 in_progress: NodesInProgressSet::new(),
             });
         }
@@ -52,28 +48,27 @@ impl<'a> GamesProducer<'a> {
         Self {
             current_game: 0,
             workers,
-            cached: vec![None; count],
-        }
-    }
-
-    pub fn preprocess(&mut self) {
-        for (worker, cache) in zip(self.workers.iter_mut(), self.cached.iter_mut()) {
-            *cache = Some(worker.work());
         }
     }
 
     fn cycle_game(&mut self) {
         self.current_game = (self.current_game + 1) % self.workers.len();
     }
-}
 
-impl<'a> Iterator for GamesProducer<'a> {
-    type Item = Request;
+    fn next(&mut self) -> IterItem {
+        self.next_checked().unwrap()
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = mem::take(&mut self.cached[self.current_game]);
-        self.cycle_game();
-        result.unwrap_or_else(|| self.workers[self.current_game].work())
+    pub fn next_checked(&mut self) -> Result<IterItem, BuildingError> {
+        if self.workers.iter().all(|o| o.finished) {
+            self.cycle_game();
+            Err(BuildingError::AllTreesFinished)
+        } else {
+            let worker = &mut self.workers[self.current_game];
+            let result = worker.work().ok().and_then(|o| o);
+            self.cycle_game();
+            Ok(result)
+        }
     }
 }
 
@@ -83,24 +78,27 @@ struct GamesProducerWorker<'a> {
     game_index: usize,
     tree: &'a RefCell<DecisionTree>,
     cursor: &'a RefCell<TreeCursor>,
-    initial_tree: &'a DecisionTree,
-    initial_cursor: &'a TreeCursor,
     in_progress: NodesInProgressSet,
     ids_producer: Arc<RwLock<IdsProducer>>,
     options: &'a BuilderOptions,
+    finished: bool,
 }
 
 impl<'a> GamesProducerWorker<'a> {
-    pub fn work(&mut self) -> IterItem {
+    pub fn work(&mut self) -> Result<IterItem, BuildingError> {
+        if self.finished {
+            return Err(BuildingError::AllTreesFinished);
+        }
+
         let tree = self.tree.borrow();
         let mut cursor = self.cursor.borrow_mut();
 
         if tree.len() == 1 {
             return if self.in_progress.is_empty() {
                 self.in_progress.insert(0);
-                Some(self.generate_request(&tree, &mut cursor, 0))
+                Ok(Some(self.generate_request(&tree, &mut cursor, 0)))
             } else {
-                None
+                Ok(None)
             };
         }
 
@@ -111,14 +109,11 @@ impl<'a> GamesProducerWorker<'a> {
             Some(next) => {
                 let result = Some(self.generate_request(&tree, &mut cursor, next));
                 self.in_progress.insert(next);
-                result
+                Ok(result)
             }
             None => {
-                self.tree.replace(self.initial_tree.clone());
-                *cursor = self.initial_cursor.clone();
-
-                self.in_progress.insert(0);
-                Some(self.generate_request(&self.tree.borrow(), &mut cursor, 0))
+                self.finished = true;
+                Err(BuildingError::AllTreesFinished)
             }
         }
     }
@@ -236,40 +231,26 @@ impl<'a> GamesProducerWorker<'a> {
     }
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {
-        tree.nodes.iter()
-            .enumerate()
-
-            .filter(|(_, o)| !o.info.is_ending)
-            .filter(|(_, o)| o.children.is_none())
-            .filter(|(i, _)| !self.in_progress.contains(*i))
-
-            .reduce(|acc, item| {
-                match acc.1.depth.cmp(&item.1.depth) {
-                    Ordering::Greater => acc,
-                    Ordering::Less => item,
-                    Ordering::Equal => {
-                        // This is a little tricky, because we need the side in the perspective of the parent
-                        // (the side that is going to decide what node to follow)
-                        // The side is the same for both
-                        let side = !acc.1.get_current_side(tree.start_side);
-                        let factor = if side { 1.0 } else { -1.0 };
-                        if acc.1.eval() * factor > item.1.eval() * factor {
-                            acc
-                        } else {
-                            item
-                        }
-                    }
-                }
+        let max_depth = tree.nodes.iter()
+            .filter(|o| o.children.is_some())
+            .filter(|o| {
+                o.children.as_ref().unwrap().iter()
+                    .any(|&o| !tree.nodes[o].info.is_ending && !self.in_progress.contains(o))
             })
-            .map(|(i, _)| i)
+            .map(|o| o.depth)
+            .max()?;
 
-        // tree.nodes.iter()
-        //     .enumerate()
-        //     .filter(|(_, o)| !o.info.is_ending)
-        //     .filter(|(_, o)| o.children.is_none())
-        //     .filter(|(i, _)| !self.in_progress.contains(*i))
-        //     .max_by_key(|(_, o)| o.depth)
-        //     .map(|(i, _)| i)
+        let parents = tree.nodes.iter()
+            .enumerate()
+            .rev()
+            .filter(|(_, o)| o.is_visited())
+            .filter(|(_, o)| o.depth == max_depth);
+
+        parents
+            .filter_map(|(_, o)| o.get_ordered_children(tree.start_side))
+            .flatten()
+            .copied()
+            .find(|&o| !self.in_progress.contains(o))
     }
 
     // TODO: iterative version

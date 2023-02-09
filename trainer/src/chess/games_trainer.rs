@@ -100,14 +100,16 @@ impl GamesTrainer {
         let factor = 1.0 / metrics.total_branches as f64;
         metrics.branches.scale(factor);
 
-        for node in trees.iter().flat_map(|o| &o.nodes) {
-            metrics.total_nodes += 1;
-            metrics.nodes.avg_children += node.children.as_ref()
+        for node in trees.iter().flat_map(|o| &o.nodes).filter(|o| o.is_visited()) {
+            metrics.total_explored_nodes += 1;
+            metrics.explored_nodes.avg_children += node.children.as_ref()
                 .map(|o| o.len()).unwrap_or_default() as f64;
         }
 
-        let factor = 1.0 / metrics.total_nodes as f64;
-        metrics.nodes.scale(factor);
+        let factor = 1.0 / metrics.total_explored_nodes as f64;
+        metrics.explored_nodes.scale(factor);
+
+        metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
 
         // std::fs::OpenOptions::new().write(true).create(true).open(
         //     format!("../out/{}_1.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
@@ -130,7 +132,7 @@ impl GamesTrainer {
                 .map(|&o| o as f64)
                 .sum::<f64>();
             let total_valid = confidence.iter().flatten().count() as f64;
-            metrics.nodes.avg_confidence += total_confidence / total_valid / count as f64;
+            metrics.explored_nodes.avg_confidence += total_confidence / total_valid / count as f64;
 
             let nodes = tree.nodes.iter()
                 .enumerate()

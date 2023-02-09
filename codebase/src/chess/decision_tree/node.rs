@@ -45,7 +45,7 @@ impl Node {
         }
     }
 
-    pub fn get_ordered_children(&self, start_side: bool) -> Option<impl Iterator<Item=&usize>> {
+    pub fn get_ordered_children(&self, start_side: bool) -> Option<impl Iterator<Item=&usize> + DoubleEndedIterator> {
         let side = self.get_current_side(start_side);
         self.children.as_ref().map(|children| {
             (0..children.len())

@@ -10,7 +10,7 @@ mod games_trainer;
 mod game_metrics;
 
 const NAME: &str = "chess";
-const BATCH_SIZE: usize = 128;
+const BATCH_SIZE: usize = 64;
 
 // trait Trainer {
 //     fn new(config: &EnvConfig) -> Self;

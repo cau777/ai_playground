@@ -39,18 +39,18 @@ impl MetricsByBranch {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct MetricsByNode {
+pub struct MetricsByExploredNode {
     pub avg_confidence: f64,
     pub avg_children: f64,
 }
 
-impl MetricsByNode {
+impl MetricsByExploredNode {
     pub fn scale(&mut self, factor: f64) {
         self.avg_confidence *= factor;
         self.avg_children *= factor;
     }
 
-    pub fn add(&mut self, rhs: &MetricsByNode) {
+    pub fn add(&mut self, rhs: &MetricsByExploredNode) {
         self.avg_confidence += rhs.avg_confidence;
         self.avg_children += rhs.avg_children;
     }
@@ -60,14 +60,15 @@ impl MetricsByNode {
 pub struct GameMetrics {
     pub total_branches: u64,
     pub total_nodes: u64,
+    pub total_explored_nodes: u64,
     pub branches: MetricsByBranch,
-    pub nodes: MetricsByNode,
+    pub explored_nodes: MetricsByExploredNode,
 }
 
 impl GameMetrics {
     pub fn add(&mut self, rhs: &GameMetrics) {
         self.branches.add(&rhs.branches);
-        self.nodes.add(&rhs.nodes);
+        self.explored_nodes.add(&rhs.explored_nodes);
         self.total_nodes += rhs.total_nodes;
         self.total_branches += rhs.total_branches;
     }
