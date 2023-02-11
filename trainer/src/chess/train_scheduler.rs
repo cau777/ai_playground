@@ -83,7 +83,7 @@ impl TrainerScheduler {
             TrainingStrategy::FullGames => {
                 let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
                     limits: LimiterFactors {
-                        max_full_paths_explored: Some(20),
+                        max_full_paths_explored: Some(50),
                         ..LimiterFactors::default()
                     },
                     random_node_chance: 0.2,
@@ -102,7 +102,7 @@ impl TrainerScheduler {
                         max_explored_nodes: Some(2_000),
                         ..LimiterFactors::default()
                     },
-                    random_node_chance: 0.92,
+                    random_node_chance: 0.5,
                     next_node_strategy: NextNodeStrategy::BestNode,
                     ..BuilderOptions::default()
                 }, 1);

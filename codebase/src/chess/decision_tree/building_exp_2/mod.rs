@@ -67,7 +67,7 @@ impl DecisionTreesBuilder {
             should_break |= !self.options.limits.should_continue(current_factors.clone());
             if !should_break {
                 match self.fill_requests(&mut requests, &mut producer) {
-                    Ok(_) => {},
+                    Ok(_) => {}
                     Err(e) => {
                         eprintln!("{:?}", e);
                         break;
@@ -78,11 +78,11 @@ impl DecisionTreesBuilder {
             let parts = Self::take_parts(&requests, self.options.batch_size);
 
             if !parts.is_empty() {
-                {
-                    let r = requests.get(parts[0].owner());
-                    // println!("{:?} {:?}", r.game_index, r.node_index);
-                    println!("{:?}", &trees[r.game_index].borrow().nodes[r.node_index]);
-                }
+                // {
+                //     let r = requests.get(parts[0].owner());
+                //     println!("{:?} {:?}", r.game_index, r.node_index);
+                // println!("{:?}", &trees[r.game_index].borrow().nodes[r.node_index]);
+                // }
 
                 let inputs: Vec<_> = parts.iter()
                     .map(|o| {
@@ -155,17 +155,14 @@ impl DecisionTreesBuilder {
                 }
             }
 
-            if current_factors.curr_iterations % 20 == 0 {
-                println!("Some={} None={}, len={:?}, count={:?}, ls={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched);
-            }
-
             if should_break && requests.is_empty() {
                 break;
             }
         }
 
+        println!("Some={} None={}, len={:?}, count={:?}, ls={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched);
         (trees.into_iter().map(|o| o.into_inner()).collect(),
-            cursors.into_iter().map(|o| o.into_inner()).collect())
+         cursors.into_iter().map(|o| o.into_inner()).collect())
     }
 
     fn prepare_cache(caches: &mut [Cache], parts: &[&RequestPart], requests: &RequestStorage) -> Option<GenericStorage> {

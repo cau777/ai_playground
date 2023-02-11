@@ -133,6 +133,7 @@ impl GamesTrainer {
                 .sum::<f64>();
             let total_valid = confidence.iter().flatten().count() as f64;
             metrics.explored_nodes.avg_confidence += total_confidence / total_valid / count as f64;
+            // println!("{:?} {:?} {:?}", total_confidence, total_valid, count);
 
             let nodes = tree.nodes.iter()
                 .enumerate()
@@ -168,7 +169,7 @@ impl GamesTrainer {
             o.children_eval
                 .map(|eval| (o.pre_eval - eval).abs())
                 // Apply function to smooth results
-                .map(|o| f32::exp(o * -0.8))
+                .map(|o| f32::exp(o * -0.3))
         }).collect();
 
         for (i, node) in tree.nodes.iter().enumerate().skip(1) {

@@ -64,10 +64,14 @@ impl<'a> GamesProducer<'a> {
             self.cycle_game();
             Err(BuildingError::AllTreesFinished)
         } else {
-            let worker = &mut self.workers[self.current_game];
-            let result = worker.work().ok().and_then(|o| o);
-            self.cycle_game();
-            Ok(result)
+            loop {
+                let worker = &mut self.workers[self.current_game];
+                let result = worker.work();
+                self.cycle_game();
+                if result.is_ok() {
+                    return result;
+                }
+            }
         }
     }
 }
@@ -226,16 +230,18 @@ impl<'a> GamesProducerWorker<'a> {
         tree.nodes.iter()
             .enumerate()
             .filter(|(_, o)| o.children.is_none() && !o.info.is_ending)
+            .filter(|(i, _)| !self.in_progress.contains(*i))
             .map(|(i, _)| i)
             .max_by_key(|_| rng.gen_range(0..10_000_000))
     }
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {
+        // TODO: check of the compiler optimized this
         let max_depth = tree.nodes.iter()
             .filter(|o| o.children.is_some())
             .filter(|o| {
                 o.children.as_ref().unwrap().iter()
-                    .any(|&o| !tree.nodes[o].info.is_ending && !self.in_progress.contains(o))
+                    .any(|&o| !tree.nodes[o].is_visited() && !self.in_progress.contains(o))
             })
             .map(|o| o.depth)
             .max()?;
@@ -250,6 +256,7 @@ impl<'a> GamesProducerWorker<'a> {
             .filter_map(|(_, o)| o.get_ordered_children(tree.start_side))
             .flatten()
             .copied()
+            .filter(|&i| !tree.nodes[i].is_visited())
             .find(|&o| !self.in_progress.contains(o))
     }
 
