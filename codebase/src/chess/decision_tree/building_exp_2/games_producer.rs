@@ -64,7 +64,7 @@ impl<'a> GamesProducer<'a> {
             self.cycle_game();
             Err(BuildingError::AllTreesFinished)
         } else {
-            loop {
+            for _ in 0..self.workers.len() {
                 let worker = &mut self.workers[self.current_game];
                 let result = worker.work();
                 self.cycle_game();
@@ -72,6 +72,8 @@ impl<'a> GamesProducer<'a> {
                     return result;
                 }
             }
+
+            Err(BuildingError::AllTreesFinished)
         }
     }
 }
