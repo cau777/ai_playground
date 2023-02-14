@@ -209,20 +209,19 @@ impl<'a> GamesProducerWorker<'a> {
     fn choose_next_node(&self, tree: &DecisionTree) -> Option<usize> {
         let mut rng = thread_rng();
 
-        match self.options.next_node_strategy {
-            NextNodeStrategy::BestNode => {
-                if rng.gen_range(0.0..1.0) < self.options.random_node_chance {
-                    self.choose_random_node(tree, &mut rng)
-                } else {
+        if rng.gen_range(0.0..1.0) < self.options.random_node_chance {
+            self.choose_random_node(tree, &mut rng)
+        } else {
+            match self.options.next_node_strategy {
+                NextNodeStrategy::BestNode => {
                     self.choose_best_unexplored_recursive(tree, 0)
                         .map(|(i, _)| i)
                 }
-            }
-            NextNodeStrategy::Deepest => {
-                if rng.gen_range(0.0..1.0) < self.options.random_node_chance {
-                    self.choose_random_node(tree, &mut rng)
-                } else {
+                NextNodeStrategy::Deepest => {
                     self.choose_deepest_node(tree)
+                }
+                NextNodeStrategy::Computed { depth_factor, best_path_delta_exp } => {
+                    self.choose_best_computed_node(tree, depth_factor, best_path_delta_exp)
                 }
             }
         }
@@ -231,10 +230,20 @@ impl<'a> GamesProducerWorker<'a> {
     fn choose_random_node(&self, tree: &DecisionTree, rng: &mut ThreadRng) -> Option<usize> {
         tree.nodes.iter()
             .enumerate()
-            .filter(|(_, o)| o.children.is_none() && !o.info.is_ending)
+            .filter(|(_, o)| !o.is_visited())
             .filter(|(i, _)| !self.in_progress.contains(*i))
             .map(|(i, _)| i)
             .max_by_key(|_| rng.gen_range(0..10_000_000))
+    }
+
+    fn choose_best_computed_node(&self, tree: &DecisionTree, depth_factor: f64, best_path_delta_exp: f64) -> Option<usize> {
+        tree.nodes.iter()
+            .enumerate()
+            .filter(|(_, o)| !o.is_visited())
+            .filter(|(i, _)| !self.in_progress.contains(*i))
+            .map(|(i, o)| (i, compute_next_node_score(tree, o, depth_factor, best_path_delta_exp)))
+            .max_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
     }
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {

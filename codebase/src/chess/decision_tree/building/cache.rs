@@ -1,7 +1,6 @@
-use crate::chess::decision_tree::building_exp_2::NextNodeStrategy;
+use crate::chess::decision_tree::building::{compute_next_node_score, NextNodeStrategy};
 use crate::chess::decision_tree::DecisionTree;
 use crate::nn::layers::nn_layers::GenericStorage;
-
 
 #[derive(Clone)]
 pub struct Cache {
@@ -50,6 +49,7 @@ impl Cache {
         match strategy {
             NextNodeStrategy::BestNode => self.remove_worst_nodes(tree),
             NextNodeStrategy::Deepest => self.remove_shallow_nodes(tree),
+            NextNodeStrategy::Computed { best_path_delta_exp, depth_factor } => self.remove_worst_computed(tree, *best_path_delta_exp, *depth_factor)
         };
 
         // Because of some edge-cases (where one of the worst paths becomes the best for example),
@@ -87,6 +87,19 @@ impl Cache {
                 // If it is a leaf, just remove if
                 self.remove(node_index);
             }
+        }
+    }
+
+    fn remove_worst_computed(&mut self, tree: &DecisionTree, best_path_delta_exp: f64, depth_factor: f64) {
+        let mut nodes: Vec<_> = tree.nodes.iter()
+            .map(|o| compute_next_node_score(tree, o, depth_factor, best_path_delta_exp))
+            .enumerate()
+            .collect();
+
+        nodes.sort_unstable_by(|a, b| a.1.total_cmp(&b.1));
+        for (node_index, _) in nodes {
+            if !self.should_remove() { break; }
+            self.remove(node_index);
         }
     }
 

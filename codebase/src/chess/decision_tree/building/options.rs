@@ -15,6 +15,12 @@ pub struct BuilderOptions {
 pub enum NextNodeStrategy {
     BestNode,
     Deepest,
+    Computed {depth_factor: f64, best_path_delta_exp: f64},
+}
+
+pub fn compute_next_node_score(tree: &DecisionTree, node: &Node, depth_factor: f64, best_path_delta_exp: f64) -> f64 {
+    let best_path_delta  = f32::abs(tree.nodes[0].eval() - node.eval()) as f64;
+    node.depth as f64 * depth_factor * f64::exp(-best_path_delta * best_path_delta_exp)
 }
 
 impl Default for BuilderOptions {
