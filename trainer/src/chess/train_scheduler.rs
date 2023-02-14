@@ -83,10 +83,10 @@ impl TrainerScheduler {
             TrainingStrategy::FullGames => {
                 let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
                     limits: LimiterFactors {
-                        max_full_paths_explored: Some(50),
+                        max_full_paths_explored: Some(70),
                         ..LimiterFactors::default()
                     },
-                    random_node_chance: 0.2,
+                    random_node_chance: 0.25,
                     next_node_strategy: NextNodeStrategy::Deepest,
                     ..BuilderOptions::default()
                 }, 5);
@@ -99,7 +99,7 @@ impl TrainerScheduler {
             TrainingStrategy::OpponentsResponses => {
                 let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
                     limits: LimiterFactors {
-                        max_explored_nodes: Some(2_000),
+                        max_explored_nodes: Some(2_500),
                         ..LimiterFactors::default()
                     },
                     random_node_chance: 0.5,
@@ -111,7 +111,7 @@ impl TrainerScheduler {
             }
         }
 
-        if version != 0 && version % 2 == 0 {
+        if version != 0 && version % 5 == 0 {
             // For now, the only criteria to evaluate the model's performance is the time spent training
             let start = SystemTime::now();
             let since_the_epoch = start
@@ -144,10 +144,10 @@ impl TrainerScheduler {
         let unbalanced_win_rate = (avg_metrics.branches.white_win_rate - avg_metrics.branches.black_win_rate).abs() / win_rate > 0.3;
         let low_confidence = avg_metrics.explored_nodes.avg_confidence < 0.7;
 
-        if version % 5 == 0 && (unbalanced_win_rate || low_confidence) {
+        if version % 10 == 0 && (unbalanced_win_rate || low_confidence) {
             TrainingStrategy::OpponentsResponses
-        } else if avg_metrics.branches.aborted_rate > 0.1 || avg_metrics.branches.stalemate_rate > 0.2 {
-            TrainingStrategy::Endgames
+        } else if avg_metrics.branches.aborted_rate > 0.1 {
+            TrainingStrategy::Endgames 
         } else {
             TrainingStrategy::FullGames
         }

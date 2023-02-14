@@ -42,17 +42,23 @@ impl MetricsByBranch {
 pub struct MetricsByExploredNode {
     pub avg_confidence: f64,
     pub avg_children: f64,
+    pub avg_children_std_dev: f64,
+    pub avg_mean: f64,
 }
 
 impl MetricsByExploredNode {
     pub fn scale(&mut self, factor: f64) {
         self.avg_confidence *= factor;
         self.avg_children *= factor;
+        self.avg_children_std_dev *= factor;
+        self.avg_mean *= factor;
     }
 
     pub fn add(&mut self, rhs: &MetricsByExploredNode) {
         self.avg_confidence += rhs.avg_confidence;
         self.avg_children += rhs.avg_children;
+        self.avg_children_std_dev += rhs.avg_children_std_dev;
+        self.avg_mean += rhs.avg_mean;
     }
 }
 

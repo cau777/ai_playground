@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
+use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
 use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
@@ -44,7 +46,8 @@ impl GamesTrainer {
         metrics
     }
 
-    fn analyze_games(&self, controller: &NNController, count: usize, options: BuilderOptions) -> (Vec<(Board, f32)>, GameMetrics) {
+    fn analyze_games(&self, controller: &NNController, count: usize, options: BuilderOptions)
+        -> (Vec<(Board, f32)>, GameMetrics) {
         let mut trees = Vec::with_capacity(count);
         let mut cursors = Vec::with_capacity(count);
         for _ in 0..count {
@@ -100,10 +103,26 @@ impl GamesTrainer {
         let factor = 1.0 / metrics.total_branches as f64;
         metrics.branches.scale(factor);
 
-        for node in trees.iter().flat_map(|o| &o.nodes).filter(|o| o.is_visited()) {
-            metrics.total_explored_nodes += 1;
-            metrics.explored_nodes.avg_children += node.children.as_ref()
-                .map(|o| o.len()).unwrap_or_default() as f64;
+        for tree in &trees {
+            for node in tree.nodes.iter().filter(|o| o.children.is_some()) {
+                metrics.total_explored_nodes += 1;
+                let children = node.children.as_ref().unwrap();
+                let children_len = children.len() as f64;
+
+                metrics.explored_nodes.avg_children += children_len;
+                let evals: Vec<_> = children.iter()
+                    .map(|&o| tree.nodes[o].pre_eval as f64)
+                    .collect();
+
+                let mean = evals.iter().sum::<f64>() / children_len;
+
+                metrics.explored_nodes.avg_mean += mean;
+                metrics.explored_nodes.avg_children_std_dev += f64::sqrt(
+                    evals.iter().map(|&o| f64::powi(o - mean, 2)).sum::<f64>()
+                        /
+                        children_len
+                );
+            }
         }
 
         let factor = 1.0 / metrics.total_explored_nodes as f64;
@@ -111,29 +130,21 @@ impl GamesTrainer {
 
         metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
 
-        // std::fs::OpenOptions::new().write(true).create(true).open(
-        //     format!("../out/{}_1.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-        //     )).unwrap().write_all(trees[0].to_svg().as_bytes()).unwrap();
 
-        // std::fs::OpenOptions::new().write(true).create(true).open(
-        //     format!("../out/{}_2.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-        //     )).unwrap().write_all(trees[1].to_svg().as_bytes()).unwrap();
-
-        let mut result = Vec::new();
+        let mut result = HashMap::new();
         let mut rng = thread_rng();
 
         for i in 0..count {
             const SHIFT: f32 = 0.000_05;
             let tree = &trees[i];
             let c = &mut cursors[i];
-            let confidence = self.calc_nodes_confidence(tree);
+            let confidence = self.calc_nodes_confidence_2(tree);
             let total_confidence = confidence.iter()
                 .flatten()
                 .map(|&o| o as f64)
                 .sum::<f64>();
             let total_valid = confidence.iter().flatten().count() as f64;
             metrics.explored_nodes.avg_confidence += total_confidence / total_valid / count as f64;
-            // println!("{:?} {:?} {:?}", total_confidence, total_valid, count);
 
             let nodes = tree.nodes.iter()
                 .enumerate()
@@ -152,9 +163,15 @@ impl GamesTrainer {
                 .map(|(b, v)| (b, v.min(0.9995)))
                 // Shift the value by a small random to avoid loops in training
                 .map(|(b, v)| (b, v * (1.0 + rng.gen_range((-SHIFT)..SHIFT))));
-            result.extend(nodes);
+
+            for (board, eval) in nodes {
+                let hashable = BoardHashable::new(board.pieces);
+
+                result.insert(hashable, (board, eval));
+            }
         }
 
+        let result = result.into_values().collect();
         (result, metrics.clone())
     }
 
@@ -164,12 +181,27 @@ impl GamesTrainer {
         TreeCursor::new(controller)
     }
 
-    fn calc_nodes_confidence(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
+    fn calc_nodes_confidence_1(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
         let mut values: Vec<_> = tree.nodes.iter().map(|o| {
-            o.children_eval
+            let side = o.get_current_side(tree.start_side);
+
+            o.children.as_ref()
+                .and_then(|o| {
+                    // Get the instant evaluation of the best child, regardless of deeper nodes
+                    let mut evals: Vec<_> = o.iter()
+                        .map(|&o| tree.nodes[o].pre_eval)
+                        .collect();
+
+                    evals.sort_unstable_by(f32::total_cmp);
+                    if side {
+                        evals.last().copied()
+                    } else {
+                        evals.first().copied()
+                    }
+                })
                 .map(|eval| (o.pre_eval - eval).abs())
                 // Apply function to smooth results
-                .map(|o| f32::exp(o * -0.3))
+                .map(|o| f32::exp(o * -0.2))
         }).collect();
 
         for (i, node) in tree.nodes.iter().enumerate().skip(1) {
@@ -180,5 +212,15 @@ impl GamesTrainer {
         }
 
         values
+    }
+
+    fn calc_nodes_confidence_2(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
+        tree.nodes.iter().map(|o| {
+            o.children_eval
+                .map(|eval| (o.pre_eval - eval).abs())
+                // Apply function to smooth results
+                .map(|o| f32::exp(o * -1.0))
+                .map(|o| f32::max(o, 0.1))
+        }).collect()
     }
 }

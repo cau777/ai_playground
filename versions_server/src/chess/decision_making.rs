@@ -54,10 +54,13 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
     let (mut trees, _) = builder.build(loaded.get_loaded().unwrap());
     let tree = trees.pop().unwrap();
 
-    // use std::io::Write;
-    // std::fs::OpenOptions::new().write(true).create(true).open(
-    //     format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-    //     )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
+    #[cfg(debug_assertions)]
+    {
+        use std::io::Write;
+        std::fs::OpenOptions::new().write(true).create(true).open(
+            format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
+            )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
+    }
 
     let m = tree.best_path_moves().copied().next();
     m.ok_or_else(|| "No move generated".to_owned())
