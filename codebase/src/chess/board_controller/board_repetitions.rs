@@ -1,11 +1,6 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use nohash_hasher::{BuildNoHashHasher, IsEnabled};
+use nohash_hasher::{BuildNoHashHasher};
 use crate::chess::board_controller::board_hashable::BoardHashable;
-use crate::chess::pieces::board_piece::BoardPiece;
-use crate::chess::utils::BoardArray;
-
-use crate::chess::pieces::piece_type::PieceType::*;
 
 #[derive(Clone, Debug)]
 pub struct BoardRepetitions {

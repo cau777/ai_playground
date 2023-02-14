@@ -66,10 +66,6 @@ impl RequestStorage {
     pub fn iter(&self) -> impl Iterator<Item=&Request> {
         self.items.iter()
     }
-
-    fn clear_cached(&mut self) {
-        self.prev_req = Cell::new((0, 0));
-    }
 }
 
 impl IntoIterator for RequestStorage {

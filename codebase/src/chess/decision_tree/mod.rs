@@ -7,7 +7,6 @@ pub(crate) mod node;
 mod best_path_iterator;
 pub mod cursor;
 mod svg_export;
-mod results_aggregator;
 pub mod building;
 
 pub use node::NodeExtraInfo;

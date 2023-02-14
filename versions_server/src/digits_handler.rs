@@ -1,7 +1,6 @@
 use codebase::utils::Array2F;
-use tokio::sync::{RwLockWriteGuard};
 use warp::{reply, Reply};
-use crate::{FileManagerDep, LoadedModel, LoadedModelDep, StatusCode};
+use crate::{FileManagerDep, LoadedModelDep, StatusCode};
 use crate::loaded_model::assert_model_loaded;
 use crate::utils::{data_err_proc, EndpointResult};
 
