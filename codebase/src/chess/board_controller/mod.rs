@@ -2,17 +2,19 @@ mod move_applying;
 mod finding_moves;
 mod game_result;
 mod board_repetitions;
+pub mod board_hashable;
 
 use std::sync::Arc;
+use board_hashable::BoardHashable;
 use crate::chess::board::Board;
-use crate::chess::board_controller::board_repetitions::{BoardRecord, BoardRepetitions};
+use crate::chess::board_controller::board_repetitions::BoardRepetitions;
 use crate::chess::coord::Coord;
 use crate::chess::movement::Movement;
 use crate::chess::openings::openings_tree::OpeningsTree;
 use crate::chess::pieces::piece_dict::PieceDict;
 use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
-use crate::chess::utils::{CoordIndexed};
+use crate::chess::utils::CoordIndexed;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 struct BoardInfo {
@@ -97,7 +99,7 @@ impl BoardController {
     }
 
     fn push(&mut self, info: BoardInfo) {
-        let record = BoardRecord::new(info.board.pieces);
+        let record = BoardHashable::new(info.board.pieces);
         self.board_repetitions.increment_rep(record);
 
         self.boards.push(info);
@@ -119,7 +121,7 @@ impl BoardController {
         if self.boards.len() > 1 {
             let removed = self.boards.pop().map(|o| o.board).unwrap();
 
-            let record = BoardRecord::new(removed.pieces);
+            let record = BoardHashable::new(removed.pieces);
             self.board_repetitions.decrease_rep(&record);
 
             Some(removed)

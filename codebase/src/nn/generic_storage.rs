@@ -78,9 +78,9 @@ fn assert_all_same_shapes<'a>(mut items: impl Iterator<Item=&'a GenericStorage>)
 }
 
 pub fn combine_storages<'a>(items: &'a[&'a GenericStorage]) -> Option<GenericStorage> {
-    if !assert_all_same_keys(items.iter().map(|&o| o)) {
+    if !assert_all_same_keys(items.iter().copied()) {
         None
-    } else if !assert_all_same_shapes(items.iter().map(|&o| o)) {
+    } else if !assert_all_same_shapes(items.iter().copied()) {
         None
     } else {
         let mut result = GenericStorage::new();

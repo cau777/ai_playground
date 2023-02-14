@@ -1,5 +1,5 @@
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp::{DecisionTreesBuilder, NextNodeStrategy};
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::movement::Movement;
@@ -34,21 +34,33 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
     assert_model_loaded(&loaded, target, &file_manager).await
         .map_err(|e| format!("{:?}", e))?;
 
+    let loaded = loaded.read().await;
+
     let builder = DecisionTreesBuilder::new(
         vec![DecisionTree::new(controller.side_to_play())],
         vec![TreeCursor::new(controller)],
-        NextNodeStrategy::BestNodeAlways { min_nodes_explored: 30 },
-        64, 1_000
+        BuilderOptions {
+            batch_size: 64,
+            max_cache: 1_000,
+            next_node_strategy: NextNodeStrategy::BestNode,
+            limits: LimiterFactors {
+                max_explored_nodes: Some(30),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
     );
 
-    let loaded = loaded.read().await;
-    let (mut trees, _) = builder.build(loaded.get_loaded().unwrap(), |_| {});
+    let (mut trees, _) = builder.build(loaded.get_loaded().unwrap());
     let tree = trees.pop().unwrap();
 
-    // use std::io::Write;
-    // std::fs::OpenOptions::new().write(true).create(true).open(
-    //     format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-    //     )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
+    #[cfg(debug_assertions)]
+    {
+        use std::io::Write;
+        std::fs::OpenOptions::new().write(true).create(true).open(
+            format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
+            )).unwrap().write_all(tree.to_svg().as_bytes()).unwrap();
+    }
 
     let m = tree.best_path_moves().copied().next();
     m.ok_or_else(|| "No move generated".to_owned())

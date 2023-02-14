@@ -8,14 +8,12 @@ mod best_path_iterator;
 pub mod cursor;
 mod svg_export;
 pub mod building;
-mod results_aggregator;
-pub mod building_exp;
 
 pub use node::NodeExtraInfo;
 
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
-    start_side: bool,
+    pub start_side: bool,
     pub nodes: Vec<Node>,
 }
 
@@ -30,6 +28,11 @@ impl DecisionTree {
     pub fn best_path_moves(&self) -> impl Iterator<Item=&Movement> {
         BestPathIterator::new(&self.nodes, self.start_side, false)
             .map(|o| &self.nodes[o].movement)
+    }
+    
+    pub fn best_path_iter(&self, yield_root: bool) -> impl Iterator<Item=&Node>{
+        BestPathIterator::new(&self.nodes, self.start_side, yield_root)
+            .map(|o| &self.nodes[o])
     }
 
     pub fn submit_node_children(&mut self, parent: usize, positions_and_evals: &[(Movement, f32, NodeExtraInfo)]) -> usize {

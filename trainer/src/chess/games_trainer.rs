@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::fs::OpenOptions;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
+use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp::{DecisionTreesBuilder, NextNodeStrategy};
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::game_result::{DrawReason, GameResult};
@@ -29,8 +31,8 @@ impl GamesTrainer {
         }
     }
 
-    pub fn train_version(&self, controller: &mut NNController, strategy: NextNodeStrategy) -> GameMetrics {
-        let (games, metrics) = self.analyze_games(controller, 8, strategy);
+    pub fn train_version(&self, controller: &mut NNController, options: BuilderOptions, sim_games: usize) -> GameMetrics {
+        let (games, metrics) = self.analyze_games(controller, sim_games, options);
 
         for chunk in games.chunks(BATCH_SIZE) {
             let inputs: Vec<_> = chunk.iter().map(|(b, _)| b.to_array()).collect();
@@ -44,8 +46,8 @@ impl GamesTrainer {
         metrics
     }
 
-    fn analyze_games(&self, controller: &NNController, count: usize, strategy: NextNodeStrategy)
-                     -> (Vec<(Board, f32)>, GameMetrics) {
+    fn analyze_games(&self, controller: &NNController, count: usize, options: BuilderOptions)
+        -> (Vec<(Board, f32)>, GameMetrics) {
         let mut trees = Vec::with_capacity(count);
         let mut cursors = Vec::with_capacity(count);
         for _ in 0..count {
@@ -53,63 +55,96 @@ impl GamesTrainer {
             cursors.push(self.create_cursor());
         }
 
-        let mut metrics = GameMetrics::default();
-        let builder = DecisionTreesBuilder::new(trees, cursors,
-                                                strategy, BATCH_SIZE, self.max_cache);
+        let metrics = Arc::new(Mutex::new(GameMetrics::default()));
 
-        let (trees, mut cursors) = builder.build(controller, |(result, tree, node)| {
-            match result {
-                GameResult::Undefined => {}
-                GameResult::Draw(reason) => {
-                    metrics.draw_rate += 1.0;
-                    metrics.average_len += tree.get_depth_at(node) as f64;
-                    metrics.total_branches += 1;
-                    match reason {
-                        DrawReason::Aborted => metrics.aborted_rate += 1.0,
-                        DrawReason::Stalemate => metrics.stalemate_rate += 1.0,
-                        DrawReason::InsufficientMaterial => metrics.insuff_material_rate += 1.0,
-                        DrawReason::FiftyMoveRule => metrics.draw_50mr_rate += 1.0,
-                        DrawReason::Repetition => metrics.repetition_rate += 1.0,
+        let (trees, mut cursors) = {
+            let metrics = metrics.clone();
+
+            let options = BuilderOptions {
+                on_game_result: Box::new(move |(result, _)| {
+                    let mut metrics = metrics.lock().unwrap();
+
+                    match result {
+                        GameResult::Undefined => {}
+                        GameResult::Draw(reason) => {
+                            metrics.branches.draw_rate += 1.0;
+                            match reason {
+                                DrawReason::Aborted => metrics.branches.aborted_rate += 1.0,
+                                DrawReason::Stalemate => metrics.branches.stalemate_rate += 1.0,
+                                DrawReason::InsufficientMaterial => metrics.branches.insuff_material_rate += 1.0,
+                                DrawReason::FiftyMoveRule => metrics.branches.draw_50mr_rate += 1.0,
+                                DrawReason::Repetition => metrics.branches.repetition_rate += 1.0,
+                            }
+                        }
+                        GameResult::Win(side, _) => {
+                            if side {
+                                metrics.branches.white_win_rate += 1.0;
+                            } else {
+                                metrics.branches.black_win_rate += 1.0;
+                            }
+                        }
                     }
-                }
-                GameResult::Win(side, _) => {
-                    metrics.average_len += tree.get_depth_at(node) as f64;
-                    metrics.total_branches += 1;
-                    if side {
-                        metrics.white_win_rate += 1.0;
-                    } else {
-                        metrics.black_win_rate += 1.0;
-                    }
-                }
+                }),
+                batch_size: BATCH_SIZE,
+                max_cache: self.max_cache,
+                ..options
+            };
+
+            let builder = DecisionTreesBuilder::new(trees, cursors, options);
+            builder.build(controller)
+        };
+
+        let mut metrics = metrics.lock().unwrap();
+        for ending in trees.iter().flat_map(|o| &o.nodes).filter(|o| o.info.is_ending) {
+            metrics.total_branches += 1;
+            metrics.branches.average_branch_depth += ending.depth as f64;
+        }
+
+        let factor = 1.0 / metrics.total_branches as f64;
+        metrics.branches.scale(factor);
+
+        for tree in &trees {
+            for node in tree.nodes.iter().filter(|o| o.children.is_some()) {
+                metrics.total_explored_nodes += 1;
+                let children = node.children.as_ref().unwrap();
+                let children_len = children.len() as f64;
+
+                metrics.explored_nodes.avg_children += children_len;
+                let evals: Vec<_> = children.iter()
+                    .map(|&o| tree.nodes[o].pre_eval as f64)
+                    .collect();
+
+                let mean = evals.iter().sum::<f64>() / children_len;
+
+                metrics.explored_nodes.avg_mean += mean;
+                metrics.explored_nodes.avg_children_std_dev += f64::sqrt(
+                    evals.iter().map(|&o| f64::powi(o - mean, 2)).sum::<f64>()
+                        /
+                        children_len
+                );
             }
-        });
+        }
+
+        let factor = 1.0 / metrics.total_explored_nodes as f64;
+        metrics.explored_nodes.scale(factor);
+
         metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
-        metrics.rescale_by_branches();
-        // TODO: better reescale
-        // TODO: use avg_confidence
 
-        // std::fs::OpenOptions::new().write(true).create(true).open(
-        //     format!("../out/{}_1.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-        //     )).unwrap().write_all(trees[0].to_svg().as_bytes()).unwrap();
 
-        // std::fs::OpenOptions::new().write(true).create(true).open(
-        //     format!("../out/{}_2.svg",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()
-        //     )).unwrap().write_all(trees[1].to_svg().as_bytes()).unwrap();
-
-        let mut result = Vec::new();
+        let mut result = HashMap::new();
         let mut rng = thread_rng();
 
         for i in 0..count {
             const SHIFT: f32 = 0.000_05;
             let tree = &trees[i];
             let c = &mut cursors[i];
-            let confidence = self.calc_nodes_confidence(tree);
+            let confidence = self.calc_nodes_confidence_2(tree);
             let total_confidence = confidence.iter()
                 .flatten()
                 .map(|&o| o as f64)
                 .sum::<f64>();
             let total_valid = confidence.iter().flatten().count() as f64;
-            metrics.average_confidence += total_confidence / total_valid / count as f64;
+            metrics.explored_nodes.avg_confidence += total_confidence / total_valid / count as f64;
 
             let nodes = tree.nodes.iter()
                 .enumerate()
@@ -128,9 +163,16 @@ impl GamesTrainer {
                 .map(|(b, v)| (b, v.min(0.9995)))
                 // Shift the value by a small random to avoid loops in training
                 .map(|(b, v)| (b, v * (1.0 + rng.gen_range((-SHIFT)..SHIFT))));
-            result.extend(nodes);
+
+            for (board, eval) in nodes {
+                let hashable = BoardHashable::new(board.pieces);
+
+                result.insert(hashable, (board, eval));
+            }
         }
-        (result, metrics)
+
+        let result = result.into_values().collect();
+        (result, metrics.clone())
     }
 
     fn create_cursor(&self) -> TreeCursor {
@@ -139,20 +181,46 @@ impl GamesTrainer {
         TreeCursor::new(controller)
     }
 
-    fn calc_nodes_confidence(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
+    fn calc_nodes_confidence_1(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
         let mut values: Vec<_> = tree.nodes.iter().map(|o| {
-            o.children_eval
+            let side = o.get_current_side(tree.start_side);
+
+            o.children.as_ref()
+                .and_then(|o| {
+                    // Get the instant evaluation of the best child, regardless of deeper nodes
+                    let mut evals: Vec<_> = o.iter()
+                        .map(|&o| tree.nodes[o].pre_eval)
+                        .collect();
+
+                    evals.sort_unstable_by(f32::total_cmp);
+                    if side {
+                        evals.last().copied()
+                    } else {
+                        evals.first().copied()
+                    }
+                })
                 .map(|eval| (o.pre_eval - eval).abs())
                 // Apply function to smooth results
-                .map(|o| f32::exp(o * -0.8))
+                .map(|o| f32::exp(o * -0.2))
         }).collect();
 
         for (i, node) in tree.nodes.iter().enumerate().skip(1) {
             if let Some(val) = values[i] {
-                values[i] = Some(val * values[node.parent].unwrap())
+                let new = val * values[node.parent].unwrap();
+                values[i] = Some(new.max(0.1))
             }
         }
 
         values
+    }
+
+    fn calc_nodes_confidence_2(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
+        tree.nodes.iter().map(|o| {
+            o.children_eval
+                .map(|eval| (o.pre_eval - eval).abs())
+                // Apply function to smooth results
+                .map(|o| f32::exp(o * -1.0))
+                .map(|o| f32::max(o, 0.1))
+        }).collect()
     }
 }

@@ -14,7 +14,7 @@ pub struct Node {
     pub children: Option<Vec<usize>>,
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct NodeExtraInfo {
     pub is_ending: bool,
     pub is_opening: bool,
@@ -45,7 +45,7 @@ impl Node {
         }
     }
 
-    pub fn get_ordered_children(&self, start_side: bool) -> Option<impl Iterator<Item=&usize>> {
+    pub fn get_ordered_children(&self, start_side: bool) -> Option<impl Iterator<Item=&usize> + DoubleEndedIterator> {
         let side = self.get_current_side(start_side);
         self.children.as_ref().map(|children| {
             (0..children.len())
@@ -83,5 +83,10 @@ impl Node {
     #[inline]
     pub fn eval(&self) -> f32 {
         self.children_eval.unwrap_or(self.pre_eval)
+    }
+    
+    #[inline]
+    pub fn is_visited(&self) -> bool {
+        self.info.is_ending || self.children.is_some()
     }
 }

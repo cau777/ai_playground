@@ -10,6 +10,7 @@ mod conv_train;
 #[cfg(test)]
 mod test_values;
 
+// TODO: forward shader with cache
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
     pub in_channels: usize,
