@@ -1,5 +1,7 @@
-use crate::chess::decision_tree::building_exp_2::limiting_factors::LimiterFactors;
-use crate::chess::decision_tree::building_exp_2::OnGameResultFn;
+use crate::chess::decision_tree::building::limiting_factors::LimiterFactors;
+use crate::chess::decision_tree::building::OnGameResultFn;
+use crate::chess::decision_tree::DecisionTree;
+use crate::chess::decision_tree::node::Node;
 
 pub struct BuilderOptions {
     pub next_node_strategy: NextNodeStrategy,

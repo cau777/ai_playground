@@ -15,11 +15,11 @@ use crate::chess::decision_tree::{DecisionTree, NodeExtraInfo};
 
 pub use options::*;
 pub use limiting_factors::*;
-use crate::chess::decision_tree::building_exp_2::building_error::BuildingError;
-use crate::chess::decision_tree::building_exp_2::cache::Cache;
-use crate::chess::decision_tree::building_exp_2::games_producer::GamesProducer;
-use crate::chess::decision_tree::building_exp_2::request::{RequestPart};
-use crate::chess::decision_tree::building_exp_2::request_storage::RequestStorage;
+use crate::chess::decision_tree::building::building_error::BuildingError;
+use crate::chess::decision_tree::building::cache::Cache;
+use crate::chess::decision_tree::building::games_producer::GamesProducer;
+use crate::chess::decision_tree::building::request::{RequestPart};
+use crate::chess::decision_tree::building::request_storage::RequestStorage;
 use crate::chess::game_result::GameResult;
 use crate::nn::controller::NNController;
 use crate::nn::generic_storage::{combine_storages, split_storages};
@@ -255,7 +255,7 @@ impl DecisionTreesBuilder {
 #[cfg(test)]
 mod tests {
     use crate::chess::board_controller::BoardController;
-    use crate::chess::decision_tree::building_exp_2::limiting_factors::LimiterFactors;
+    use crate::chess::decision_tree::building::limiting_factors::LimiterFactors;
     use crate::nn::layers::{dense_layer, sequential_layer};
     use crate::nn::layers::filtering::convolution;
     use crate::nn::layers::nn_layers::Layer;

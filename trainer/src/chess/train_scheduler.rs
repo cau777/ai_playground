@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
-use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, LimiterFactors, NextNodeStrategy};
+use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors, NextNodeStrategy};
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;

@@ -8,11 +8,11 @@ use codebase::nn::lr_calculators::lr_calculator::LrCalc;
 use codebase::utils::*;
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
-use codebase::chess::decision_tree::{building, building_exp, building_exp_2, DecisionTree};
+use codebase::chess::decision_tree::{building, building_exp, building, DecisionTree};
 
 use criterion::*;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, LimiterFactors};
+use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::gpu::gpu_data::GpuData;
 use codebase::nn::controller::NNController;
@@ -66,11 +66,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     }));
 
     group.bench_function("optimized2", |b| b.iter(|| {
-        let builder = building_exp_2::DecisionTreesBuilder::new(
+        let builder = building::DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
             vec![TreeCursor::new(BoardController::new_start())],
-            building_exp_2::BuilderOptions {
-                limits: building_exp_2::LimiterFactors {
+            building::BuilderOptions {
+                limits: building::LimiterFactors {
                     // max_iterations: Some(15),
                     max_explored_nodes: Some(30),
                     ..LimiterFactors::default()

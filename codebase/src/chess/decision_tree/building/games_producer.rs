@@ -4,12 +4,12 @@ use std::sync::{Arc, RwLock};
 use ndarray_rand::rand::{Rng, thread_rng};
 use ndarray_rand::rand::rngs::ThreadRng;
 use crate::chess::board_controller::BoardController;
-use crate::chess::decision_tree::building_exp_2::{BuilderOptions, NextNodeStrategy};
-use crate::chess::decision_tree::building_exp_2::request::{Request, RequestPart};
+use crate::chess::decision_tree::building::{BuilderOptions, compute_next_node_score, NextNodeStrategy};
+use crate::chess::decision_tree::building::request::{Request, RequestPart};
 use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::{DecisionTree, NodeExtraInfo};
-use crate::chess::decision_tree::building_exp_2::building_error::BuildingError;
-use crate::chess::decision_tree::building_exp_2::nodes_in_progress_set::NodesInProgressSet;
+use crate::chess::decision_tree::building::building_error::BuildingError;
+use crate::chess::decision_tree::building::nodes_in_progress_set::NodesInProgressSet;
 use crate::chess::game_result::GameResult;
 use crate::chess::movement::Movement;
 

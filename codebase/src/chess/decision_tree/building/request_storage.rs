@@ -1,6 +1,6 @@
 use std::cell::Cell;
 use std::vec;
-use crate::chess::decision_tree::building_exp_2::request::Request;
+use crate::chess::decision_tree::building::request::Request;
 
 /// A simple wrapper around vec that takes advantage of the fact that
 /// the same id will be requested multiple times in a row

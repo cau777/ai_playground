@@ -1,5 +1,5 @@
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::movement::Movement;

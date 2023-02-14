@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
 use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building_exp_2::{BuilderOptions, DecisionTreesBuilder};
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::game_result::{DrawReason, GameResult};

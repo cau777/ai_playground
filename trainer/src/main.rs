@@ -7,6 +7,9 @@ mod files;
 mod chess;
 
 use std::sync::Arc;
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors};
+use codebase::chess::decision_tree::cursor::TreeCursor;
+use codebase::chess::decision_tree::DecisionTree;
 use codebase::integration::deserialization::{deserialize_storage};
 use codebase::integration::layers_loading::{ModelXmlConfig};
 use codebase::nn::controller::NNController;
@@ -50,18 +53,18 @@ fn init(model_config: ModelXmlConfig, client: &ServerClient, name: &str) -> Gene
 fn profile_code() {
     use codebase::nn::layers::*;
     use codebase::nn::layers::nn_layers::*;
-    use codebase::nn::layers::filtering::*;
     use codebase::nn::layers::filtering::convolution::*;
     use codebase::nn::lr_calculators::lr_calculator::*;
     use codebase::nn::lr_calculators::constant_lr::*;
     use codebase::nn::loss::loss_func::*;
+
     let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
         layers: vec![
-            Layer::Convolution(convolution::ConvolutionConfig {
+            Layer::Convolution(ConvolutionConfig {
                 in_channels: 6,
                 stride: 1,
                 kernel_size: 3,
-                init_mode: convolution::ConvolutionInitMode::HeNormal(),
+                init_mode: ConvolutionInitMode::HeNormal(),
                 out_channels: 2,
                 padding: 0,
                 lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
@@ -77,13 +80,19 @@ fn profile_code() {
         ],
     }), LossFunc::Mse).unwrap();
 
-    let builder = codebase::chess::decision_tree::building_exp::DecisionTreesBuilder::new(
-        vec![codebase::chess::decision_tree::DecisionTree::new(true)],
-        vec![codebase::chess::decision_tree::cursor::TreeCursor::new(codebase::chess::board_controller::BoardController::new_start())],
-        codebase::chess::decision_tree::building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 5_000 },
-        32,
-        1_000,
+    let builder = DecisionTreesBuilder::new(
+        vec![DecisionTree::new(true)],
+        vec![TreeCursor::new(codebase::chess::board_controller::BoardController::new_start())],
+        BuilderOptions {
+            limits: LimiterFactors {
+                max_explored_nodes: Some(5_000),
+                ..Default::default()
+            },
+            batch_size: 32,
+            max_cache: 2_000,
+            ..Default::default()
+        }
     );
-    let (tree, _) = builder.build(&controller, |_| {});
+    let (tree, _) = builder.build(&controller);
     println!("tree_len = {}", tree[0].len());
 }

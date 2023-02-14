@@ -2,6 +2,7 @@ use crate::chess::decision_tree::building_exp_2::NextNodeStrategy;
 use crate::chess::decision_tree::DecisionTree;
 use crate::nn::layers::nn_layers::GenericStorage;
 
+
 #[derive(Clone)]
 pub struct Cache {
     pub count: usize,
