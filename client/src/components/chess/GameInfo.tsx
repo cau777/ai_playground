@@ -4,7 +4,8 @@ import {useChessT} from "~/components/LanguagesContext";
 type Props = {
     opening?: string;
     result?: string;
-    playerTurn?: boolean;
+    isLoading: boolean;
+    playerTurn: boolean;
 }
 
 export const GameInfo: Component<Props> = (props) => {
@@ -12,11 +13,12 @@ export const GameInfo: Component<Props> = (props) => {
     // @ts-ignore
     let result = () => t[props.result ?? "gameResultUndefined"];
     let turn = () => {
-        switch (props.playerTurn) {
-            case undefined: return t.loading;
-            case true: return t.playerTurn;
-            case false: return t.aiTurn;
-        }
+        if (props.isLoading)
+            return t.loading;
+        else if (props.playerTurn)
+            return t.playerTurn;
+        else
+            return t.aiTurn;
     };
     
     return (

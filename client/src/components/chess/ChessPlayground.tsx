@@ -75,7 +75,8 @@ export const ChessPlayground: Component = () => {
             <PlaygroundContainer>
                 <h1 class={"text-3xl font-black text-primary-100 mb-3"}>{t.title}</h1>
                 {/*TODO: description*/}
-                <GameInfo opening={game()?.opening} result={game()?.state} playerTurn={game() && !busy()}></GameInfo>
+                <GameInfo opening={game()?.opening} result={game()?.state} playerTurn={!busy()}
+                          isLoading={game() === undefined}></GameInfo>
                 <ChessBoard interactive={interactive()} board={board()}
                             possible={game()?.possible ?? new Map()}
                             onMove={(from, to) => moved(from, to, game())}></ChessBoard>
