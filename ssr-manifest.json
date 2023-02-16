@@ -21,231 +21,231 @@
   "node_modules/solid-start/entry-client/StartClient.tsx": [],
   "src/entry-client.tsx": [],
   "src/routes/[...404].tsx": [
-    "/ai_playground/assets/_...404_.95e06c17.js"
+    "/ai_playground/assets/_...404_.04ff106e.js"
   ],
   "node_modules/solid-start/server/components/HttpStatusCode.tsx": [
-    "/ai_playground/assets/HttpStatusCode.43c03e05.js"
+    "/ai_playground/assets/HttpStatusCode.5a3d495b.js"
   ],
   "src/routes/en.tsx": [
-    "/ai_playground/assets/en.111038c6.js"
+    "/ai_playground/assets/en.9469aaca.js"
   ],
   "src/i18n/en/translation.ts": [
-    "/ai_playground/assets/LanguagesContext.e994ff26.js"
+    "/ai_playground/assets/LanguagesContext.82528d9e.js"
   ],
   "src/i18n/pt-BR/translation.ts": [
-    "/ai_playground/assets/LanguagesContext.e994ff26.js"
+    "/ai_playground/assets/LanguagesContext.82528d9e.js"
   ],
   "src/components/LanguagesContext.tsx": [
-    "/ai_playground/assets/LanguagesContext.e994ff26.js"
+    "/ai_playground/assets/LanguagesContext.82528d9e.js"
   ],
   "src/routes/en/index.tsx": [
-    "/ai_playground/assets/index.84282232.js"
+    "/ai_playground/assets/index.b135ccf5.js"
   ],
   "src/components/icons/DigitsPageIcon.tsx": [
-    "/ai_playground/assets/HomePage.5cb661dd.js"
+    "/ai_playground/assets/HomePage.f4ca2cb2.js"
   ],
   "src/components/icons/ChessPageIcon.tsx": [
-    "/ai_playground/assets/HomePage.5cb661dd.js"
+    "/ai_playground/assets/HomePage.f4ca2cb2.js"
   ],
   "src/components/home/HomePage.tsx": [
-    "/ai_playground/assets/HomePage.5cb661dd.js"
+    "/ai_playground/assets/HomePage.f4ca2cb2.js"
   ],
   "src/components/NavControls.tsx": [
-    "/ai_playground/assets/NavControls.6687ebac.js"
+    "/ai_playground/assets/NavControls.37d379fd.js"
   ],
   "src/components/chess/ChessPiece.tsx": [
-    "/ai_playground/assets/ChessPiece.11c5042f.js"
+    "/ai_playground/assets/ChessPiece.0df83c23.js"
   ],
   "src/routes/en/chess/index.tsx": [
-    "/ai_playground/assets/index.7a5a56ac.js"
+    "/ai_playground/assets/index.c0be3207.js"
   ],
   "src/components/chess/PossibleMoveIndicator.tsx": [
-    "/ai_playground/assets/ChessPlayground.d0317c29.js"
+    "/ai_playground/assets/ChessPlayground.aa61d2bf.js"
   ],
   "src/components/chess/ChessBoard.tsx": [
-    "/ai_playground/assets/ChessPlayground.d0317c29.js"
+    "/ai_playground/assets/ChessPlayground.aa61d2bf.js"
   ],
   "src/components/chess/GameInfo.tsx": [
-    "/ai_playground/assets/ChessPlayground.d0317c29.js"
+    "/ai_playground/assets/ChessPlayground.aa61d2bf.js"
   ],
   "src/components/chess/ChessPlayground.tsx": [
-    "/ai_playground/assets/ChessPlayground.d0317c29.js"
+    "/ai_playground/assets/ChessPlayground.aa61d2bf.js"
   ],
   "\u0000commonjsHelpers.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "\u0000/home/runner/work/ai_playground/ai_playground/client/node_modules/axios/index.js?commonjs-module": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "\u0000/home/runner/work/ai_playground/ai_playground/client/node_modules/axios/lib/axios.js?commonjs-module": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/bind.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/utils.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/buildURL.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/InterceptorManager.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/normalizeHeaderName.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/enhanceError.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/createError.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/settle.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/cookies.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/isAbsoluteURL.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/combineURLs.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/buildFullPath.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/parseHeaders.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/isURLSameOrigin.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/cancel/Cancel.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/adapters/xhr.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/defaults.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/transformData.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/cancel/isCancel.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/dispatchRequest.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/mergeConfig.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/env/data.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/validator.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/core/Axios.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/cancel/CancelToken.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/spread.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/helpers/isAxiosError.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/lib/axios.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "node_modules/axios/index.js": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "src/utils/server-interface.ts": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "src/components/PlaygroundContainer.tsx": [
-    "/ai_playground/assets/PlaygroundContainer.d0ccd187.js"
+    "/ai_playground/assets/PlaygroundContainer.bfde7056.js"
   ],
   "src/routes/en/digits/index.tsx": [
-    "/ai_playground/assets/index.1799a9f3.js"
+    "/ai_playground/assets/index.5449b52f.js"
   ],
   "src/components/BtnPrimary.tsx": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/components/icons/ClearIcon.tsx": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/components/digits/Canvas.tsx": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "node_modules/@kurkle/color/dist/color.esm.js": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "node_modules/chart.js/dist/chunks/helpers.segment.js": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "node_modules/chart.js/dist/chart.js": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/utils/chart-setup.ts": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/components/digits/DigitsResultsGraph.tsx": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/components/digits/DigitsPlayground.tsx": [
-    "/ai_playground/assets/DigitsPlayground.977adc8b.js"
+    "/ai_playground/assets/DigitsPlayground.326b44a0.js"
   ],
   "src/routes/index.tsx": [
-    "/ai_playground/assets/index.3dbeace6.js"
+    "/ai_playground/assets/index.21c722b4.js"
   ],
   "src/routes/pt.tsx": [
-    "/ai_playground/assets/pt.6ddee4b0.js"
+    "/ai_playground/assets/pt.6eddd0cd.js"
   ],
   "src/routes/pt/index.tsx": [
-    "/ai_playground/assets/index.3746d559.js"
+    "/ai_playground/assets/index.d3868f5d.js"
   ],
   "src/routes/pt/chess/index.tsx": [
-    "/ai_playground/assets/index.8e328dca.js"
+    "/ai_playground/assets/index.6c4b6904.js"
   ],
   "src/routes/pt/digits/index.tsx": [
-    "/ai_playground/assets/index.57f984de.js"
+    "/ai_playground/assets/index.ab09e6b9.js"
   ],
   "src/routes/ai_playground/[...404].tsx": [
-    "/ai_playground/assets/_...404_.9c7adfd7.js"
+    "/ai_playground/assets/_...404_.dbddb81b.js"
   ],
   "src/routes/ai_playground/en.tsx": [
-    "/ai_playground/assets/en.c04db0dd.js"
+    "/ai_playground/assets/en.8506d03f.js"
   ],
   "src/routes/ai_playground/en/index.tsx": [
-    "/ai_playground/assets/index.2c116029.js"
+    "/ai_playground/assets/index.ba77b10a.js"
   ],
   "src/routes/ai_playground/en/chess/index.tsx": [
-    "/ai_playground/assets/index.06a4fb69.js"
+    "/ai_playground/assets/index.aa56e68d.js"
   ],
   "src/routes/ai_playground/en/digits/index.tsx": [
-    "/ai_playground/assets/index.f79af905.js"
+    "/ai_playground/assets/index.82d5f546.js"
   ],
   "src/routes/ai_playground/index.tsx": [
-    "/ai_playground/assets/index.9eb322f0.js"
+    "/ai_playground/assets/index.96e157d1.js"
   ],
   "src/routes/ai_playground/pt.tsx": [
-    "/ai_playground/assets/pt.5ebb442f.js"
+    "/ai_playground/assets/pt.146e6bd2.js"
   ],
   "src/routes/ai_playground/pt/index.tsx": [
-    "/ai_playground/assets/index.112b2317.js"
+    "/ai_playground/assets/index.fb67f536.js"
   ],
   "src/routes/ai_playground/pt/chess/index.tsx": [
-    "/ai_playground/assets/index.ba0188b8.js"
+    "/ai_playground/assets/index.7993b2fd.js"
   ],
   "src/routes/ai_playground/pt/digits/index.tsx": [
-    "/ai_playground/assets/index.bcc7847a.js"
+    "/ai_playground/assets/index.24f2fb1c.js"
   ]
 }
