@@ -49,7 +49,7 @@ impl Cache {
         match strategy {
             NextNodeStrategy::BestNode => self.remove_worst_nodes(tree),
             NextNodeStrategy::Deepest => self.remove_shallow_nodes(tree),
-            NextNodeStrategy::Computed { best_path_delta_exp, depth_factor } => self.remove_worst_computed(tree, *best_path_delta_exp, *depth_factor)
+            NextNodeStrategy::Computed { best_path_delta_exp, depth_delta_exp: depth_factor } => self.remove_worst_computed(tree, *best_path_delta_exp, *depth_factor)
         };
 
         // Because of some edge-cases (where one of the worst paths becomes the best for example),
@@ -91,8 +91,9 @@ impl Cache {
     }
 
     fn remove_worst_computed(&mut self, tree: &DecisionTree, best_path_delta_exp: f64, depth_factor: f64) {
+        let deepest = tree.nodes.iter().map(|o| o.depth).max().unwrap_or_default();
         let mut nodes: Vec<_> = tree.nodes.iter()
-            .map(|o| compute_next_node_score(tree, o, depth_factor, best_path_delta_exp))
+            .map(|o| compute_next_node_score(tree, o, deepest, depth_factor, best_path_delta_exp))
             .enumerate()
             .collect();
 

@@ -220,7 +220,7 @@ impl<'a> GamesProducerWorker<'a> {
                 NextNodeStrategy::Deepest => {
                     self.choose_deepest_node(tree)
                 }
-                NextNodeStrategy::Computed { depth_factor, best_path_delta_exp } => {
+                NextNodeStrategy::Computed { depth_delta_exp: depth_factor, best_path_delta_exp } => {
                     self.choose_best_computed_node(tree, depth_factor, best_path_delta_exp)
                 }
             }
@@ -237,11 +237,12 @@ impl<'a> GamesProducerWorker<'a> {
     }
 
     fn choose_best_computed_node(&self, tree: &DecisionTree, depth_factor: f64, best_path_delta_exp: f64) -> Option<usize> {
+        let deepest = tree.nodes.iter().map(|o| o.depth).max().unwrap_or_default();
         tree.nodes.iter()
             .enumerate()
             .filter(|(_, o)| !o.is_visited())
             .filter(|(i, _)| !self.in_progress.contains(*i))
-            .map(|(i, o)| (i, compute_next_node_score(tree, o, depth_factor, best_path_delta_exp)))
+            .map(|(i, o)| (i, compute_next_node_score(tree, o, deepest, depth_factor, best_path_delta_exp)))
             .max_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i)
     }
