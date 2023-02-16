@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<AIModel>
+    <LossFunc><Mse/></LossFunc>
+
+    <Layer>
+        <Sequential>
+            <Concat dim="0">
+                <Sequential>
+                    <Convolution in_channels="6" out_channels="32" kernel_size="1" stride="1" padding="0">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Relu/>
+                </Sequential>
+
+                <Sequential>
+                    <Convolution in_channels="6" out_channels="32" kernel_size="1" stride="1" padding="0">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Convolution in_channels="32" out_channels="32" kernel_size="3" stride="1" padding="1">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Relu/>
+                </Sequential>
+
+                <Sequential>
+                    <Convolution in_channels="6" out_channels="32" kernel_size="1" stride="1" padding="0">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Convolution in_channels="32" out_channels="32" kernel_size="5" stride="1" padding="2">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Relu/>
+                </Sequential>
+
+                <Sequential>
+                    <MaxPool size="3" stride="1" padding="1"/>
+                    <Convolution in_channels="6" out_channels="32" kernel_size="1" stride="1" padding="0">
+                        <KernelsLr><Adam/></KernelsLr>
+                    </Convolution>
+                    <Relu/>
+                </Sequential>
+            </Concat>
+
+            <MaxPool size="2" stride="2" padding="0"/>
+
+            <Flatten/>
+
+            <Dense in_values="2048" out_values="128">
+                <WeightsLr><Adam/></WeightsLr>
+                <BiasesLr><Adam/></BiasesLr>
+            </Dense>
+
+            <Relu/>
+            <Dense in_values="128" out_values="128">
+                <WeightsLr><Adam/></WeightsLr>
+                <BiasesLr><Adam/></BiasesLr>
+            </Dense>
+            <Relu/>
+            <Dense in_values="128" out_values="2">
+                <WeightsLr><Adam/></WeightsLr>
+                <BiasesLr><Adam/></BiasesLr>
+            </Dense>
+            <Flatten/>
+            <TwoComplementsTransformer/>
+        </Sequential>
+    </Layer>
+</AIModel>

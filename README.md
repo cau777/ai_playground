@@ -1,7 +1,11 @@
 # AI Playground
 
 The project as a whole aims to build some small interactive playgrounds that use different AI techniques. At the moment,
-it only supports handwritten digits recognition but I intend to add more projects later.
+it only supports handwritten digits recognition and chess, but I intend to add more projects later.
+
+## More details
+* [Digit recognition docs](https://github.com/cau777/ai_playground/tree/master/docs/digits)
+* [Chess docs](https://github.com/cau777/ai_playground/tree/master/docs/chess)
 
 ### /codebase
 
@@ -12,6 +16,7 @@ n-dimensional arrays and [vulkano](https://github.com/vulkano-rs/vulkano) for GP
 approach (with centralized storage of parameters in a map), supporting:
 
 * Convolution layer
+  * Selective caching (used to improve the chess model performance by almost 85%)
 * Max pool layer
 * Dense layer
 * Dropout layer
@@ -43,14 +48,14 @@ A trained AI model can be represented in 3 files:
 </AIModel>
 ```
 
-Most of the times, changing the structure (adding or removing layers) does not lose any training progress.
+Most of the time, changing the structure (adding or removing layers) does not lose any training progress.
 
 ### /client
 
 A single page app built using React and Vite to allow users to interact with the playground in any device. It's hosted
 in GitHub Pages and supports translations to English and Portuguese.
 
-![Digit recognition page](https://github.com/cau777/ai_playground/blob/master/screenshots/digits_page.png)
+![Digit recognition page](https://github.com/cau777/ai_playground/blob/master/docs/screenshots/digits_page.png)
 
 ### /versions_server
 
