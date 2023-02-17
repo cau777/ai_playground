@@ -16,7 +16,7 @@ n-dimensional arrays and [vulkano](https://github.com/vulkano-rs/vulkano) for GP
 approach (with centralized storage of parameters in a map), supporting:
 
 * Convolution layer
-  * Selective caching (used to improve the chess model performance by almost 85%)
+  * Selective caching (used to skip almost 85% of the calculations)
 * Max pool layer
 * Dense layer
 * Dropout layer
