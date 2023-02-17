@@ -88,7 +88,7 @@ impl TrainerScheduler {
                     },
                     random_node_chance: 0.2,
                     next_node_strategy: NextNodeStrategy::Computed {
-                        best_path_delta_exp: 5.0,
+                        eval_delta_exp: 5.0,
                         depth_delta_exp: 0.2,
                     },
                     ..BuilderOptions::default()
@@ -107,7 +107,7 @@ impl TrainerScheduler {
                     },
                     random_node_chance: 0.5,
                     next_node_strategy: NextNodeStrategy::Computed {
-                        best_path_delta_exp: 6.0,
+                        eval_delta_exp: 6.0,
                         depth_delta_exp: 0.02,
                     },
                     ..BuilderOptions::default()

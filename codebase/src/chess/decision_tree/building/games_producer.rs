@@ -220,7 +220,7 @@ impl<'a> GamesProducerWorker<'a> {
                 NextNodeStrategy::Deepest => {
                     self.choose_deepest_node(tree)
                 }
-                NextNodeStrategy::Computed { depth_delta_exp: depth_factor, best_path_delta_exp } => {
+                NextNodeStrategy::Computed { depth_delta_exp: depth_factor, eval_delta_exp: best_path_delta_exp } => {
                     self.choose_best_computed_node(tree, depth_factor, best_path_delta_exp)
                 }
             }

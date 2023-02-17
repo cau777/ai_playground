@@ -3,19 +3,20 @@ use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuil
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::movement::Movement;
-use crate::{ChessGamesPoolDep, FileManagerDep, LoadedModelDep};
+use crate::{ChessGamesPoolDep, EnvConfig, FileManagerDep, LoadedModelDep};
 use crate::loaded_model::assert_model_loaded;
 
 type Res<T> = Result<T, String>;
 
-pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelDep, pool: &ChessGamesPoolDep, id: &str) -> Res<()> {
+pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelDep, pool: &ChessGamesPoolDep,
+                              id: &str, config: &EnvConfig) -> Res<()> {
     let controller = {
         let pool = pool.read().await;
         let controller = pool.get_controller(id).ok_or("Game not found")?;
         controller.clone()
     };
 
-    let chosen = decide(file_manager, loaded, controller).await?;
+    let chosen = decide(file_manager, loaded, controller, config).await?;
 
     {
         let mut pool = pool.write().await;
@@ -25,7 +26,8 @@ pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelD
     Ok(())
 }
 
-async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller: BoardController) -> Res<Movement> {
+async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller: BoardController,
+                config: &EnvConfig) -> Res<Movement> {
     let file_manager = file_manager.read().await;
 
     // For now, the only criteria to evaluate the model's performance is the time spent training
@@ -42,7 +44,10 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
         BuilderOptions {
             batch_size: 64,
             max_cache: 1_000,
-            next_node_strategy: NextNodeStrategy::BestNode,
+            next_node_strategy: NextNodeStrategy::Computed {
+                eval_delta_exp: config.eval_delta_exp,
+                depth_delta_exp: config.depth_delta_exp,
+            },
             limits: LimiterFactors {
                 max_explored_nodes: Some(30),
                 ..Default::default()

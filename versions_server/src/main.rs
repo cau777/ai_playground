@@ -90,6 +90,7 @@ async fn main() {
         .and(with_file_manager(&file_managers.chess))
         .and(with_loaded_model(&loaded_models.chess))
         .and(with_chess_games_pool(&chess_games_pool))
+        .and(with_env_config(&config))
         .and_then(chess::chess_handlers::post_start);
 
     let chess_move_route = path!("chess" / "move")
@@ -98,6 +99,7 @@ async fn main() {
         .and(with_file_manager(&file_managers.chess))
         .and(with_loaded_model(&loaded_models.chess))
         .and(with_chess_games_pool(&chess_games_pool))
+        .and(with_env_config(&config))
         .and_then(chess::chess_handlers::post_move);
 
     let routes = wake_up_route

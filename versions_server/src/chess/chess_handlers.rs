@@ -4,7 +4,7 @@ use rand::{Rng, thread_rng};
 use warp::{Reply, reply};
 use crate::utils::{data_err_proc, EndpointResult};
 use serde::{Serialize, Deserialize};
-use crate::{ChessGamesPoolDep, FileManagerDep, LoadedModelDep, StatusCode};
+use crate::{ChessGamesPoolDep, EnvConfig, EnvConfigDep, FileManagerDep, LoadedModelDep, StatusCode};
 use crate::chess::decision_making::decide_and_apply;
 use crate::chess::game_serializing::{game_state_to_string, serialize_game};
 
@@ -23,7 +23,8 @@ struct StartResponse {
     opening: String,
 }
 
-pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
+pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep,
+                        pool: ChessGamesPoolDep,config: EnvConfigDep) -> EndpointResult<impl Reply> {
     let id = {
         let mut pool = pool.write().await;
         pool.clear_expired();
@@ -35,7 +36,7 @@ pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded
 
     // If the AI starts as white, it makes a move
     if !player_side {
-        match decide_and_apply(file_manager, loaded, &pool, &id).await {
+        match decide_and_apply(file_manager, loaded, &pool, &id, &config).await {
             Ok(_) => {}
             Err(e) => return data_err_proc(e, reply::json(&"")),
         }
@@ -71,7 +72,8 @@ struct MoveResponse {
     opening: String,
 }
 
-pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: LoadedModelDep, pool: ChessGamesPoolDep) -> EndpointResult<impl Reply> {
+pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: LoadedModelDep,
+                       pool: ChessGamesPoolDep, config: EnvConfigDep) -> EndpointResult<impl Reply> {
     let movement = match Movement::try_from_notations(&body.from, &body.to) {
         Some(v) => v,
         None => return Ok(reply::with_status(reply::json(&""), StatusCode::BAD_REQUEST)),
@@ -102,7 +104,7 @@ pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: 
     }
 
     // AI makes a move
-    match decide_and_apply(file_manager, loaded, &pool, &body.game_id).await {
+    match decide_and_apply(file_manager, loaded, &pool, &body.game_id, &config).await {
         Ok(_) => {}
         Err(e) => return data_err_proc(e, reply::json(&"Layers error")),
     };
