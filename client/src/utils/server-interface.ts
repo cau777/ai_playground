@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const ServerUrl = "http://localhost:8000";
-// const ServerUrl = "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
+// const ServerUrl = "http://localhost:8000";
+const ServerUrl = "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
 
 export async function digits_eval(array: number[]) {
     let response = await axios.post<number[]>(ServerUrl + "/digits/eval", array, {
@@ -19,10 +19,13 @@ type StartGameResponse = {
     opening: string;
 };
 
-export async function chess_start_game(color?: boolean) {
-    let response = await axios.post<StartGameResponse>(ServerUrl + "/chess/start",{
-        side: color,
-    }, {
+export type StartGameOptions = {
+    side?: boolean;
+    openings_book: string;
+}
+
+export async function chess_start_game(options: StartGameOptions) {
+    let response = await axios.post<StartGameResponse>(ServerUrl + "/chess/start", options, {
         responseType: "json",
     });
     return response.data;

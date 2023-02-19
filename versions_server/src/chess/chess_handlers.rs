@@ -11,6 +11,7 @@ use crate::chess::game_serializing::{game_state_to_string, serialize_game};
 #[derive(Deserialize)]
 pub struct StartRequest {
     side: Option<bool>,
+    openings_book: String,
 }
 
 #[derive(Serialize)]
@@ -24,11 +25,15 @@ struct StartResponse {
 }
 
 pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep,
-                        pool: ChessGamesPoolDep,config: EnvConfigDep) -> EndpointResult<impl Reply> {
+                        pool: ChessGamesPoolDep, config: EnvConfigDep) -> EndpointResult<impl Reply> {
     let id = {
         let mut pool = pool.write().await;
         pool.clear_expired();
-        pool.start()
+        pool.start(&body.openings_book)
+    };
+    let id = match id {
+        Some(val) => val,
+        None => return Ok(reply::with_status(reply::json(&body.openings_book), StatusCode::NOT_FOUND))
     };
 
     // If the side is not specified, it's random

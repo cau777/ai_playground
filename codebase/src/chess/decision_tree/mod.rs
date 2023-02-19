@@ -29,8 +29,8 @@ impl DecisionTree {
         BestPathIterator::new(&self.nodes, self.start_side, false)
             .map(|o| &self.nodes[o].movement)
     }
-    
-    pub fn best_path_iter(&self, yield_root: bool) -> impl Iterator<Item=&Node>{
+
+    pub fn best_path_iter(&self, yield_root: bool) -> impl Iterator<Item=&Node> {
         BestPathIterator::new(&self.nodes, self.start_side, yield_root)
             .map(|o| &self.nodes[o])
     }
@@ -40,7 +40,7 @@ impl DecisionTree {
         let nodes: Vec<_> = positions_and_evals.iter()
             .copied()
             .map(|(m, e, info)| {
-                Node::new(parent, m, e,  depth, None, info)
+                Node::new(parent, m, e, depth, None, info)
             })
             .map(|node| {
                 self.nodes.push(node);
@@ -60,7 +60,7 @@ impl DecisionTree {
         *self.nodes[parent].get_ordered_children(self.start_side)
             .and_then(|mut o| o.next()).unwrap()
     }
-    
+
     pub fn get_side_at(&self, index: usize) -> bool {
         self.nodes[index].get_current_side(self.start_side)
     }

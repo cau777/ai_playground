@@ -7,6 +7,7 @@ type Props = {
     onMove: (from: string, to: string) => void;
     possible: Map<string, Set<string>>;
     interactive: boolean;
+    reversed: boolean;
 }
 
 type SelectedInfo = {
@@ -44,23 +45,27 @@ export const ChessBoard: Component<Props> = (props) => {
         }
     }
     
+    let ordered = () => props.reversed ? pieces().reverse() : pieces();
+    
     return (
         <div
             class={"select-none grid grid-cols-8 grid-rows-8 max-h-[30rem] max-w-[30rem] border-t-2 border-r-2 bg-primary-400"}>
-            <Index each={pieces()}>{(piece, i) => {
-                let notation = indexToNotation(i);
-                let lightSquare = (Math.floor(i / 8) + i % 8) % 2 == 0;
+            <Index each={ordered()}>{(piece, i) => {
+                let ir = () => props.reversed ? 63 - i : i;
+                let notation = () => indexToNotation(ir());
+                
+                let lightSquare = ()=>(Math.floor(ir() / 8) + ir() % 8) % 2 == 0;
                 
                 let canMoveTo = () => {
                     let s = selected();
-                    return s !== undefined && props.possible.get(s.notation)?.has(notation) === true;
+                    return s !== undefined && props.possible.get(s.notation)?.has(notation()) === true;
                 };
-                let isSelected = () => selected()?.notation === notation;
+                let isSelected = () => selected()?.notation === notation();
                 
                 return (
-                    <div onClick={() => pieceClick(piece(), notation, selected())}
-                         class={"relative border-l-2 border-b-2 "}
-                         classList={{"bg-primary-50": lightSquare, "bg-primary-200": isSelected()}}>
+                    <div onClick={() => pieceClick(piece(), notation(), selected())}
+                         class={"relative border-l-2 border-b-2"}
+                         classList={{"bg-primary-50": lightSquare(), "bg-primary-200": isSelected()}}>
                         <Show when={canMoveTo()} keyed={false}>
                             <div class={"absolute t-0 l-0 w-full h-full z-10 opacity-20"}>
                                 <PossibleMoveIndicator></PossibleMoveIndicator>

@@ -15,34 +15,51 @@ struct GameInProgress {
 
 pub struct ChessGamesPool {
     games: HashMap<String, GameInProgress>,
-    openings: Arc<OpeningsTree>,
+    openings_books: HashMap<&'static str, Arc<OpeningsTree>>,
 }
 
 const EXPIRE_AFTER: Duration = Duration::from_secs(3600 * 2);
 
 impl ChessGamesPool {
     pub fn new(config: &EnvConfig) -> Self {
-        let openings = OpeningsTree::load_from_file(
-            OpenOptions::new().read(true).open(format!("{}/chess/openings.dat", config.base_path)).unwrap()
-        ).unwrap();
+        let mut openings = HashMap::new();
+
+        fn add_from_path(openings: &mut HashMap<&'static str, Arc<OpeningsTree>>, name: &'static str,
+                         file_name: &str, config: &EnvConfig)  {
+            openings.insert(name,
+                Arc::new(
+                    OpeningsTree::load_from_file(
+                        OpenOptions::new().read(true).open(format!("{}/chess/{}.dat", config.base_path, file_name)).unwrap()
+                    ).unwrap()
+                )
+            );
+        }
+
+        openings.insert("none", Arc::new(OpeningsTree::load_from_string("||").unwrap()));
+        add_from_path(&mut openings, "complete", "openings", config);
+        add_from_path(&mut openings, "gambits", "openings_gambits", config);
+        add_from_path(&mut openings, "e4", "openings_e4", config);
+        add_from_path(&mut openings, "d4", "openings_d4", config);
+        add_from_path(&mut openings, "mainlines", "openings_main", config);
 
         Self {
             games: HashMap::new(),
-            openings: Arc::new(openings),
+            openings_books: openings,
         }
     }
 
-    pub fn start(&mut self) -> String {
+    pub fn start(&mut self, book_name: &str) -> Option<String> {
         let uuid = Uuid::new_v4().to_string();
         let mut controller = BoardController::new_start();
-        controller.add_openings_tree(self.openings.clone());
+        let book = self.openings_books.get(book_name)?.clone();
+        controller.add_openings_tree(book);
 
         self.games.insert(uuid.clone(), GameInProgress {
             controller,
             start: Instant::now(),
         });
 
-        uuid
+        Some(uuid)
     }
     
     pub fn get_controller(&self, id: &str) -> Option<&BoardController> {
