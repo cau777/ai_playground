@@ -76,7 +76,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                     ..LimiterFactors::default()
                 },
                 batch_size: 32,
-                max_cache: 5_000,
+                max_cache_bytes: 5_000,
                 ..BuilderOptions::default()
             }
         );

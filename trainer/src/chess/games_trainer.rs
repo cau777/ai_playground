@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
+use bloomfilter::Bloom;
 use codebase::chess::board::Board;
 use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
@@ -19,7 +20,7 @@ use crate::EnvConfig;
 
 pub struct GamesTrainer {
     opening_tree: Arc<OpeningsTree>,
-    max_cache: usize,
+    max_cache_size_kb: u64,
 }
 
 impl GamesTrainer {
@@ -27,7 +28,7 @@ impl GamesTrainer {
         let file = OpenOptions::new().read(true).open(format!("{}/chess/openings.dat", config.mounted_path)).unwrap();
         Self {
             opening_tree: Arc::new(OpeningsTree::load_from_file(file).unwrap()),
-            max_cache: config.max_node_cache,
+            max_cache_size_kb: config.max_cache_size_kb,
         }
     }
 
@@ -47,7 +48,7 @@ impl GamesTrainer {
     }
 
     fn analyze_games(&self, controller: &NNController, count: usize, options: BuilderOptions)
-        -> (Vec<(Board, f32)>, GameMetrics) {
+                     -> (Vec<(Board, f32)>, GameMetrics) {
         let mut trees = Vec::with_capacity(count);
         let mut cursors = Vec::with_capacity(count);
         for _ in 0..count {
@@ -86,7 +87,7 @@ impl GamesTrainer {
                     }
                 }),
                 batch_size: BATCH_SIZE,
-                max_cache: self.max_cache,
+                max_cache_bytes: self.max_cache_size_kb * 1_000,
                 ..options
             };
 
@@ -130,13 +131,13 @@ impl GamesTrainer {
 
         metrics.total_nodes = trees.iter().map(|o| o.len() as u64).sum();
 
-
-        let mut result = HashMap::new();
+        let mut result_to_dedup = Vec::new();
         let mut rng = thread_rng();
 
         for i in 0..count {
             const SHIFT: f32 = 0.000_05;
             let tree = &trees[i];
+
             let c = &mut cursors[i];
             let confidence = self.calc_nodes_confidence_2(tree);
             let total_confidence = confidence.iter()
@@ -151,7 +152,7 @@ impl GamesTrainer {
                 // Ignore openings, because there isn't much to learn from them
                 .filter(|(_, o)| !o.info.is_opening)
                 // Ignore ending positions, like checkmate
-                .filter(|(_, o)| o.info.is_ending)
+                .filter(|(_, o)| !o.info.is_ending)
                 .map(|(i, o)| {
                     c.go_to(i, &tree.nodes);
                     let board = c.get_controller().current().clone();
@@ -164,17 +165,65 @@ impl GamesTrainer {
                 // Shift the value by a small random to avoid loops in training
                 .map(|(b, v)| (b, v * (1.0 + rng.gen_range((-SHIFT)..SHIFT))));
 
-            for (board, eval) in nodes {
-                let hashable = BoardHashable::new(board.pieces);
-
-                result.insert(hashable, (board, eval));
-            }
+            result_to_dedup.extend(nodes);
         }
 
-        let result = result.into_values().collect();
+        // let slice = &result_to_dedup[..10_000];
+        // assert_eq!({
+        //     let mut from = slice.to_vec();
+        //     let mut result = Vec::new();
+        //     Self::dedupe_hashmap(&mut from, &mut result);
+        //     result
+        // }.len(), {
+        //     Self::dedupe(slice.to_vec())
+        // }.len());
+
+        let result = Self::dedupe(result_to_dedup);
         (result, metrics.clone())
     }
 
+    fn dedupe(mut items: Vec<(Board, f32)>) -> Vec<(Board, f32)> {
+        let mut result = Vec::new();
+
+        Self::dedupe_bloom(&mut items, &mut result);
+        Self::dedupe_hashmap(&mut items, &mut result);
+
+        result
+    }
+
+    fn dedupe_bloom(from: &mut Vec<(Board, f32)>, result: &mut Vec<(Board, f32)>) {
+        let mut bloom = Bloom::new(2048, from.len());
+        from.retain(|item| {
+            let hashable = BoardHashable::new(item.0.pieces);
+            let might_be_dup = bloom.check_and_set(&hashable);
+            if !might_be_dup {
+                result.push(item.clone());
+            }
+            might_be_dup
+        })
+    }
+
+    fn dedupe_hashmap(from: &mut Vec<(Board, f32)>, result: &mut Vec<(Board, f32)>)
+    {
+        let mut map = HashMap::new();
+        for item in from.drain(..) {
+            map.insert(BoardHashable::new(item.0.pieces), item);
+        }
+
+        let mut definitely_dupes = HashSet::new();
+        for item in result.iter() {
+            let hashable = BoardHashable::new(item.0.pieces);
+            if map.contains_key(&hashable) {
+                definitely_dupes.insert(hashable);
+            }
+        }
+
+        for (key, value) in map {
+            if !definitely_dupes.contains(&key) {
+                result.push(value)
+            }
+        }
+    }
     fn create_cursor(&self) -> TreeCursor {
         let mut controller = BoardController::new_start();
         controller.add_openings_tree(self.opening_tree.clone());

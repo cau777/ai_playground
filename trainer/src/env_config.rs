@@ -7,7 +7,7 @@ pub struct EnvConfig {
     pub mounted_path: String,
     pub name: String,
     pub profile: bool,
-    pub max_node_cache: usize,
+    pub max_cache_size_kb: u64,
 }
 
 fn get_path(name: &str) -> Result<String, VarError> {
@@ -35,7 +35,7 @@ impl EnvConfig {
             versions,
             name: var("NAME").unwrap_or_else(|_| "digits".to_owned()).to_ascii_lowercase(),
             profile: var("PROFILE").is_ok(),
-            max_node_cache: var("MAX_NODE_CACHE").unwrap_or_else(|_|"1000".to_owned()).parse().unwrap(),
+            max_cache_size_kb: var("MAX_CACHE_SIZE_KB").unwrap_or_else(|_|"1000".to_owned()).parse().unwrap(),
         })
     }
 }

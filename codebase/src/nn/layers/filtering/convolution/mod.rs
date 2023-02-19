@@ -20,6 +20,7 @@ pub struct ConvolutionConfig {
     pub padding: usize,
     pub init_mode: ConvolutionInitMode,
     pub lr_calc: LrCalc,
+    pub cache: bool,
 }
 
 #[derive(Clone, Debug)]

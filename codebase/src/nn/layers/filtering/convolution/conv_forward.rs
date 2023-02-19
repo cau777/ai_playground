@@ -19,9 +19,13 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
     let [kernel] = clone_from_storage1(storage, &key);
     let kernel: Array4F = kernel.into_dimensionality()?;
 
-    let prev_values: Option<[ArrayDynF; 2]> = prev_iteration_cache.as_mut()
-        .and_then(|o| o.remove(&key))
-        .map(|o| o.try_into().unwrap());
+    let prev_values: Option<[ArrayDynF; 2]> = if layer_config.cache {
+        prev_iteration_cache.as_mut()
+            .and_then(|o| o.remove(&key))
+            .map(|o| o.try_into().unwrap())
+    } else {
+        None
+    };
 
     let inputs = pad4d(inputs, layer_config.padding);
 
@@ -201,6 +205,7 @@ mod tests {
             init_mode: HeNormal(),
             lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
             kernel_size: 2,
+            cache: false,
         };
 
         let dist = Normal::new(0.0, 1.0).unwrap();

@@ -68,6 +68,7 @@ fn profile_code() {
                 out_channels: 2,
                 padding: 0,
                 lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                cache: false,
             }),
             Layer::Flatten,
             Layer::Dense(dense_layer::DenseConfig {
@@ -89,7 +90,7 @@ fn profile_code() {
                 ..Default::default()
             },
             batch_size: 32,
-            max_cache: 2_000,
+            max_cache_bytes: 2_000,
             ..Default::default()
         }
     );

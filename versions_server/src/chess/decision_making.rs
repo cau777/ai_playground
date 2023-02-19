@@ -43,7 +43,7 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
         vec![TreeCursor::new(controller)],
         BuilderOptions {
             batch_size: 64,
-            max_cache: 1_000,
+            max_cache_bytes: config.max_cache_size_kb * 1_000,
             next_node_strategy: NextNodeStrategy::Computed {
                 eval_delta_exp: config.eval_delta_exp,
                 depth_delta_exp: config.depth_delta_exp,

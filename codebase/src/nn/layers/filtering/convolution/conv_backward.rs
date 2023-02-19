@@ -233,6 +233,7 @@ mod tests {
             init_mode: HeNormal(),
             lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
             stride: 2,
+            cache: false,
         };
         let inputs = Array4F::random((8, config.in_channels, 10, 10), &dist);
         let grad_shape = (inputs.shape()[0], config.out_channels,

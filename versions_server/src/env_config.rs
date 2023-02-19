@@ -8,6 +8,7 @@ pub struct EnvConfig {
     pub keep_versions: usize,
     pub eval_delta_exp: f64,
     pub depth_delta_exp: f64,
+    pub max_cache_size_kb: u64,
 }
 
 impl Default for EnvConfig {
@@ -25,6 +26,7 @@ impl EnvConfig {
         let keep_versions = var("KEEP_VERSIONS").unwrap_or_else(|_| "30".to_owned()).parse().unwrap();
         let eval_delta_exp = var("NEXT_NODE_EVAL_DELTA_EXP").unwrap_or_else(|_| "5".to_owned()).parse().unwrap();
         let depth_delta_exp = var("NEXT_NODE_DEPTH_DELTA_EXP").unwrap_or_else(|_| "0.1".to_owned()).parse().unwrap();
+        let max_cache_size_kb = var("MAX_CACHE_SIZE_KB").unwrap_or_else(|_| "5000".to_owned()).parse().unwrap();
 
         let result = Self {
             base_path,
@@ -33,6 +35,7 @@ impl EnvConfig {
             keep_versions,
             eval_delta_exp,
             depth_delta_exp,
+            max_cache_size_kb
         };
         println!("{:?}", result);
         result

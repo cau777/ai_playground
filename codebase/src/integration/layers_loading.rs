@@ -91,7 +91,7 @@ fn load_loss_func(element: &Element) -> Result<LossFunc> {
             "Mse" => Ok(LossFunc::Mse),
             "CrossEntropy" => Ok(LossFunc::CrossEntropy),
             _ => Err(XmlError::UnexpectedTag(e.name.clone())),
-        }
+        };
     }
     Err(XmlError::ElementNotFound("Any loss function node"))
 }
@@ -144,6 +144,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 padding: get_usize_attr(element, "padding")?,
                 init_mode: convolution::ConvolutionInitMode::HeNormal(),
                 lr_calc: load_lr(kernels_lr)?,
+                cache: get_bool_attr(element, "cache"),
             }))
         }
         "MaxPool" => {
@@ -159,11 +160,11 @@ fn load_layer(element: &Element) -> Result<Layer> {
                 action: match action.as_str() {
                     "print_shape" => debug_layer::DebugAction::PrintShape,
                     "print_time" => debug_layer::DebugAction::PrintTime,
-                    _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action",action.clone()))
+                    _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action", action.clone()))
                 },
                 tag: get_string_attr(element, "tag")?,
             }))
-        },
+        }
         "Concat" => {
             let mut layers = Vec::new();
             for e in iter_elements(&element.children) {
@@ -190,12 +191,12 @@ fn load_layer(element: &Element) -> Result<Layer> {
             Ok(Layer::ExpandDim(expand_dim_layer::ExpandDimConfig {
                 dim: get_usize_attr(element, "dim")?,
             }))
-        },
+        }
         "Dropout" => {
             Ok(Layer::Dropout(dropout_layer::DropoutConfig {
                 drop: get_f32_attr(element, "drop")?,
             }))
-        },
+        }
         "TwoComplementsTransformer" => {
             Ok(Layer::TwoComplementsTransformer)
         }
@@ -266,6 +267,13 @@ fn get_usize_attr(element: &Element, name: &'static str) -> Result<usize> {
     value
         .parse()
         .map_err(|_| XmlError::AttributeParseError(element.name.clone(), name, value.clone()))
+}
+
+fn get_bool_attr(element: &Element, name: &'static str) -> bool {
+    match element.attributes.get(name) {
+        Some(value) => value.to_ascii_lowercase() != "false",
+        None => false,
+    }
 }
 
 fn get_f32_attr(element: &Element, name: &'static str) -> Result<f32> {

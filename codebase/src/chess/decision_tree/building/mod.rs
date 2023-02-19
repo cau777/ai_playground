@@ -55,7 +55,7 @@ impl DecisionTreesBuilder {
         let cursors: Vec<_> = self.initial_cursors.iter().cloned().map(RefCell::new).collect();
         let mut producer = GamesProducer::new(&self.initial_trees, &self.initial_cursors,
                                               &trees, &cursors, &self.options);
-        let mut caches = vec![Cache::new(self.options.max_cache / trees.len()); self.initial_trees.len()];
+        let mut caches = vec![Cache::new(self.options.max_cache_bytes / (trees.len() as u64)); self.initial_trees.len()];
 
         let mut requests = RequestStorage::new();
 
@@ -160,7 +160,7 @@ impl DecisionTreesBuilder {
             }
         }
 
-        println!("Some={} None={}, len={:?}, count={:?}, ls={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched);
+        println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
         (trees.into_iter().map(|o| o.into_inner()).collect(),
          cursors.into_iter().map(|o| o.into_inner()).collect())
     }

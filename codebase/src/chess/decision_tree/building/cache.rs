@@ -1,3 +1,4 @@
+use std::mem;
 use crate::chess::decision_tree::building::{compute_next_node_score, NextNodeStrategy};
 use crate::chess::decision_tree::DecisionTree;
 use crate::nn::layers::nn_layers::GenericStorage;
@@ -6,16 +7,18 @@ use crate::nn::layers::nn_layers::GenericStorage;
 pub struct Cache {
     pub count: usize,
     buffer: Vec<Option<GenericStorage>>,
-    max: usize,
+    pub current_bytes: u64,
+    max_bytes: u64,
     pub last_searched: usize,
 }
 
 impl Cache {
-    pub fn new(max: usize) -> Self {
+    pub fn new(max_bytes: u64) -> Self {
         Self {
             count: 0,
             buffer: vec![None],
-            max,
+            max_bytes,
+            current_bytes: 0,
             last_searched: 0,
         }
     }
@@ -32,17 +35,28 @@ impl Cache {
     }
 
     pub fn push(&mut self, value: Option<GenericStorage>) {
-        if value.is_some() {
+        if let Some(value) = value.as_ref() {
             self.count += 1;
+            self.current_bytes += Self::count_bytes(value);
         }
         self.buffer.push(value);
     }
 
     pub fn remove(&mut self, index: usize) {
-        if self.buffer[index].is_some() {
+        if let Some(value) = self.buffer[index].as_ref() {
             self.count -= 1;
+            self.current_bytes -= Self::count_bytes(value);
         }
         self.buffer[index] = None;
+    }
+
+    fn count_bytes(storage: &GenericStorage) -> u64 {
+        const ITEM_SIZE: u64 = mem::size_of::<f32>() as u64;
+
+        storage.values()
+            .flat_map(|o| o)
+            .map(|o| o.len() as u64 * ITEM_SIZE)
+            .sum()
     }
 
     pub fn remove_excess(&mut self, tree: &DecisionTree, strategy: &NextNodeStrategy) {
@@ -137,6 +151,6 @@ impl Cache {
     }
 
     fn should_remove(&self) -> bool {
-        self.count >= self.max
+        self.current_bytes >= self.max_bytes
     }
 }
