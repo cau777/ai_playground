@@ -1,3 +1,7 @@
-import { mount, StartClient } from "solid-start/entry-client";
+import {mount, StartClient} from "solid-start/entry-client";
+import {wakeUp} from "~/utils/server-interface";
 
-mount(() => <StartClient />, document);
+mount(() => {
+    wakeUp().then();
+    return <StartClient/>;
+}, document);
