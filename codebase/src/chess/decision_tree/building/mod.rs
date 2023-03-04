@@ -181,8 +181,7 @@ impl DecisionTreesBuilder {
         }
 
         let replacement = storages.iter()
-            .filter_map(|o| o.as_ref())
-            .cloned()
+            .filter_map(|o| o.clone().cloned())
             .map(|mut o| {
                 for arr in o.values_mut() {
                     for item in arr {
@@ -194,7 +193,7 @@ impl DecisionTreesBuilder {
             .next()?;
 
         let replaced: Vec<_> = storages.into_iter()
-            .map(|o| o.as_ref().unwrap_or(&replacement))
+            .map(|o| o.unwrap_or(&replacement))
             .collect();
 
         combine_storages(&replaced)
@@ -241,7 +240,7 @@ impl DecisionTreesBuilder {
                 if let RequestPart::Completed { m, eval, info, cache, .. } = part {
                     data.push((m, eval, info));
                     // We can just push the cache to the array because the nodes are stored in the same order in the tree
-                    caches[req.game_index].push(cache);
+                    caches[req.game_index].insert_next(cache);
                 }
             }
 
@@ -289,6 +288,7 @@ mod tests {
                     out_channels: 2,
                     padding: 0,
                     lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    cache: false,
                 }),
                 Layer::Flatten,
                 Layer::Dense(dense_layer::DenseConfig {

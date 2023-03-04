@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::mem;
 use crate::chess::decision_tree::building::{compute_next_node_score, NextNodeStrategy};
 use crate::chess::decision_tree::DecisionTree;
@@ -6,20 +7,22 @@ use crate::nn::layers::nn_layers::GenericStorage;
 #[derive(Clone)]
 pub struct Cache {
     pub count: usize,
-    buffer: Vec<Option<GenericStorage>>,
+    buffer: HashMap<usize, GenericStorage>,
     pub current_bytes: u64,
     max_bytes: u64,
     pub last_searched: usize,
+    current: usize,
 }
 
 impl Cache {
     pub fn new(max_bytes: u64) -> Self {
         Self {
             count: 0,
-            buffer: vec![None],
+            buffer: HashMap::new(),
             max_bytes,
             current_bytes: 0,
             last_searched: 0,
+            current: 1,
         }
     }
 
@@ -27,27 +30,26 @@ impl Cache {
         self.buffer.len()
     }
 
-    pub fn get(&self, index: usize) -> &Option<GenericStorage> {
-        match self.buffer.get(index) {
-            Some(v) => v,
-            None => &None,
-        }
+    pub fn get(&self, index: usize) -> Option<&GenericStorage> {
+        self.buffer.get(&index)
     }
 
-    pub fn push(&mut self, value: Option<GenericStorage>) {
-        if let Some(value) = value.as_ref() {
+    pub fn insert_next(&mut self, value: Option<GenericStorage>) {
+        if let Some(value) = value {
             self.count += 1;
-            self.current_bytes += Self::count_bytes(value);
+            self.current_bytes += Self::count_bytes(&value);
+            self.buffer.insert(self.current, value);
         }
-        self.buffer.push(value);
+
+        self.current += 1;
     }
 
     pub fn remove(&mut self, index: usize) {
-        if let Some(value) = self.buffer[index].as_ref() {
+        if let Some(value) = self.buffer.get(&index) {
             self.count -= 1;
             self.current_bytes -= Self::count_bytes(value);
         }
-        self.buffer[index] = None;
+        self.buffer.remove(&index);
     }
 
     fn count_bytes(storage: &GenericStorage) -> u64 {
@@ -87,7 +89,7 @@ impl Cache {
                     .unwrap()
                     .copied()
                     // Get only the nodes whose cache is stored
-                    .filter(|&o| self.buffer[o].is_some())
+                    .filter(|o| self.buffer.contains_key(o))
                     // Get the worst nodes first
                     .rev()
                     .collect();
