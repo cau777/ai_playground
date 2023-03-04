@@ -13,6 +13,9 @@ rand = "0.8.5"
 itertools = "0.10.5"
 bloomfilter = "1.0.9"
 
+[profile.dev]
+opt-level = 2
+
 [profile.release]
 lto = true
 opt-level = 3

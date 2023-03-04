@@ -11,9 +11,11 @@ use crate::chess::NAME;
 use crate::{EnvConfig, ServerClient};
 use crate::chess::game_metrics::GameMetrics;
 use crate::chess::games_trainer::{GamesTrainer};
+use crate::chess::subtrees_trainer::SubtreesTrainer;
 
 pub struct TrainerScheduler {
     endgames_trainer: EndgamesTrainer,
+    subtrees_trainer: SubtreesTrainer,
     games_trainer: GamesTrainer,
     controller: NNController,
 }
@@ -22,6 +24,7 @@ enum TrainingStrategy {
     Endgames,
     FullGames,
     OpponentsResponses,
+    KeyPositions,
 }
 
 impl TrainerScheduler {
@@ -29,6 +32,7 @@ impl TrainerScheduler {
         Self {
             endgames_trainer: EndgamesTrainer::new(config),
             games_trainer: GamesTrainer::new(config),
+            subtrees_trainer: SubtreesTrainer::new(config),
             controller: NNController::load(model_config.main_layer, model_config.loss_func, initial).unwrap(),
         }
     }
@@ -36,7 +40,7 @@ impl TrainerScheduler {
     pub fn train_versions(&mut self, count: u32, config: &EnvConfig, client: Arc<ServerClient>) {
         let mut queue = Vec::new();
         let mut all_metrics = Vec::new();
-        queue.push(TrainingStrategy::FullGames);
+        queue.push(TrainingStrategy::KeyPositions);
         let mut completed: Option<(_, _)> = None;
         let client = Arc::new(client);
 
@@ -71,6 +75,7 @@ impl TrainerScheduler {
             TrainingStrategy::Endgames => println!("Decided to train endgames"),
             TrainingStrategy::FullGames => println!("Decided to play full games against itself"),
             TrainingStrategy::OpponentsResponses => println!("Decided to train guessing the opponent's responses"),
+            TrainingStrategy::KeyPositions => println!("Decided to train key positions"),
         };
 
         match next {
@@ -83,7 +88,7 @@ impl TrainerScheduler {
             TrainingStrategy::FullGames => {
                 let result = self.games_trainer.train_version(&mut self.controller, BuilderOptions {
                     limits: LimiterFactors {
-                        max_full_paths_explored: Some(70),
+                        max_full_paths_explored: Some(40),
                         ..LimiterFactors::default()
                     },
                     random_node_chance: 0.2,
@@ -115,6 +120,21 @@ impl TrainerScheduler {
                 Self::print_metrics(&result);
                 queue.push(TrainingStrategy::FullGames);
             }
+            TrainingStrategy::KeyPositions => {
+                let result = self.subtrees_trainer.train_version(&mut self.controller, BuilderOptions {
+                    limits: LimiterFactors {
+                        max_full_paths_explored: Some(40),
+                        ..LimiterFactors::default()
+                    },
+                    random_node_chance: 0.15,
+                    next_node_strategy: NextNodeStrategy::Computed {
+                        eval_delta_exp: 5.0,
+                        depth_delta_exp: 0.1,
+                    },
+                    ..BuilderOptions::default()
+                }, 1);
+                Self::print_metrics(&result);
+            }
         }
 
         if version != 0 && version % 5 == 0 {
@@ -125,7 +145,8 @@ impl TrainerScheduler {
                 .expect("Time went backwards");
 
             let export = self.controller.export();
-            *completed = Some((export, -(since_the_epoch.as_millis() as f64)));
+            // TODO
+            // *completed = Some((export, -(since_the_epoch.as_millis() as f64)));
         }
     }
 
@@ -134,6 +155,11 @@ impl TrainerScheduler {
     }
 
     fn choose_next(metrics: &[GameMetrics], version: u32) -> TrainingStrategy {
+        return if version % 4 == 0 {
+            TrainingStrategy::FullGames
+        } else {
+            TrainingStrategy::KeyPositions
+        };
         if metrics.len() < 10 {
             return TrainingStrategy::FullGames;
         }
@@ -153,7 +179,7 @@ impl TrainerScheduler {
         if version % 10 == 0 && (unbalanced_win_rate || low_confidence) {
             TrainingStrategy::OpponentsResponses
         } else if avg_metrics.branches.aborted_rate > 0.1 {
-            TrainingStrategy::Endgames 
+            TrainingStrategy::Endgames
         } else {
             TrainingStrategy::FullGames
         }

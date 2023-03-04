@@ -5,7 +5,7 @@ use bloomfilter::Bloom;
 use codebase::chess::board::Board;
 use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
-use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
+use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::chess::game_result::{DrawReason, GameResult};
@@ -13,18 +13,19 @@ use codebase::chess::openings::openings_tree::OpeningsTree;
 use codebase::nn::controller::NNController;
 use codebase::utils::{Array2F};
 use codebase::utils::ndarray::{Axis, stack};
+use itertools::Itertools;
 use rand::{Rng, thread_rng};
 use crate::chess::BATCH_SIZE;
 use crate::chess::game_metrics::GameMetrics;
-use crate::chess::utils::{calc_nodes_confidence_2, dedupe};
+use crate::chess::utils::{calc_mean_and_std_dev, calc_nodes_confidence_2, dedupe};
 use crate::EnvConfig;
 
-pub struct GamesTrainer {
+pub struct SubtreesTrainer {
     opening_tree: Arc<OpeningsTree>,
     max_cache_size_kb: u64,
 }
 
-impl GamesTrainer {
+impl SubtreesTrainer {
     pub fn new(config: &EnvConfig) -> Self {
         let file = OpenOptions::new().read(true).open(format!("{}/chess/openings.dat", config.mounted_path)).unwrap();
         Self {
@@ -48,14 +49,52 @@ impl GamesTrainer {
         metrics
     }
 
+    fn get_subtrees(&self, controller: &NNController, limits: LimiterFactors, random_node_chance: f64)
+        -> Vec<(DecisionTree, TreeCursor)> {
+        const SUBTREE_COUNT: usize = 10; // TODO: analyze
+        let tree = vec![DecisionTree::new(true)];
+        let cursor = vec![self.create_cursor()];
+        let options = BuilderOptions {
+            next_node_strategy: NextNodeStrategy::Computed {
+                eval_delta_exp: 5.0,
+                depth_delta_exp: 0.1,
+            },
+            limits,
+            batch_size: BATCH_SIZE,
+            max_cache_bytes: self.max_cache_size_kb * 1_000,
+            on_game_result: Box::new(|_| {}),
+            random_node_chance: random_node_chance * 2.0,
+        };
+
+        let (mut tree, mut cursor) = DecisionTreesBuilder::new(tree, cursor, options)
+            .build(controller);
+        let tree = tree.remove(0);
+        let mut cursor = cursor.remove(0);
+
+        tree.nodes.iter()
+            .enumerate()
+            .filter(|(_, o)| o.children.is_some())
+            .filter(|(_, o)| !o.info.is_opening)
+            .map(|(i, o)| {
+                // Negate to reverse sorting
+                (i, -f32::abs(o.pre_eval - o.eval()))
+            })
+            .sorted_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
+            .take(SUBTREE_COUNT)
+            .map(|i| {
+                println!("{}", i);
+                tree.create_subtree(&mut cursor, i)
+            })
+            .collect()
+    }
+
     fn analyze_games(&self, controller: &NNController, count: usize, options: BuilderOptions)
                      -> (Vec<(Board, f32)>, GameMetrics) {
-        let mut trees = Vec::with_capacity(count);
-        let mut cursors = Vec::with_capacity(count);
-        for _ in 0..count {
-            trees.push(DecisionTree::new(true));
-            cursors.push(self.create_cursor());
-        }
+        let zipped = self.get_subtrees(controller, options.limits.clone(), options.random_node_chance);
+        let (trees, cursors): (Vec<_>, Vec<_>) = zipped.into_iter().unzip();
+
+        // println!("\n{}\n", trees[0].to_svg());
 
         let metrics = Arc::new(Mutex::new(GameMetrics::default()));
 
@@ -96,6 +135,8 @@ impl GamesTrainer {
             builder.build(controller)
         };
 
+        // println!("\n{}\n", trees[0].to_svg());
+
         let mut metrics = metrics.lock().unwrap();
         for ending in trees.iter().flat_map(|o| &o.nodes).filter(|o| o.info.is_ending) {
             metrics.total_branches += 1;
@@ -106,24 +147,17 @@ impl GamesTrainer {
         metrics.branches.scale(factor);
 
         for tree in &trees {
-            for node in tree.nodes.iter().filter(|o| o.children.is_some()) {
-                metrics.total_explored_nodes += 1;
+            for (index, node) in tree.nodes.iter()
+                .enumerate()
+                .filter(|(_, o)| o.children.is_some()) {
                 let children = node.children.as_ref().unwrap();
-                let children_len = children.len() as f64;
 
-                metrics.explored_nodes.avg_children += children_len;
-                let evals: Vec<_> = children.iter()
-                    .map(|&o| tree.nodes[o].pre_eval as f64)
-                    .collect();
+                metrics.total_explored_nodes += 1;
+                metrics.explored_nodes.avg_children += children.len() as f64;
 
-                let mean = evals.iter().sum::<f64>() / children_len;
-
+                let (mean, std_dev) = calc_mean_and_std_dev(tree, index);
                 metrics.explored_nodes.avg_mean += mean;
-                metrics.explored_nodes.avg_children_std_dev += f64::sqrt(
-                    evals.iter().map(|&o| f64::powi(o - mean, 2)).sum::<f64>()
-                        /
-                        children_len
-                );
+                metrics.explored_nodes.avg_children_std_dev += std_dev;
             }
         }
 
@@ -170,20 +204,10 @@ impl GamesTrainer {
             result_to_dedup.extend(nodes);
         }
 
-        // let slice = &result_to_dedup[..10_000];
-        // assert_eq!({
-        //     let mut from = slice.to_vec();
-        //     let mut result = Vec::new();
-        //     Self::dedupe_hashmap(&mut from, &mut result);
-        //     result
-        // }.len(), {
-        //     Self::dedupe(slice.to_vec())
-        // }.len());
-
         let result = dedupe(result_to_dedup);
         (result, metrics.clone())
     }
-    
+
     fn create_cursor(&self) -> TreeCursor {
         let mut controller = BoardController::new_start();
         controller.add_openings_tree(self.opening_tree.clone());
