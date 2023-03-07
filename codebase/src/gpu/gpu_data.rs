@@ -2,10 +2,12 @@ use std::sync::Arc;
 use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, DeviceExtensions, physical::PhysicalDeviceType};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::pipeline::cache::PipelineCache;
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::sync::{FenceSignalFuture, GpuFuture, NowFuture};
 use crate::gpu::pools::Pools;
 use crate::utils::GenericResult;
 
@@ -85,5 +87,11 @@ impl GpuData {
             pools: Pools::new(memory_alloc.clone()),
             memory_alloc,
         })
+    }
+
+    pub fn exec_cmd(&self, cmd: PrimaryAutoCommandBuffer) -> GenericResult<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> {
+        Ok(vulkano::sync::now(self.device.clone())
+            .then_execute(self.queue.clone(), cmd)?
+            .then_signal_fence_and_flush()?)
     }
 }

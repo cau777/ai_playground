@@ -34,7 +34,7 @@ impl NNController {
         let output = forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &mut self.storage,
                 forward_cache: &mut forward_cache,
@@ -42,7 +42,7 @@ impl NNController {
                 gpu: gpu.clone(),
                 prev_iteration_cache: None,
             },
-        )?;
+        )?.into_memory()?;
 
         assigner.revert();
 

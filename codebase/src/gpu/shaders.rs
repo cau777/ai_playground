@@ -15,3 +15,12 @@ pub mod convolution_forward {
         path: "./src/gpu/shaders/convolution_forward.glsl"
     }
 }
+
+pub mod relu_forward {
+    pub const BLOCK_SIZE: [u32; 3] = [8, 1, 1];
+
+    vulkano_shaders::shader! {
+        ty: "compute",
+        path: "./src/gpu/shaders/relu_forward.glsl"
+    }
+}

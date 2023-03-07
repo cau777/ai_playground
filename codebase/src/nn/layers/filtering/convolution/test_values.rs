@@ -147,6 +147,7 @@ pub fn get_config() -> ConvolutionConfig {
         lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
         in_channels: 2,
         out_channels: 3,
+        cache: false
     }
 }
 

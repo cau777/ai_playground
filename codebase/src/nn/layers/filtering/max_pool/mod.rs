@@ -18,6 +18,7 @@ fn gen_name() -> String {
     "max_pool".to_owned()
 }
 
+// TODO
 impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
     fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult { Ok(()) }
 
@@ -25,7 +26,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
         let ForwardData { inputs, forward_cache, assigner, .. } = data;
         let stride = layer_config.stride;
         let size = layer_config.size;
-        let inputs: Array4F = inputs.into_dimensionality()?;
+        let inputs: Array4F = inputs.into_memory()?.into_dimensionality()?;
         let inputs = pad4d(inputs, layer_config.padding);
 
         let [batch_size, channels, new_height, new_width] =
@@ -40,7 +41,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
 
         let key = assigner.get_key(gen_name());
         forward_cache.insert(key, vec![inputs.into_dyn()]);
-        Ok(result.into_dyn())
+        Ok(result.into_dyn().into())
     }
 
     fn backward(data: BackwardData, layer_config: &MaxPoolConfig) -> LayerResult {
@@ -77,7 +78,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
         });
 
         let result = remove_padding_4d(result, layer_config.padding);
-        Ok(result.into_dyn())
+        Ok(result.into_dyn().into())
     }
 }
 
@@ -129,14 +130,14 @@ mod tests {
 
         fn forward(inputs: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
             MaxPoolLayer::forward(ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
                 forward_cache: &mut GenericStorage::new(),
                 prev_iteration_cache: None,
                 gpu: None,
-            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap()
+            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap().into_memory().unwrap()
         }
 
         assert_eq!(expected.into_dyn(), forward(inputs, 2, 2));
@@ -170,7 +171,7 @@ mod tests {
                 backward_cache: &mut GenericStorage::new(),
                 batch_config: &BatchConfig::new_train(),
                 gpu: None,
-            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap()
+            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap().into_memory().unwrap()
         }
 
         let result = backward(inputs, grad, 2, 2);

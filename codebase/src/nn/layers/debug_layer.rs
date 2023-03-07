@@ -72,6 +72,6 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
                 f(&layer_config.tag, &data, &key);
             }
         }
-        Ok(data.grad)
+        Ok(data.grad.into())
     }
 }

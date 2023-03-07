@@ -9,3 +9,4 @@ pub mod dropout_layer;
 pub mod concat_layer;
 pub mod filtering;
 mod two_complements_transformer_layer;
+pub mod stored_array;

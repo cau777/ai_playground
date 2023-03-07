@@ -56,6 +56,7 @@ mod tests {
             padding: 0,
             init_mode: HeNormal(),
             lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+            cache: false
         };
 
         let mut assigner = KeyAssigner::new();

@@ -14,6 +14,8 @@ use vulkano::{
 };
 use vulkano::buffer::{BufferAccess};
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
+use vulkano::descriptor_set::DescriptorSet;
+use vulkano::descriptor_set::sys::UnsafeDescriptorSet;
 use vulkano::memory::allocator::{FastMemoryAllocator};
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
 use vulkano::sync::{FenceSignalFuture, NowFuture};
@@ -139,15 +141,9 @@ impl ShaderRunner {
             .dispatch(group_counts)?;
 
         let cmd = builder.build()?;
-        self.exec_cmd(cmd)?.wait(None)?;
+        self.gpu.exec_cmd(cmd)?.wait(None)?;
 
         Ok(())
-    }
-
-    fn exec_cmd(&self, cmd: PrimaryAutoCommandBuffer) -> GenericResult<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> {
-        Ok(sync::now(self.gpu.device.clone())
-            .then_execute(self.gpu.queue.clone(), cmd)?
-            .then_signal_fence_and_flush()?)
     }
 
     fn add_buffer(&mut self, buffer: Arc<dyn BufferAccess>) {

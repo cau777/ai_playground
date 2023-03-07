@@ -21,10 +21,10 @@ impl NNController {
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
 
-        forward_layer(
+        Ok(forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
@@ -32,10 +32,11 @@ impl NNController {
                 prev_iteration_cache: None,
                 gpu,
             },
-        )
+        )?.into_memory()?)
     }
 
-    pub fn eval_with_cache(&self, inputs: ArrayDynF, prev_iteration_cache: Option<GenericStorage>) -> GenericResult<(ArrayDynF, GenericStorage)> {
+    pub fn eval_with_cache(&self, inputs: ArrayDynF, prev_iteration_cache: Option<GenericStorage>)
+        -> GenericResult<(ArrayDynF, GenericStorage)> {
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
@@ -45,7 +46,7 @@ impl NNController {
         let result = forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
@@ -55,6 +56,6 @@ impl NNController {
             },
         )?;
 
-        Ok((result, cache))
+        Ok((result.into_memory()?, cache))
     }
 }

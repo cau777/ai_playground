@@ -11,6 +11,7 @@ use crate::nn::layers::filtering::remove_padding_4d;
 use crate::nn::layers::nn_layers::{BackwardData, LayerResult};
 use crate::utils::{Array2F, Array5F, GenericResult, get_dims_after_filter_4};
 
+// TODO
 pub fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let BackwardData {
         assigner, forward_cache, storage,
@@ -40,7 +41,7 @@ pub fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerRe
         None => cpu_inputs_grad(inputs, grad, kernel, layer_config)
     };
 
-    Ok(inputs_grad.into_dyn())
+    Ok(inputs_grad.into_dyn().into())
 }
 
 pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &ConvolutionConfig) -> Array4F {
@@ -207,7 +208,7 @@ mod tests {
         ).unwrap();
 
         // println!("{:?}\r\n--------\r\n{:?}", result, expected);
-        assert!(arrays_almost_equal(&result, &expected));
+        assert!(arrays_almost_equal(&result.into_memory().unwrap(), &expected));
     }
 
     #[test]

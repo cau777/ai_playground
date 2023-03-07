@@ -19,6 +19,7 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
     fn forward(data: ForwardData, layer_config: &DropoutConfig) -> LayerResult {
         let ForwardData { forward_cache, assigner, inputs, batch_config, .. } = data;
         let key = assigner.get_key(gen_name(layer_config));
+        let inputs = inputs.into_memory()?;
 
         if batch_config.is_training { // Only perform dropout while training
             let factor = layer_config.drop;
@@ -30,10 +31,10 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
 
             let result = inputs * &dropout;
             forward_cache.insert(key, vec![dropout]);
-            Ok(result)
+            Ok(result.into())
         } else {
             forward_cache.insert(key, vec![]);
-            Ok(inputs)
+            Ok(inputs.into())
         }
     }
 
@@ -42,10 +43,10 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
         let key = assigner.get_key(gen_name(layer_config));
         match forward_cache[&key].as_slice() {
             [dropout] => {
-                Ok(grad * dropout)
+                Ok((grad * dropout).into())
             }
             _ => {
-                Ok(grad)
+                Ok(grad.into())
             }
         }
     }
@@ -68,7 +69,7 @@ mod tests {
         let batch_config = BatchConfig::new_train();
 
         let forward_data = ForwardData {
-            inputs,
+            inputs: inputs.into(),
             assigner: &mut KeyAssigner::new(),
             forward_cache: &mut cache,
             storage: &GenericStorage::new(),
@@ -76,7 +77,7 @@ mod tests {
             prev_iteration_cache: None,
             gpu: None,
         };
-        let result = DropoutLayer::forward(forward_data, &config);
+        let result = DropoutLayer::forward(forward_data, &config).unwrap().into_memory().unwrap();
         println!("{:?}", result);
         println!("{:?}", cache);
     }

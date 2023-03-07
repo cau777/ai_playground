@@ -24,8 +24,9 @@ impl LayerOps<()> for FlattenLayer {
         let shape_vec = inputs.shape().iter().cloned().map(|o|o as f32).collect();
         let shape_array = Array1F::from_shape_vec(inputs.shape().len(), shape_vec).unwrap();
         forward_cache.insert(key, vec![shape_array.into_dyn()]);
-        
-        Ok(inputs.into_shape(new_shape)?.into_dyn())
+
+        let inputs = inputs.into_memory()?;
+        Ok(inputs.into_shape(new_shape)?.into_dyn().into())
     }
 
     fn backward(data: BackwardData, _: &()) -> LayerResult {
@@ -35,6 +36,6 @@ impl LayerOps<()> for FlattenLayer {
         let stored = stored.remove(0);
         let shape_vec: Vec<_> = stored.iter().map(|o| o.round() as usize).collect();
         
-        Ok(grad.into_shape(shape_vec)?)
+        Ok(grad.into_shape(shape_vec)?.into())
     }
 }

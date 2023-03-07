@@ -13,7 +13,7 @@ use crate::utils::{Array3F, GenericResult, get_dims_after_filter_4};
 pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
 
-    let inputs: Array4F = inputs.into_dimensionality()?;
+    let inputs: Array4F = inputs.into_memory()?.into_dimensionality()?;
     let key = assigner.get_key(gen_name(layer_config));
 
     let [kernel] = clone_from_storage1(storage, &key);
@@ -55,7 +55,7 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
     if let Some(cache) = prev_iteration_cache {
         cache.insert(key, vec![inputs, result.clone()]);
     }
-    Ok(result)
+    Ok(result.into())
 }
 
 pub fn cpu_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &ConvolutionConfig) -> Result<Array4F, ShapeError> {
@@ -181,7 +181,7 @@ mod tests {
 
         let result = forward(
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 forward_cache: &mut GenericStorage::new(),
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
@@ -192,7 +192,7 @@ mod tests {
             &config,
         ).unwrap();
 
-        assert!(arrays_almost_equal(&expected, &result));
+        assert!(arrays_almost_equal(&expected, &result.into_memory().unwrap()));
     }
 
     #[test]

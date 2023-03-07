@@ -8,6 +8,7 @@ use crate::utils::{ArrayDynF, GenericResult};
 use crate::nn::layers::filtering::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use crate::nn::layers::filtering::max_pool::MaxPoolConfig;
+use crate::nn::layers::stored_array::StoredArray;
 
 /// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
@@ -83,7 +84,7 @@ pub struct InitData<'a> {
 }
 
 pub struct ForwardData<'a> {
-    pub inputs: ArrayDynF,
+    pub inputs: StoredArray,
     pub batch_config: &'a BatchConfig,
     pub assigner: &'a mut KeyAssigner,
 
@@ -135,7 +136,7 @@ pub struct TrainData<'a> {
 pub type GenericStorage = HashMap<String, Vec<ArrayDynF>>;
 
 pub type EmptyLayerResult = GenericResult<()>;
-pub type LayerResult = GenericResult<ArrayDynF>;
+pub type LayerResult = GenericResult<StoredArray>;
 
 pub trait LayerOps<T> {
     fn init(data: InitData, layer_config: &T) -> EmptyLayerResult;

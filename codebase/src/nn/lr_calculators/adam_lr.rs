@@ -57,6 +57,6 @@ impl LrCalcOps<AdamConfig> for AdamLrCalc {
             ],
         );
 
-        Ok(config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + EPSILON))
+        Ok((config.alpha * moment1b / (moment2b.mapv(f32::sqrt) + EPSILON)).into())
     }
 }

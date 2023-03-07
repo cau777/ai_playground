@@ -23,7 +23,7 @@ impl TrainableLayerOps<ConvolutionConfig> for ConvolutionLayer {
                 storage,
                 assigner,
             },
-        )?;
+        )?.into_memory()?;
 
         let kernel = get_mut_from_storage(storage, &key, 0);
         kernel.add_assign(&kernel_grad);

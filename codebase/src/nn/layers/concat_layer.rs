@@ -1,6 +1,8 @@
 use ndarray::{Axis, concatenate, Slice};
+use crate::ArrayDynF;
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::{backward_layer, forward_layer, init_layer, Layer, train_layer, TrainableLayerOps, TrainData};
+use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::Array1F;
 
 use super::nn_layers::{ForwardData, LayerOps, InitData, EmptyLayerResult, LayerResult, BackwardData};
@@ -28,33 +30,39 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         Ok(())
     }
 
-    fn forward(mut data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
+    fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
         let mut results = Vec::with_capacity(layer_config.layers.len());
         let mut splits = Vec::with_capacity(layer_config.layers.len());
         let key = data.assigner.get_key(gen_name(layer_config));
         let dim = layer_config.dim + 1;
 
+        let ForwardData {
+            inputs, forward_cache, storage, gpu, assigner,
+            batch_config, mut prev_iteration_cache
+        } = data;
+        let inputs = inputs.into_memory()?;
+
         for layer in &layer_config.layers {
             let result = forward_layer(layer, ForwardData {
-                inputs: data.inputs.clone(),
-                forward_cache: data.forward_cache,
-                storage: data.storage,
-                gpu: data.gpu.clone(),
-                assigner: data.assigner,
-                batch_config: data.batch_config,
-                prev_iteration_cache: data.prev_iteration_cache.as_deref_mut(),
+                inputs: inputs.clone().into(),
+                forward_cache: forward_cache,
+                storage: storage,
+                gpu: gpu.clone(),
+                assigner: assigner,
+                batch_config: batch_config,
+                prev_iteration_cache: prev_iteration_cache.as_deref_mut(),
             })?;
 
             splits.push(result.shape()[dim]);
-            results.push(result);
+            results.push(result.into_memory()?);
         }
 
         let results_views: Vec<_> = results.iter().map(|o| o.view()).collect();
         let concat = concatenate(Axis(dim), &results_views)?;
 
-        data.forward_cache.insert(key, vec![Array1F::from_iter(splits.iter().map(|o| *o as f32)).into_dyn()]);
+        forward_cache.insert(key, vec![Array1F::from_iter(splits.iter().map(|o| *o as f32)).into_dyn()]);
 
-        Ok(concat)
+        Ok(StoredArray::Memory { data: concat })
     }
 
     fn backward(data: BackwardData, layer_config: &ConcatConfig) -> LayerResult {
@@ -64,7 +72,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         let splits: Vec<_> = cache.iter().map(|o| o.round() as usize).collect();
 
         let mut end = data.grad.shape()[dim];
-        let mut result = None;
+        let mut result: Option<ArrayDynF> = None;
         let layer_count = layer_config.layers.len();
 
         for i in 0..layer_count {
@@ -81,7 +89,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
                 gpu: data.gpu.clone(),
                 forward_cache: data.forward_cache,
                 backward_cache: data.backward_cache,
-            })?;
+            })?.into_memory()?;
 
             result = Some(match result {
                 Some(v) => v + layer_result,
@@ -90,7 +98,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
             end -= split;
         }
 
-        Ok(result.unwrap())
+        Ok(result.unwrap().into())
     }
 }
 
@@ -140,13 +148,13 @@ mod tests {
             batch_config: &BatchConfig::new_not_train(),
             gpu: None,
             forward_cache: cache,
-            inputs,
+            inputs: inputs.into(),
             assigner: &mut KeyAssigner::new(),
             storage: &GenericStorage::new(),
             prev_iteration_cache: None,
         }, &config).unwrap();
 
-        assert!(arrays_almost_equal(&result, &expected));
+        assert!(arrays_almost_equal(&result.into_memory().unwrap(), &expected));
         let shape: Vec<_> = cache["concat_0_0"][0].iter().map(|o| o.round() as usize).collect();
         assert_eq!(&shape, &vec![2, 2, 2]);
     }
@@ -181,6 +189,6 @@ mod tests {
             grad: inputs.into_dyn(),
         }, &config).unwrap();
 
-        assert!(arrays_almost_equal(&expected.into_dyn(), &result));
+        assert!(arrays_almost_equal(&expected.into_dyn(), &result.into_memory().unwrap()));
     }
 }

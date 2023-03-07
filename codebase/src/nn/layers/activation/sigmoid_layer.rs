@@ -1,5 +1,6 @@
 use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
+use crate::nn::layers::nn_layers::*;
+use crate::nn::layers::stored_array::*;
 
 pub struct SigmoidLayer {}
 
@@ -12,10 +13,12 @@ impl LayerOps<()> for SigmoidLayer {
 
     fn forward(data: ForwardData, _: &()) -> LayerResult {
         let ForwardData { assigner, forward_cache, inputs, .. } = data;
+        let inputs = inputs.into_memory()?;
+
         let key = assigner.get_key(gen_name());
         let result = 1.0 / (1.0 + (-inputs).mapv(f32::exp));
         forward_cache.insert(key, vec![result.clone()]);
-        Ok(result)
+        Ok(StoredArray::Memory { data:result })
     }
 
     fn backward(data: BackwardData, _: &()) -> LayerResult {
@@ -23,6 +26,6 @@ impl LayerOps<()> for SigmoidLayer {
         let key = assigner.get_key(gen_name());
         let [cache] = remove_from_storage1(forward_cache, &key);
         let diff = 1.0 - &cache;
-        Ok(grad * cache * diff)
+        Ok(StoredArray::Memory{ data:grad * cache * diff })
     }
 }

@@ -80,7 +80,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let weights: Array2F = weights.into_dimensionality()?;
         let biases: &Array1F = &biases.into_dimensionality()?;
 
-        let inputs: Array2F = inputs.into_dimensionality()?;
+        let inputs: Array2F = inputs.into_memory()?.into_dimensionality()?;
 
         let mut dot_prod = Vec::with_capacity(inputs.batch_size());
         inputs
@@ -96,7 +96,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let result = stack(Axis(0), &views)?;
 
         forward_cache.insert(key, vec![inputs.into_dyn()]);
-        Ok(result.into_dyn())
+        Ok(result.into_dyn().into())
     }
 
     fn backward(data: BackwardData, layer_config: &DenseConfig) -> LayerResult {
@@ -147,7 +147,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
 
         let mut views = Vec::with_capacity(inputs.batch_size());
         views.extend(dot_prod.iter().map(|o| o.view()));
-        Ok(stack(Axis(0), &views)?.into_dyn())
+        Ok(stack(Axis(0), &views)?.into_dyn().into())
     }
 }
 
@@ -172,7 +172,7 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 storage,
                 assigner,
             },
-        )?;
+        )?.into_memory().unwrap();
 
         let biases_grad = apply_lr_calc(
             &layer_config.biases_lr_calc,
@@ -182,7 +182,7 @@ impl TrainableLayerOps<DenseConfig> for DenseLayer {
                 storage,
                 assigner,
             },
-        )?;
+        )?.into_memory().unwrap();
 
         get_mut_from_storage(storage, &key, 0).add_assign(&weights_grad);
         get_mut_from_storage(storage, &key, 1).add_assign(&biases_grad);
@@ -229,16 +229,15 @@ mod tests {
                 batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut storage,
-                inputs: input,
+                inputs: input.into(),
                 forward_cache: &mut GenericStorage::new(),
                 prev_iteration_cache: None,
                 gpu: None,
             },
             &config,
-        )
-            .unwrap();
+        ).unwrap();
 
-        assert!(arrays_almost_equal(&output, &expected));
+        assert!(arrays_almost_equal(&output.into_memory().unwrap(), &expected));
     }
 
     #[test]
@@ -298,7 +297,7 @@ mod tests {
 
         assert!(arrays_almost_equal(
             &expected,
-            &result.into_dimensionality().unwrap(),
+            &result.into_memory().unwrap().into_dimensionality().unwrap(),
         ));
         let cache = &backward_cache["dense_5_3_0"];
 

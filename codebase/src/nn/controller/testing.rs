@@ -24,7 +24,7 @@ impl NNController {
         let output = forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
                 forward_cache: &mut forward_cache,
@@ -32,7 +32,7 @@ impl NNController {
                 prev_iteration_cache: None,
                 gpu
             },
-        )?;
+        )?.into_memory()?;
 
         let loss_mean = calc_loss(&self.loss, expected, &output)
             .mapv(|o| o as f64)
