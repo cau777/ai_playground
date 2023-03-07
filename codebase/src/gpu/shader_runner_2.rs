@@ -60,7 +60,7 @@ impl ShaderRunner2 {
 
     pub fn new_inplace(gpu: GlobalGpu, load_module: impl FnOnce(Arc<Device>) -> LoadModuleResult,
                        entrypoint: &str, constants: &impl SpecializationConstants,
-                       array: StoredArray) -> GenericResult<Self> {
+                       buffer : GpuBuffer, shape: &[usize]) -> GenericResult<Self> {
         // TODO: reuse pipeline
         let pipeline = Self::build_pipeline(&gpu, load_module, entrypoint, constants)?;
 
@@ -70,21 +70,15 @@ impl ShaderRunner2 {
             CommandBufferUsage::OneTimeSubmit,
         )?;
 
-        let out_shape = match &array {
-            StoredArray::Memory { data } => data.shape().iter().copied().collect(),
-            StoredArray::GpuLocal { shape, .. } => shape.clone(),
-        };
-        let out_buffer = array.into_gpu_local(gpu.clone())?;
-
         Ok(Self {
             gpu,
             pipeline,
             builder,
             descriptor_writes: vec![
-                WriteDescriptorSet::buffer(0, out_buffer.clone())
+                WriteDescriptorSet::buffer(0, buffer.clone())
             ],
-            out_shape,
-            out_buffer,
+            out_shape: shape.iter().copied().collect(),
+            out_buffer: buffer,
         })
     }
 

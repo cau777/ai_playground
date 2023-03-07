@@ -3,9 +3,10 @@ use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess}
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use crate::ArrayDynF;
 use crate::gpu::gpu_data::GlobalGpu;
+use crate::nn::utils::shape_length;
 use crate::utils::GenericResult;
 
-type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
+pub type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
 
 pub enum StoredArray {
     Memory { data: ArrayDynF },
@@ -110,7 +111,7 @@ impl StoredArray {
         }
     }
 
-    pub fn shape(&self)->&[usize] {
+    pub fn shape(&self) -> &[usize] {
         match self {
             StoredArray::Memory { data } => data.shape(),
             StoredArray::GpuLocal { shape, .. } => &shape,
@@ -118,9 +119,7 @@ impl StoredArray {
     }
 
     pub fn len(&self) -> usize {
-        self.shape().iter().copied()
-            .chain(1..=1) // Just append 1 to the iterator
-            .reduce(|a, b| a * b).unwrap_or_default()
+        shape_length(self.shape())
     }
 }
 
@@ -148,13 +147,5 @@ mod tests {
         let final_array = stored.into_memory().unwrap();
 
         assert!(arrays_almost_equal(&initial_array, &final_array));
-    }
-
-    #[test]
-    fn test_len() {
-        assert_eq!(StoredArray::Memory {data: Array0F::zeros(()).into_dyn()}.len(), Array0F::zeros(()).len());
-        assert_eq!(StoredArray::Memory {data: Array1F::zeros(10).into_dyn()}.len(), 10);
-        assert_eq!(StoredArray::Memory {data: Array2F::zeros((5, 5)).into_dyn()}.len(), 25);
-        assert_eq!(StoredArray::Memory {data: Array3F::zeros((3, 3, 3)).into_dyn()}.len(), 27);
     }
 }
