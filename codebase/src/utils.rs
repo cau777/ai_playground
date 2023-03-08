@@ -78,8 +78,7 @@ pub fn get_dims_after_filter_dyn(shape: &[usize], size: usize, stride: usize) ->
 }
 
 #[inline]
-pub fn get_dims_after_filter_4(array: &Array4F, size: usize, stride: usize) -> [usize; 4] {
-    let shape = array.shape();
+pub fn get_dims_after_filter_4(shape: &[usize], size: usize, stride: usize) -> [usize; 4] {
     [
         shape[0],
         shape[1],

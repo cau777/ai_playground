@@ -30,7 +30,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
         let inputs = pad4d(inputs, layer_config.padding);
 
         let [batch_size, channels, new_height, new_width] =
-            get_dims_after_filter_4(&inputs, size, stride);
+            get_dims_after_filter_4(inputs.shape(), size, stride);
 
         let result = Array4F::from_shape_fn((batch_size, channels, new_height, new_width), |(b, c, h, w)| {
             let h_offset = h * stride;
@@ -54,7 +54,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
 
         let size = layer_config.size;
         let stride = layer_config.stride;
-        let [_, _, new_height, new_width] = get_dims_after_filter_4(&inputs, size, stride);
+        let [_, _, new_height, new_width] = get_dims_after_filter_4(inputs.shape(), size, stride);
 
         let mut result: Array4F = &inputs * 0.0;
 

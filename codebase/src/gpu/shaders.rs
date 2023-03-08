@@ -8,6 +8,10 @@ pub mod convolution_inputs_grad {
 }
 
 pub mod convolution_forward {
+    #[cfg(test)]
+    pub const BLOCK_SIZE: [u32; 3] = [1, 2, 2];
+
+    #[cfg(not(test))]
     pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
 
     vulkano_shaders::shader! {

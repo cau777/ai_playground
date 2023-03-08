@@ -21,7 +21,7 @@ nohash-hasher = "0.2.0"
 #rayon = "1.5.3"
 
 [[bench]]
-name = "building_bench"
+name = "conv_layer_bench"
 harness = false
 
 [dev-dependencies]

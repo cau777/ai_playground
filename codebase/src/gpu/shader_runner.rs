@@ -10,15 +10,12 @@ use vulkano::{
     },
     device::Device,
     pipeline::{ComputePipeline, Pipeline, PipelineBindPoint},
-    sync::{self, GpuFuture},
+    sync::{GpuFuture},
 };
 use vulkano::buffer::{BufferAccess};
-use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::descriptor_set::DescriptorSet;
-use vulkano::descriptor_set::sys::UnsafeDescriptorSet;
 use vulkano::memory::allocator::{FastMemoryAllocator};
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
-use vulkano::sync::{FenceSignalFuture, NowFuture};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::utils::{ArrayF, GenericResult};
 

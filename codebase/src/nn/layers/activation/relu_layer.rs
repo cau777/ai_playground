@@ -1,10 +1,11 @@
 use crate::ArrayDynF;
+use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_runner_2::ShaderRunner2;
 use crate::gpu::shaders;
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::*;
-use crate::nn::layers::stored_array::{GpuBuffer, StoredArray};
+use crate::nn::layers::stored_array::StoredArray;
 use crate::nn::utils::shape_length;
 use crate::utils::GenericResult;
 

@@ -11,6 +11,7 @@ use ndarray_rand::RandomExt;
 use criterion::*;
 use codebase::gpu::gpu_data::GpuData;
 use codebase::nn::layers::filtering::convolution;
+use codebase::nn::layers::stored_array::StoredArray;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let config = convolution::ConvolutionConfig {
@@ -21,6 +22,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         in_channels: 32,
         out_channels: 64,
         padding: 2,
+        cache: false,
     };
     let dist = Normal::new(0.0, 1.0).unwrap();
     let mut storage = GenericStorage::new();
@@ -33,7 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("conv 24x24~64 forward", |b| b.iter(|| {
         convolution::ConvolutionLayer::forward(ForwardData {
-            inputs: black_box(Array4F::random((64, 8, 8, 8), &dist).into_dyn()),
+            inputs: black_box(Array4F::random((64, 8, 8, 8), &dist).into_dyn()).into(),
             storage: &storage,
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),

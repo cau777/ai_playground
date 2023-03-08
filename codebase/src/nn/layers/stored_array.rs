@@ -1,12 +1,8 @@
-use std::sync::Arc;
-use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use crate::ArrayDynF;
+use crate::gpu::buffers::{download_array_from_gpu, GpuBuffer, upload_array_to_gpu};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::nn::utils::shape_length;
 use crate::utils::GenericResult;
-
-pub type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
 
 pub enum StoredArray {
     Memory { data: ArrayDynF },
@@ -20,93 +16,23 @@ impl From<ArrayDynF> for StoredArray {
 }
 
 impl StoredArray {
+    pub fn to_memory(&self) -> GenericResult<ArrayDynF> {
+        match self {
+            StoredArray::Memory { data } => Ok(data.clone()),
+            StoredArray::GpuLocal { data, gpu, shape } => download_array_from_gpu(&data, shape.clone(), &gpu),
+        }
+    }
+
     pub fn into_memory(self) -> GenericResult<ArrayDynF> {
         match self {
             StoredArray::Memory { data } => Ok(data),
-            StoredArray::GpuLocal { data, gpu, shape } => {
-                let cpu_buffer = unsafe {
-                    CpuAccessibleBuffer::uninitialized_array(
-                        &gpu.memory_alloc,
-                        data.len(),
-                        vulkano::buffer::BufferUsage {
-                            transfer_dst: true,
-                            ..vulkano::buffer::BufferUsage::empty()
-                        },
-                        true,
-                    )
-                }?;
-                // let debug: Vec<_> = (0..data.len()).into_iter().map(|o| o as f32).collect();
-                // let cpu_buffer =
-                //     CpuAccessibleBuffer::from_iter(
-                //         &gpu.memory_alloc,
-                //         vulkano::buffer::BufferUsage {
-                //             transfer_dst: true,
-                //             ..vulkano::buffer::BufferUsage::empty()
-                //         },
-                //         true,
-                //         debug.into_iter(),
-                //     )?;
-
-                let mut builder = AutoCommandBufferBuilder::primary(
-                    &gpu.cmd_alloc,
-                    gpu.queue.queue_family_index(),
-                    CommandBufferUsage::OneTimeSubmit,
-                )?;
-                // builder.copy_buffer(CopyBufferInfo::buffers(data, cpu_buffer.clone()))?;
-                // let mut fill = FillBufferInfo::dst_buffer(data.clone());
-                // fill.data = 9;
-                // builder.fill_buffer(fill)?;
-                builder.copy_buffer(CopyBufferInfo::buffers(data, cpu_buffer.clone()))?;
-
-
-                gpu.exec_cmd(builder.build()?)?.wait(None)?;
-
-                let read = cpu_buffer.read();
-                let vec = read?.to_vec();
-                Ok(ArrayDynF::from_shape_vec(shape, vec)?)
-            }
+            StoredArray::GpuLocal { data, gpu, shape } => download_array_from_gpu(&data, shape, &gpu),
         }
     }
 
     pub fn into_gpu_local(self, gpu: GlobalGpu) -> GenericResult<GpuBuffer> {
         match self {
-            StoredArray::Memory { data } => {
-                let cpu_buffer = CpuAccessibleBuffer::from_iter(
-                    &gpu.memory_alloc,
-                    vulkano::buffer::BufferUsage {
-                        transfer_src: true,
-                        ..vulkano::buffer::BufferUsage::empty()
-                    },
-                    false,
-                    data.iter().copied(),
-                )?;
-
-                let device_local_buffer = DeviceLocalBuffer::<[f32]>::array(
-                    &gpu.memory_alloc,
-                    cpu_buffer.len(),
-                    vulkano::buffer::BufferUsage {
-                        storage_buffer: true,
-                        transfer_dst: true,
-                        transfer_src: true,
-                        ..vulkano::buffer::BufferUsage::empty()
-                    },
-                    gpu.device.active_queue_family_indices().iter().copied(),
-                )?;
-
-                let mut builder = AutoCommandBufferBuilder::primary(
-                    &gpu.cmd_alloc,
-                    gpu.queue.queue_family_index(),
-                    CommandBufferUsage::OneTimeSubmit,
-                )?;
-
-                builder.copy_buffer(CopyBufferInfo::buffers(
-                    cpu_buffer,
-                    device_local_buffer.clone(),
-                ))?;
-
-                gpu.exec_cmd(builder.build()?)?.wait(None)?;
-                Ok(device_local_buffer)
-            }
+            StoredArray::Memory { data } => upload_array_to_gpu(&data, &gpu),
             StoredArray::GpuLocal { data, .. } => { Ok(data) }
         }
     }
@@ -127,7 +53,7 @@ impl StoredArray {
 mod tests {
     use ndarray::Array0;
     use crate::gpu::gpu_data::GpuData;
-    use crate::utils::{Array0F, Array1F, Array2F, Array3F, arrays_almost_equal};
+    use crate::utils::{Array3F, arrays_almost_equal};
     use super::*;
 
     #[test]

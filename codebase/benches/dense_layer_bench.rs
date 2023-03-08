@@ -29,7 +29,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("dense 256x256 forward", |b| b.iter(|| {
         dense_layer::DenseLayer::forward(ForwardData {
-            inputs: Array2F::random((64, 256), &dist).into_dyn(),
+            inputs: Array2F::random((64, 256), &dist).into_dyn().into(),
             storage: &storage,
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),

@@ -23,6 +23,8 @@ layout(constant_id = 5) const uint input_height = 0;
 layout(constant_id = 6) const uint out_width = 0;
 layout(constant_id = 7) const uint out_height = 0;
 
+layout(constant_id = 8) const uint padding = 0;
+
 void main() {
     const uint b_and_in_c = gl_GlobalInvocationID.x;
     const uint b = b_and_in_c / out_channels;
@@ -46,9 +48,11 @@ void main() {
     for (uint kh = 0; kh < kernel_size; kh++) {
         for (uint kw = 0; kw < kernel_size; kw++) {
             for (uint in_c = 0; in_c < in_channels; in_c++) {
-                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + (h_offset + kh) * inputs_section_2 + (w_offset + kw)];
+                const uint result_h = h_offset + kh - padding;
+                const uint result_w = w_offset + kw - padding;
+                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + result_h*inputs_section_2 + result_w];
                 const float k = kernel_data.data[out_c*kernel_sections_0 + in_c*kernel_sections_1 + kh*kernel_sections_2 + kw];
-                result += i * k;
+                result += i * k * float(result_h < input_height) * float(result_w < input_width);
             }
         }
     }
@@ -66,7 +70,15 @@ Array4F::from_shape_fn((batch_size, layer_config.out_channels, new_height, new_w
     for kh in 0..*kernel_size {
         for kw in 0..*kernel_size {
             for in_c in 0..layer_config.in_channels {
-                result += inputs[(b, in_c, h_offset + kh, w_offset + kw)] * kernel[(out_c, in_c, kh, kw)];
+                let result_h = h_offset + kh - padding;
+                let result_w = w_offset + kw - padding;
+
+                let i = if result_h < 0 || result_w < 0 || result_h >= height || result_w >= height {
+                    0.0
+                } else {
+                    inputs[(b, in_c, h_offset + kh, w_offset + kw)];
+                };
+                result += i * kernel[(out_c, in_c, kh, kw)];
             }
         }
     }

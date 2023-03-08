@@ -14,7 +14,6 @@ pub struct ShaderRunner2 {
     pipeline: Arc<ComputePipeline>,
     builder: AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
     descriptor_writes: Vec<WriteDescriptorSet>,
-    out_shape: Vec<usize>,
     out_buffer: GpuBuffer,
 }
 
@@ -22,9 +21,9 @@ type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
 type LoadModuleResult = Result<Arc<ShaderModule>, ShaderCreationError>;
 
 impl ShaderRunner2 {
-    pub fn new_io(gpu: GlobalGpu, load_module: impl FnOnce(Arc<Device>) -> LoadModuleResult,
-                  entrypoint: &str, constants: &impl SpecializationConstants,
-                  out_shape: impl Iterator<Item=usize>) -> GenericResult<Self> {
+    pub fn new_separate_io(gpu: GlobalGpu, load_module: impl FnOnce(Arc<Device>) -> LoadModuleResult,
+                           entrypoint: &str, constants: &impl SpecializationConstants,
+                           length: usize) -> GenericResult<Self> {
         // TODO: reuse pipeline
         let pipeline = Self::build_pipeline(&gpu, load_module, entrypoint, constants)?;
 
@@ -34,10 +33,9 @@ impl ShaderRunner2 {
             CommandBufferUsage::OneTimeSubmit,
         )?;
 
-        let out_shape: Vec<_> = out_shape.collect();
         let out_buffer = DeviceLocalBuffer::<[f32]>::array(
             &gpu.memory_alloc,
-            out_shape.iter().map(|&o| o as u64).reduce(|a, b| a * b).unwrap(),
+            length as u64,
             vulkano::buffer::BufferUsage {
                 transfer_src: true,
                 storage_buffer: true,
@@ -53,7 +51,6 @@ impl ShaderRunner2 {
             descriptor_writes: vec![
                 WriteDescriptorSet::buffer(0, out_buffer.clone())
             ],
-            out_shape,
             out_buffer,
         })
     }
@@ -77,7 +74,6 @@ impl ShaderRunner2 {
             descriptor_writes: vec![
                 WriteDescriptorSet::buffer(0, buffer.clone())
             ],
-            out_shape: shape.iter().copied().collect(),
             out_buffer: buffer,
         })
     }
@@ -168,7 +164,7 @@ impl ShaderRunner2 {
         let cmd = builder.build()?;
         gpu.exec_cmd(cmd)?.wait(None)?;
 
-        /// Necessary to avoid memory leaks
+        // Necessary to avoid memory leaks
         gpu.cmd_alloc.clear(gpu.queue.queue_family_index());
         gpu.descriptor_alloc.clear_all();
 

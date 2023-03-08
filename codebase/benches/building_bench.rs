@@ -8,7 +8,7 @@ use codebase::nn::lr_calculators::lr_calculator::LrCalc;
 use codebase::utils::*;
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
-use codebase::chess::decision_tree::{building, building_exp, building, DecisionTree};
+use codebase::chess::decision_tree::{building, DecisionTree};
 
 use criterion::*;
 use codebase::chess::board_controller::BoardController;
@@ -33,6 +33,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 out_channels: 2,
                 padding: 0,
                 lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                cache: true,
             }),
             Layer::Flatten,
             Layer::Dense(dense_layer::DenseConfig {
@@ -54,16 +55,6 @@ fn criterion_benchmark(c: &mut Criterion) {
     //     );
     //     let (_tree1, _) = builder.build(&controller, |_| {});
     // }));
-
-    group.bench_function("optimized", |b| b.iter(|| {
-        let builder = building_exp::DecisionTreesBuilder::new(
-            vec![DecisionTree::new(true)],
-            vec![TreeCursor::new(BoardController::new_start())],
-            building_exp::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 30 },
-            32, 5_000,
-        );
-        let (_tree2, _) = builder.build(&controller, |_| {});
-    }));
 
     group.bench_function("optimized2", |b| b.iter(|| {
         let builder = building::DecisionTreesBuilder::new(

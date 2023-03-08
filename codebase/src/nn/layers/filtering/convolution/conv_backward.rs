@@ -98,7 +98,7 @@ pub fn cpu_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_co
     let kernel = kernel.insert_axis(Axis(3));
 
     let [batch_size, in_channels, new_height, new_width] =
-        get_dims_after_filter_4(&inputs, *kernel_size, *stride);
+        get_dims_after_filter_4(inputs.shape(), *kernel_size, *stride);
 
     let mut parts = Vec::with_capacity(new_height * new_width);
     (0..(new_height * new_width))
