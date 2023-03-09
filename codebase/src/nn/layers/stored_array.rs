@@ -4,6 +4,7 @@ use crate::gpu::gpu_data::GlobalGpu;
 use crate::nn::utils::shape_length;
 use crate::utils::GenericResult;
 
+#[derive(Clone)]
 pub enum StoredArray {
     Memory { data: ArrayDynF },
     GpuLocal { gpu: GlobalGpu, data: GpuBuffer, shape: Vec<usize> },

@@ -15,8 +15,15 @@ use crate::utils::{Array3F, GenericResult, get_dims_after_filter_4};
 pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
     let key = assigner.get_key(gen_name(layer_config));
+    let inputs_to_cache = if matches!(prev_iteration_cache, Some(_)) {
+        Some(inputs.to_memory()?)
+    } else {
+        None
+    };
 
-    let inputs_array: Array4F = inputs.to_memory()?.into_dimensionality()?;
+    if let Some(forward_cache) = forward_cache {
+        forward_cache.insert(key.clone(), vec![inputs.to_memory()?]);
+    }
 
     let [kernel] = clone_from_storage1(storage, &key);
     let kernel: Array4F = kernel.into_dimensionality()?;
@@ -31,37 +38,34 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
 
     let result = match prev_values {
         Some([prev_inputs, prev_result]) => {
-            cpu_forward_cache(&inputs_array, &prev_inputs.into_dimensionality()?,
+            cpu_forward_cache(inputs, &prev_inputs.into_dimensionality()?,
                               &prev_result.into_dimensionality()?, &kernel, layer_config)?
         }
         None => {
             match data.gpu {
-                Some(gpu) => match gpu_forward(inputs, &kernel, gpu, layer_config) {
+                Some(gpu) => match gpu_forward(inputs.clone(), &kernel, gpu, layer_config) {
                     Ok(v) => v,
                     Err(e) => {
                         eprintln!("{:?}", e);
-                        cpu_forward(&inputs_array, &kernel, layer_config)?
+                        cpu_forward(inputs, &kernel, layer_config)?
                     }
                 }
-                None => cpu_forward(&inputs_array, &kernel, layer_config)?
+                None => cpu_forward(inputs, &kernel, layer_config)?
             }
         }
     };
 
-    if let Some(forward_cache) = forward_cache {
-        let inputs = inputs_array.into_dyn();
-        forward_cache.insert(key.clone(), vec![inputs.clone()]);
-        if let Some(cache) = prev_iteration_cache {
-            cache.insert(key, vec![inputs, result.to_memory()?]);
-        }
+    if let Some(cache) = prev_iteration_cache {
+        cache.insert(key, vec![inputs_to_cache.unwrap(), result.to_memory()?]);
     }
 
     Ok(result)
 }
 
-pub fn cpu_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
+pub fn cpu_forward(inputs: StoredArray, kernel: &Array4F, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
-    let inputs = pad4d(inputs.clone(), layer_config.padding);
+    let inputs = inputs.into_memory()?.into_dimensionality()?;
+    let inputs = pad4d(inputs, layer_config.padding);
 
     let [batch, _, new_height, new_width] = get_dims_after_filter_4(inputs.shape(), *kernel_size, *stride);
     let mut batches = Vec::with_capacity(batch);
@@ -83,13 +87,14 @@ pub fn cpu_forward(inputs: &Array4F, kernel: &Array4F, layer_config: &Convolutio
     Ok(StoredArray::Memory { data: stack(Axis(0), &views)?.into_dyn() })
 }
 
-pub fn cpu_forward_cache(inputs: &Array4F, prev_inputs: &Array4F, prev_results: &Array4F, kernel: &Array4F,
+pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: &Array4F, prev_results: &Array4F, kernel: &Array4F,
                          layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, out_channels, .. } = layer_config;
+    let inputs = inputs.into_memory()?.into_dimensionality()?;
 
     let [batch, _, new_height, new_width] = get_dims_after_filter_4(inputs.shape(), *kernel_size, *stride);
 
-    let useful_cache = find_useful_from_prev(prev_inputs, prev_results, inputs, *kernel_size, *stride);
+    let useful_cache = find_useful_from_prev(prev_inputs, prev_results, &inputs, *kernel_size, *stride);
     let mut result = Array4F::zeros((batch, layer_config.out_channels, new_height, new_width));
 
     Zip::from(inputs.outer_iter())
@@ -268,7 +273,7 @@ mod tests {
         let dist = Normal::new(0.0, 1.0).unwrap();
         let inputs = Array4F::random((8, config.in_channels, 5, 5), &dist);
         let kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
-        let expected = cpu_forward(&inputs, &kernels, &config).unwrap().into_memory().unwrap();
+        let expected = cpu_forward(StoredArray::Memory {data: inputs.clone().into_dyn()}, &kernels, &config).unwrap().into_memory().unwrap();
         let actual = gpu_forward(StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
             .unwrap().into_memory().unwrap();
 

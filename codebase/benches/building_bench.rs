@@ -22,57 +22,93 @@ use codebase::nn::loss::loss_func::LossFunc;
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("funcs");
     group.measurement_time(Duration::from_secs(30));
+    {
+        let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
+            layers: vec![
+                Layer::Convolution(convolution::ConvolutionConfig {
+                    in_channels: 6,
+                    stride: 1,
+                    kernel_size: 3,
+                    init_mode: convolution::ConvolutionInitMode::HeNormal(),
+                    out_channels: 2,
+                    padding: 0,
+                    lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    cache: true,
+                }),
+                Layer::Flatten,
+                Layer::Dense(dense_layer::DenseConfig {
+                    init_mode: dense_layer::DenseLayerInit::Random(),
+                    biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    out_values: 1,
+                    in_values: 6 * 6 * 2,
+                }),
+            ],
+        }), LossFunc::Mse).unwrap();
 
-    let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
-        layers: vec![
-            Layer::Convolution(convolution::ConvolutionConfig {
-                in_channels: 6,
-                stride: 1,
-                kernel_size: 3,
-                init_mode: convolution::ConvolutionInitMode::HeNormal(),
-                out_channels: 2,
-                padding: 0,
-                lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                cache: true,
-            }),
-            Layer::Flatten,
-            Layer::Dense(dense_layer::DenseConfig {
-                init_mode: dense_layer::DenseLayerInit::Random(),
-                biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                out_values: 1,
-                in_values: 6 * 6 * 2,
-            }),
-        ],
-    }), LossFunc::Mse).unwrap();
-
-    // group.bench_function("normal", |b| b.iter(|| {
-    //     let builder = building::DecisionTreesBuilder::new(
-    //         vec![DecisionTree::new(true)],
-    //         vec![TreeCursor::new(BoardController::new_start())],
-    //         building::NextNodeStrategy::BestNodeAlways { min_nodes_explored: 10 },
-    //         32,
-    //     );
-    //     let (_tree1, _) = builder.build(&controller, |_| {});
-    // }));
-
-    group.bench_function("optimized2", |b| b.iter(|| {
-        let builder = building::DecisionTreesBuilder::new(
-            vec![DecisionTree::new(true)],
-            vec![TreeCursor::new(BoardController::new_start())],
-            building::BuilderOptions {
-                limits: building::LimiterFactors {
-                    // max_iterations: Some(15),
-                    max_explored_nodes: Some(30),
-                    ..LimiterFactors::default()
+        group.bench_function("optimized2", |b| b.iter(|| {
+            let builder = building::DecisionTreesBuilder::new(
+                vec![DecisionTree::new(true)],
+                vec![TreeCursor::new(BoardController::new_start())],
+                building::BuilderOptions {
+                    limits: building::LimiterFactors {
+                        max_iterations: Some(10),
+                        // max_explored_nodes: Some(30),
+                        ..LimiterFactors::default()
+                    },
+                    batch_size: 32,
+                    max_cache_bytes: 5_000,
+                    ..BuilderOptions::default()
                 },
-                batch_size: 32,
-                max_cache_bytes: 5_000,
-                ..BuilderOptions::default()
-            }
-        );
-        let (_tree2, _) = builder.build(&controller);
-    }));
+            );
+            let (_tree2, _) = builder.build(&controller);
+        }));
+    }
+
+
+    {
+        let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
+            layers: vec![
+                Layer::Convolution(convolution::ConvolutionConfig {
+                    in_channels: 6,
+                    stride: 1,
+                    kernel_size: 3,
+                    init_mode: convolution::ConvolutionInitMode::HeNormal(),
+                    out_channels: 2,
+                    padding: 0,
+                    lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    cache: false,
+                }),
+                Layer::Flatten,
+                Layer::Dense(dense_layer::DenseConfig {
+                    init_mode: dense_layer::DenseLayerInit::Random(),
+                    biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    out_values: 1,
+                    in_values: 6 * 6 * 2,
+                }),
+            ],
+        }), LossFunc::Mse).unwrap();
+
+        group.bench_function("optimized2-nocache", |b| b.iter(|| {
+            let builder = building::DecisionTreesBuilder::new(
+                vec![DecisionTree::new(true)],
+                vec![TreeCursor::new(BoardController::new_start())],
+                building::BuilderOptions {
+                    limits: building::LimiterFactors {
+                        max_iterations: Some(10),
+                        // max_explored_nodes: Some(30),
+                        ..LimiterFactors::default()
+                    },
+                    batch_size: 32,
+                    max_cache_bytes: 5_000,
+                    ..BuilderOptions::default()
+                },
+            );
+            let (_tree2, _) = builder.build(&controller);
+        }));
+    }
+
 
     group.finish();
 }

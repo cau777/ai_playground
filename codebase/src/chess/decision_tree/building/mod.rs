@@ -160,7 +160,7 @@ impl DecisionTreesBuilder {
             }
         }
 
-        println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
+        // println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
         (trees.into_iter().map(|o| o.into_inner()).collect(),
          cursors.into_iter().map(|o| o.into_inner()).collect())
     }
