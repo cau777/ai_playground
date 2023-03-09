@@ -51,7 +51,6 @@ impl StoredArray {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::Array0;
     use crate::gpu::gpu_data::GpuData;
     use crate::utils::{Array3F, arrays_almost_equal};
     use super::*;

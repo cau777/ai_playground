@@ -17,8 +17,11 @@ impl LayerOps<()> for SigmoidLayer {
 
         let key = assigner.get_key(gen_name());
         let result = 1.0 / (1.0 + (-inputs).mapv(f32::exp));
-        forward_cache.insert(key, vec![result.clone()]);
-        Ok(StoredArray::Memory { data:result })
+
+        if let Some(forward_cache) = forward_cache {
+            forward_cache.insert(key, vec![result.clone()]);
+        }
+        Ok(StoredArray::Memory { data: result })
     }
 
     fn backward(data: BackwardData, _: &()) -> LayerResult {
@@ -26,6 +29,6 @@ impl LayerOps<()> for SigmoidLayer {
         let key = assigner.get_key(gen_name());
         let [cache] = remove_from_storage1(forward_cache, &key);
         let diff = 1.0 - &cache;
-        Ok(StoredArray::Memory{ data:grad * cache * diff })
+        Ok(StoredArray::Memory { data: grad * cache * diff })
     }
 }

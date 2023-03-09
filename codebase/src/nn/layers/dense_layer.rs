@@ -95,7 +95,9 @@ impl LayerOps<DenseConfig> for DenseLayer {
 
         let result = stack(Axis(0), &views)?;
 
-        forward_cache.insert(key, vec![inputs.into_dyn()]);
+        if let Some(forward_cache) = forward_cache {
+            forward_cache.insert(key, vec![inputs.into_dyn()]);
+        }
         Ok(result.into_dyn().into())
     }
 
@@ -230,7 +232,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut storage,
                 inputs: input.into(),
-                forward_cache: &mut GenericStorage::new(),
+                forward_cache: None,
                 prev_iteration_cache: None,
                 gpu: None,
             },

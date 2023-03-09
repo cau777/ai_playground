@@ -39,7 +39,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             storage: &storage,
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),
-            forward_cache: &mut GenericStorage::new(),
+            forward_cache: None,
             prev_iteration_cache: None,
             gpu: Some(gpu.clone()),
         }, &config).unwrap();

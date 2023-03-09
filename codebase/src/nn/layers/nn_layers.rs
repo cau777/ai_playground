@@ -92,7 +92,7 @@ pub struct ForwardData<'a> {
     pub storage: &'a GenericStorage,
 
     /// Temporary storage that will be fed to `backward()`.
-    pub forward_cache: &'a mut GenericStorage,
+    pub forward_cache: Option<&'a mut GenericStorage>,
 
     /// Temporary storage used to reuse computations from the previous iteration, if available 
     pub prev_iteration_cache: Option<&'a mut GenericStorage>,

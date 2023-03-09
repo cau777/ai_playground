@@ -17,7 +17,6 @@ impl NNController {
     /// Uses GPU if available
     pub fn eval_batch(&self, inputs: ArrayDynF) -> GenericResult<ArrayDynF> {
         let mut assigner = KeyAssigner::new();
-        let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
 
@@ -27,7 +26,7 @@ impl NNController {
                 inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
-                forward_cache: &mut forward_cache,
+                forward_cache: None,
                 batch_config: &config,
                 prev_iteration_cache: None,
                 gpu,
@@ -38,7 +37,6 @@ impl NNController {
     pub fn eval_with_cache(&self, inputs: ArrayDynF, prev_iteration_cache: Option<GenericStorage>)
         -> GenericResult<(ArrayDynF, GenericStorage)> {
         let mut assigner = KeyAssigner::new();
-        let mut forward_cache = GenericStorage::new();
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
         let mut cache = prev_iteration_cache.unwrap_or_default();
@@ -49,7 +47,7 @@ impl NNController {
                 inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
-                forward_cache: &mut forward_cache,
+                forward_cache: None,
                 batch_config: &config,
                 prev_iteration_cache: Some(&mut cache),
                 gpu,

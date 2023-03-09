@@ -37,7 +37,7 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         let dim = layer_config.dim + 1;
 
         let ForwardData {
-            inputs, forward_cache, storage, gpu, assigner,
+            inputs, mut forward_cache, storage, gpu, assigner,
             batch_config, mut prev_iteration_cache
         } = data;
         let inputs = inputs.into_memory()?;
@@ -45,11 +45,11 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         for layer in &layer_config.layers {
             let result = forward_layer(layer, ForwardData {
                 inputs: inputs.clone().into(),
-                forward_cache: forward_cache,
-                storage: storage,
+                forward_cache: forward_cache.as_deref_mut(),
+                storage,
                 gpu: gpu.clone(),
-                assigner: assigner,
-                batch_config: batch_config,
+                assigner,
+                batch_config,
                 prev_iteration_cache: prev_iteration_cache.as_deref_mut(),
             })?;
 
@@ -60,7 +60,9 @@ impl LayerOps<ConcatConfig> for ConcatLayer {
         let results_views: Vec<_> = results.iter().map(|o| o.view()).collect();
         let concat = concatenate(Axis(dim), &results_views)?;
 
-        forward_cache.insert(key, vec![Array1F::from_iter(splits.iter().map(|o| *o as f32)).into_dyn()]);
+        if let Some(forward_cache) = forward_cache {
+            forward_cache.insert(key, vec![Array1F::from_iter(splits.iter().map(|o| *o as f32)).into_dyn()]);
+        }
 
         Ok(StoredArray::Memory { data: concat })
     }
@@ -147,7 +149,7 @@ mod tests {
         let result = ConcatLayer::forward(ForwardData {
             batch_config: &BatchConfig::new_not_train(),
             gpu: None,
-            forward_cache: cache,
+            forward_cache: Some(cache),
             inputs: inputs.into(),
             assigner: &mut KeyAssigner::new(),
             storage: &GenericStorage::new(),

@@ -17,7 +17,10 @@ impl LayerOps<()> for TanhLayer {
 
         let result = inputs.mapv(f32::tanh);
         let key = assigner.get_key(gen_name());
-        forward_cache.insert(key, vec![result.clone()]);
+
+        if let Some(forward_cache) = forward_cache {
+            forward_cache.insert(key, vec![result.clone()]);
+        }
         Ok(StoredArray::Memory {data: result})
     }
 

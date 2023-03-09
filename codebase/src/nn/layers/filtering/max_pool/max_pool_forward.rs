@@ -15,7 +15,9 @@ pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
     let ForwardData { inputs, forward_cache, assigner, .. } = data;
 
     let key = assigner.get_key(gen_name());
-    forward_cache.insert(key, vec![inputs.to_memory()?.into_dyn()]);
+    if let Some(forward_cache) = forward_cache {
+        forward_cache.insert(key, vec![inputs.to_memory()?.into_dyn()]);
+    }
 
     let result = match inputs {
         StoredArray::Memory { data } => {
@@ -42,7 +44,7 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
 }
 
 fn forward_gpu(inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, in_shape: Vec<usize>) -> GenericResult<StoredArray> {
-    let padded_ish = [in_shape[0], in_shape[1], in_shape[2]+2*layer_config.padding, in_shape[3]+2*layer_config.padding];
+    let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
 
     let mut runner = ShaderRunner2::new_separate_io(gpu.clone(), shaders::max_pool_forward::load, "main", &shaders::max_pool_forward::SpecializationConstants {
@@ -58,9 +60,9 @@ fn forward_gpu(inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, 
 
     runner.create_input_buffer(StoredArray::GpuLocal { gpu: gpu.clone(), data: inputs.clone(), shape: in_shape.clone() })?;
     let result = runner.execute([out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
-                   shaders::max_pool_forward::BLOCK_SIZE)?;
+                                shaders::max_pool_forward::BLOCK_SIZE)?;
 
-    Ok(StoredArray::GpuLocal {gpu, data: result, shape: out_shape.to_vec()})
+    Ok(StoredArray::GpuLocal { gpu, data: result, shape: out_shape.to_vec() })
 }
 
 #[cfg(test)]
@@ -88,7 +90,7 @@ mod tests {
                 batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
-                forward_cache: &mut GenericStorage::new(),
+                forward_cache: None,
                 prev_iteration_cache: None,
                 gpu: None,
             }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap().into_memory().unwrap()
@@ -107,11 +109,11 @@ mod tests {
 
             forward(ForwardData {
                 gpu: Some(gpu.clone()),
-                inputs: StoredArray::GpuLocal {shape: inputs.shape().to_vec(), data:upload_array_to_gpu(&inputs, &gpu).unwrap(), gpu},
+                inputs: StoredArray::GpuLocal { shape: inputs.shape().to_vec(), data: upload_array_to_gpu(&inputs, &gpu).unwrap(), gpu },
                 batch_config: &BatchConfig::new_train(),
                 assigner: &mut KeyAssigner::new(),
                 storage: &mut GenericStorage::new(),
-                forward_cache: &mut GenericStorage::new(),
+                forward_cache: None,
                 prev_iteration_cache: None,
             }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap().into_memory().unwrap()
         }

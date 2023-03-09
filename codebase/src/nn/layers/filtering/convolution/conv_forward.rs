@@ -1,8 +1,7 @@
 use ndarray::parallel::prelude::*;
-use ndarray::{ArrayView3, ArrayViewMut3, Axis, s, ShapeError, stack, Zip};
+use ndarray::{ArrayView3, ArrayViewMut3, Axis, s, stack, Zip};
 use crate::{Array4F, ArrayDynF};
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_runner::ShaderRunner;
 use crate::gpu::shader_runner_2::ShaderRunner2;
 use crate::gpu::shaders;
 use crate::nn::generic_storage::clone_from_storage1;
@@ -49,12 +48,14 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
         }
     };
 
-    let inputs = inputs_array.into_dyn();
-
-    forward_cache.insert(key.clone(), vec![inputs.clone()]);
-    if let Some(cache) = prev_iteration_cache {
-        cache.insert(key, vec![inputs, result.to_memory()?]);
+    if let Some(forward_cache) = forward_cache {
+        let inputs = inputs_array.into_dyn();
+        forward_cache.insert(key.clone(), vec![inputs.clone()]);
+        if let Some(cache) = prev_iteration_cache {
+            cache.insert(key, vec![inputs, result.to_memory()?]);
+        }
     }
+
     Ok(result)
 }
 
@@ -110,14 +111,14 @@ pub fn cpu_forward_cache(inputs: &Array4F, prev_inputs: &Array4F, prev_results: 
             }
         });
 
-    Ok(StoredArray::Memory {data: result.into_dyn()})
+    Ok(StoredArray::Memory { data: result.into_dyn() })
 }
 
 pub fn gpu_forward(inputs: StoredArray, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
 
     let ish = inputs.shape();
-    let padded_ish = [ish[0], ish[1], ish[2]+2*layer_config.padding, ish[3]+2*layer_config.padding];
+    let padded_ish = [ish[0], ish[1], ish[2] + 2 * layer_config.padding, ish[3] + 2 * layer_config.padding];
     let [batch_size, _, new_height, new_width] = get_dims_after_filter_4(&padded_ish, *kernel_size, *stride);
     let out_shape = [batch_size, layer_config.out_channels, new_height, new_width];
 
@@ -133,13 +134,13 @@ pub fn gpu_forward(inputs: StoredArray, kernel: &Array4F, gpu: GlobalGpu, layer_
         padding: layer_config.padding as u32,
     }, shape_length(&out_shape))?;
 
-    runner.create_input_buffer(StoredArray::Memory{ data: kernel.clone().into_dyn() })?;
+    runner.create_input_buffer(StoredArray::Memory { data: kernel.clone().into_dyn() })?;
     runner.create_input_buffer(inputs)?;
 
     let result = runner.execute([out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
-                   shaders::convolution_forward::BLOCK_SIZE)?;
+                                shaders::convolution_forward::BLOCK_SIZE)?;
 
-    Ok(StoredArray::GpuLocal {gpu, shape: out_shape.to_vec(), data: result})
+    Ok(StoredArray::GpuLocal { gpu, shape: out_shape.to_vec(), data: result })
 }
 
 /*
@@ -195,7 +196,6 @@ mod tests {
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
     use crate::nn::layers::filtering::convolution::test_values::*;
-    use crate::nn::layers::nn_layers::GenericStorage;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
     use crate::utils::arrays_almost_equal;
@@ -211,7 +211,7 @@ mod tests {
         let result = forward(
             ForwardData {
                 inputs: inputs.into(),
-                forward_cache: &mut GenericStorage::new(),
+                forward_cache: None,
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
                 batch_config: &BatchConfig::new_train(),
@@ -236,7 +236,7 @@ mod tests {
         let result = forward(
             ForwardData {
                 inputs: inputs.into(),
-                forward_cache: &mut GenericStorage::new(),
+                forward_cache: None,
                 storage: &mut storage,
                 assigner: &mut KeyAssigner::new(),
                 batch_config: &BatchConfig::new_train(),
@@ -269,7 +269,7 @@ mod tests {
         let inputs = Array4F::random((8, config.in_channels, 5, 5), &dist);
         let kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
         let expected = cpu_forward(&inputs, &kernels, &config).unwrap().into_memory().unwrap();
-        let actual = gpu_forward(StoredArray::Memory {data: inputs.into_dyn()}, &kernels, GpuData::new_global().unwrap(), &config)
+        let actual = gpu_forward(StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
             .unwrap().into_memory().unwrap();
 
         println!("{:?}\n\n------\n\n{:?}", expected, actual);

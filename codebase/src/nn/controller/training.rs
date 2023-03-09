@@ -37,7 +37,7 @@ impl NNController {
                 inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &mut self.storage,
-                forward_cache: &mut forward_cache,
+                forward_cache: Some(&mut forward_cache),
                 batch_config: &config,
                 gpu: gpu.clone(),
                 prev_iteration_cache: None,

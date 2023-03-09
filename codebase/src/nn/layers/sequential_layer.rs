@@ -25,7 +25,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
             let data = ForwardData {
                 inputs,
                 assigner: data.assigner,
-                forward_cache: data.forward_cache,
+                forward_cache: data.forward_cache.as_deref_mut(),
                 storage: data.storage,
                 batch_config: data.batch_config,
                 gpu: data.gpu.clone(),
@@ -123,7 +123,7 @@ mod tests {
             batch_config: &BatchConfig::new_train(),
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
-            forward_cache: &mut GenericStorage::new(),
+            forward_cache: None,
             prev_iteration_cache: None,
             gpu: None,
         };

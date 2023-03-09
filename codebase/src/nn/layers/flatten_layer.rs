@@ -23,7 +23,10 @@ impl LayerOps<()> for FlattenLayer {
         let key = assigner.get_key(gen_name());
         let shape_vec = inputs.shape().iter().cloned().map(|o|o as f32).collect();
         let shape_array = Array1F::from_shape_vec(inputs.shape().len(), shape_vec).unwrap();
-        forward_cache.insert(key, vec![shape_array.into_dyn()]);
+
+        if let Some(forward_cache) = forward_cache {
+            forward_cache.insert(key, vec![shape_array.into_dyn()]);
+        }
 
         let inputs = inputs.into_memory()?;
         Ok(inputs.into_shape(new_shape)?.into_dyn().into())

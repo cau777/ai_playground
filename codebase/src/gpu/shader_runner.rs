@@ -12,7 +12,6 @@ use vulkano::{
     pipeline::{ComputePipeline, Pipeline, PipelineBindPoint},
 };
 use vulkano::buffer::{BufferAccess};
-use vulkano::descriptor_set::DescriptorSet;
 use vulkano::memory::allocator::{FastMemoryAllocator};
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
 use crate::gpu::gpu_data::GlobalGpu;

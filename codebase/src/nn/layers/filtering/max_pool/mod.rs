@@ -3,7 +3,7 @@ mod max_pool_forward;
 use ndarray::s;
 use crate::Array4F;
 use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::filtering::{pad4d, remove_padding_4d};
+use crate::nn::layers::filtering::{remove_padding_4d};
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::utils::get_dims_after_filter_4;
 
@@ -69,13 +69,10 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
 #[cfg(test)]
 mod tests {
     use ndarray::{array, Axis, stack};
-    use crate::gpu::buffers::upload_array_to_gpu;
-    use crate::gpu::gpu_data::GpuData;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::max_pool::{MaxPoolConfig, MaxPoolLayer};
-    use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
-    use crate::nn::layers::stored_array::StoredArray;
+    use crate::nn::layers::nn_layers::{BackwardData, GenericStorage, LayerOps};
     use crate::utils::{Array3F, ArrayDynF};
 
     pub fn create_inputs() -> ArrayDynF {
