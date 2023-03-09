@@ -1,3 +1,5 @@
+mod max_pool_forward;
+
 use ndarray::s;
 use crate::Array4F;
 use crate::nn::generic_storage::remove_from_storage1;
@@ -23,25 +25,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
     fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult { Ok(()) }
 
     fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
-        let ForwardData { inputs, forward_cache, assigner, .. } = data;
-        let stride = layer_config.stride;
-        let size = layer_config.size;
-        let inputs: Array4F = inputs.into_memory()?.into_dimensionality()?;
-        let inputs = pad4d(inputs, layer_config.padding);
-
-        let [batch_size, channels, new_height, new_width] =
-            get_dims_after_filter_4(inputs.shape(), size, stride);
-
-        let result = Array4F::from_shape_fn((batch_size, channels, new_height, new_width), |(b, c, h, w)| {
-            let h_offset = h * stride;
-            let w_offset = w * stride;
-            let area = inputs.slice(s![b, c, h_offset..(h_offset + size), w_offset..(w_offset + size)]);
-            area.into_iter().copied().reduce(f32::max).unwrap_or(0.0)
-        });
-
-        let key = assigner.get_key(gen_name());
-        forward_cache.insert(key, vec![inputs.into_dyn()]);
-        Ok(result.into_dyn().into())
+        max_pool_forward::forward(data, layer_config)
     }
 
     fn backward(data: BackwardData, layer_config: &MaxPoolConfig) -> LayerResult {
@@ -85,13 +69,16 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
 #[cfg(test)]
 mod tests {
     use ndarray::{array, Axis, stack};
+    use crate::gpu::buffers::upload_array_to_gpu;
+    use crate::gpu::gpu_data::GpuData;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::max_pool::{MaxPoolConfig, MaxPoolLayer};
     use crate::nn::layers::nn_layers::{BackwardData, ForwardData, GenericStorage, LayerOps};
+    use crate::nn::layers::stored_array::StoredArray;
     use crate::utils::{Array3F, ArrayDynF};
 
-    fn create_inputs() -> ArrayDynF {
+    pub fn create_inputs() -> ArrayDynF {
         let arr: Array3F = array![
             [
                 [1.0, 2.0, 3.0, 4.0],
@@ -109,7 +96,7 @@ mod tests {
         stack![Axis(0), arr].into_dyn()
     }
 
-    fn create_forward_outputs() -> ArrayDynF {
+    pub fn create_forward_outputs() -> ArrayDynF {
         let result: Array3F = array![
             [
                 [ 6.,  8.],
@@ -121,26 +108,6 @@ mod tests {
             ]
         ];
         stack![Axis(0), result].into_dyn()
-    }
-
-    #[test]
-    fn test_forward_2x2() {
-        let inputs = create_inputs();
-        let expected = create_forward_outputs();
-
-        fn forward(inputs: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
-            MaxPoolLayer::forward(ForwardData {
-                inputs: inputs.into(),
-                batch_config: &BatchConfig::new_train(),
-                assigner: &mut KeyAssigner::new(),
-                storage: &mut GenericStorage::new(),
-                forward_cache: &mut GenericStorage::new(),
-                prev_iteration_cache: None,
-                gpu: None,
-            }, &MaxPoolConfig { size, stride, padding: 0 }).unwrap().into_memory().unwrap()
-        }
-
-        assert_eq!(expected.into_dyn(), forward(inputs, 2, 2));
     }
 
     #[test]

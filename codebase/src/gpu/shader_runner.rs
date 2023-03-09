@@ -10,7 +10,6 @@ use vulkano::{
     },
     device::Device,
     pipeline::{ComputePipeline, Pipeline, PipelineBindPoint},
-    sync::{GpuFuture},
 };
 use vulkano::buffer::{BufferAccess};
 use vulkano::descriptor_set::DescriptorSet;

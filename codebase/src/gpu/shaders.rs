@@ -28,3 +28,16 @@ pub mod relu_forward {
         path: "./src/gpu/shaders/relu_forward.glsl"
     }
 }
+
+pub mod max_pool_forward {
+    #[cfg(test)]
+    pub const BLOCK_SIZE: [u32; 3] = [1, 2, 2];
+
+    #[cfg(not(test))]
+    pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
+
+    vulkano_shaders::shader! {
+        ty: "compute",
+        path: "./src/gpu/shaders/max_pool_forward.glsl"
+    }
+}
