@@ -18,6 +18,7 @@ vulkano = "0.32.0"
 vulkano-shaders = "0.32.0"
 lazy_static = "1.4.0"
 nohash-hasher = "0.2.0"
+anyhow = { version="1.0.69", features=["backtrace"] }
 #rayon = "1.5.3"
 
 [[bench]]

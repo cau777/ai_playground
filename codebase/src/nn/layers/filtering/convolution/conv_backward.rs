@@ -192,7 +192,7 @@ mod tests {
         let config = get_config();
 
         let mut forward_cache = GenericStorage::new();
-        forward_cache.insert("convolution_2_3_0".to_owned(), vec![cache]);
+        forward_cache.insert("convolution_2_3_2_2_1_0".to_owned(), vec![cache]);
 
         let result = backward(
             BackwardData {

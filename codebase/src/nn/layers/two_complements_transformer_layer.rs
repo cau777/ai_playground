@@ -16,7 +16,7 @@ impl LayerOps<()> for TwoComplementsTransformerLayer {
                 inputs[(b, 0)] - inputs[(b, 1)]
             }).into_dyn().into())
         } else {
-            Err("TwoComplementsTransformerLayer needs exactly 2 values as inputs")?
+            Err(anyhow::anyhow!("TwoComplementsTransformerLayer needs exactly 2 values as inputs"))?
         }
     }
 
@@ -24,7 +24,7 @@ impl LayerOps<()> for TwoComplementsTransformerLayer {
         let grad: Array2F = data.grad.into_dimensionality()?;
 
         if grad.shape()[1] != 1 {
-            Err("TwoComplementsTransformerLayer needs exactly 1 value as gradient")?
+            Err(anyhow::anyhow!("TwoComplementsTransformerLayer needs exactly 1 value as gradient"))?
         }
 
         Ok(Array2F::from_shape_fn((grad.shape()[0], 2), |(b, i)| {

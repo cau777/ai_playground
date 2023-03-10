@@ -153,6 +153,6 @@ pub fn get_config() -> ConvolutionConfig {
 
 pub fn get_storage() -> GenericStorage {
     let mut result = GenericStorage::new();
-    result.insert("convolution_2_3_0".to_owned(), vec![get_kernels().into_dyn()]);
+    result.insert("convolution_2_3_2_2_1_0".to_owned(), vec![get_kernels().into_dyn()]);
     result
 }

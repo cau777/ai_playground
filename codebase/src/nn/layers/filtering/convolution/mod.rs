@@ -32,7 +32,8 @@ pub enum ConvolutionInitMode {
 pub struct ConvolutionLayer;
 
 fn gen_name(config: &ConvolutionConfig) -> String {
-    format!("convolution_{}_{}", config.in_channels, config.out_channels)
+    format!("convolution_{}_{}_{}_{}_{}", config.in_channels, config.out_channels, config.kernel_size,
+            config.stride, config.padding)
 }
 
 impl LayerOps<ConvolutionConfig> for ConvolutionLayer {

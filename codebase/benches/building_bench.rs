@@ -16,6 +16,7 @@ use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::gpu::gpu_data::GpuData;
 use codebase::nn::controller::NNController;
+use codebase::nn::layers::debug_layer::{DebugAction, DebugLayerConfig};
 use codebase::nn::layers::filtering::convolution;
 use codebase::nn::loss::loss_func::LossFunc;
 

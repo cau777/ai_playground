@@ -2,13 +2,13 @@ use ndarray::s;
 use crate::{Array4F};
 use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_runner_2::ShaderRunner2;
+use crate::gpu::shader_runner_2::{PipelineCreateInfo, ShaderRunner2};
 use crate::gpu::shaders;
 use crate::nn::layers::filtering::max_pool::{gen_name, MaxPoolConfig};
 use crate::nn::layers::filtering::pad4d;
 use crate::nn::layers::nn_layers::{ForwardData, LayerResult};
 use crate::nn::layers::stored_array::StoredArray;
-use crate::nn::utils::shape_length;
+use crate::utils::shape_length;
 use crate::utils::{GenericResult, get_dims_after_filter_4};
 
 pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
@@ -16,7 +16,7 @@ pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
 
     let key = assigner.get_key(gen_name());
     if let Some(forward_cache) = forward_cache {
-        forward_cache.insert(key, vec![inputs.to_memory()?.into_dyn()]);
+        forward_cache.insert(key.clone(), vec![inputs.to_memory()?.into_dyn()]);
     }
 
     let result = match inputs {
@@ -24,7 +24,7 @@ pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
             forward_cpu(data.into_dimensionality()?, layer_config.size, layer_config.stride, layer_config.padding)
         }
         StoredArray::GpuLocal { data, gpu, shape } => {
-            forward_gpu(data, gpu, layer_config, shape)?
+            forward_gpu(key, data, gpu, layer_config, shape)?
         }
     };
 
@@ -43,22 +43,26 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
     }).into_dyn().into()
 }
 
-fn forward_gpu(inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, in_shape: Vec<usize>) -> GenericResult<StoredArray> {
+fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, in_shape: Vec<usize>) -> GenericResult<StoredArray> {
     let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
 
-    let mut runner = ShaderRunner2::new_separate_io(gpu.clone(), shaders::max_pool_forward::load, "main", &shaders::max_pool_forward::SpecializationConstants {
-        in_channels: out_shape[1] as u32,
-        size: layer_config.size as u32,
-        stride: layer_config.stride as u32,
-        out_height: out_shape[2] as u32,
-        out_width: out_shape[3] as u32,
-        input_height: in_shape[2] as u32,
-        input_width: in_shape[3] as u32,
-        padding: layer_config.padding as u32,
-    }, shape_length(&out_shape))?;
+    let mut runner = ShaderRunner2::new(id, gpu.clone(), vec![shape_length(&out_shape), shape_length(&in_shape)], || PipelineCreateInfo {
+        entry: "main".to_owned(),
+        load_module: shaders::max_pool_forward::load,
+        constants: shaders::max_pool_forward::SpecializationConstants {
+            in_channels: out_shape[1] as u32,
+            size: layer_config.size as u32,
+            stride: layer_config.stride as u32,
+            out_height: out_shape[2] as u32,
+            out_width: out_shape[3] as u32,
+            input_height: in_shape[2] as u32,
+            input_width: in_shape[3] as u32,
+            padding: layer_config.padding as u32,
+        },
+    })?;
 
-    runner.create_input_buffer(StoredArray::GpuLocal { gpu: gpu.clone(), data: inputs.clone(), shape: in_shape.clone() })?;
+    runner.create_input_buffer(1, StoredArray::GpuLocal { gpu: gpu.clone(), data: inputs.clone(), shape: in_shape.clone() })?;
     let result = runner.execute([out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
                                 shaders::max_pool_forward::BLOCK_SIZE)?;
 
@@ -136,7 +140,7 @@ mod tests {
 
         let cpu_out = forward_cpu(inputs.clone(), config.size, config.stride, config.padding)
             .into_memory().unwrap();
-        let gpu_out = forward_gpu(upload_array_to_gpu(&inputs.into_dyn(), &gpu).unwrap(), gpu, &config, shape)
+        let gpu_out = forward_gpu("".to_owned(), upload_array_to_gpu(&inputs.into_dyn(), &gpu).unwrap(), gpu, &config, shape)
             .unwrap().into_memory().unwrap();
 
         assert_eq!(cpu_out.shape(), gpu_out.shape());

@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, DeviceExtensions, physical::PhysicalDeviceType};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -13,6 +14,13 @@ use crate::utils::GenericResult;
 
 pub type GlobalGpu = Arc<GpuData>;
 
+pub struct PipelineObjects {
+    pub pipeline: Arc<vulkano::pipeline::ComputePipeline>,
+    pub buffers: Vec<crate::gpu::buffers::GpuBuffer>,
+    pub descriptor_set: Arc<vulkano::descriptor_set::PersistentDescriptorSet>,
+    pub buffers_lengths: Vec<usize>,
+}
+
 pub struct GpuData {
     pub device: Arc<Device>,
     // Queues are the equivalent of CPU threads
@@ -22,6 +30,7 @@ pub struct GpuData {
     pub cache: Option<Arc<PipelineCache>>,
     pub memory_alloc: Arc<StandardMemoryAllocator>,
     pub pools: Pools,
+    pub pipeline_objects: RwLock<HashMap<String, PipelineObjects>>
 }
 
 impl GpuData {
@@ -64,7 +73,7 @@ impl GpuData {
                 PhysicalDeviceType::Cpu => 3,
                 PhysicalDeviceType::Other => 4,
                 _ => 5,
-            }).ok_or_else(|| "Can't find suitable device".to_owned())?;
+            }).ok_or_else(|| anyhow::anyhow!("Can't find suitable device"))?;
 
         let (device, mut queues) = Device::new(physical_device, DeviceCreateInfo {
             enabled_extensions: device_extensions,
@@ -78,7 +87,7 @@ impl GpuData {
         let memory_alloc= Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         Ok(Self {
-            queue: queues.next().ok_or("Should create 1 queue")?,
+            queue: queues.next().ok_or(anyhow::anyhow!("Should create 1 queue"))?,
             // memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
@@ -86,6 +95,7 @@ impl GpuData {
             device,
             pools: Pools::new(memory_alloc.clone()),
             memory_alloc,
+            pipeline_objects: RwLock::new(HashMap::new()),
         })
     }
 

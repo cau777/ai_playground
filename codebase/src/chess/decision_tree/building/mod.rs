@@ -256,6 +256,7 @@ mod tests {
     use crate::chess::board_controller::BoardController;
     use crate::chess::decision_tree::building::limiting_factors::LimiterFactors;
     use crate::nn::layers::{dense_layer, sequential_layer};
+    use crate::nn::layers::debug_layer::{DebugAction, DebugLayerConfig};
     use crate::nn::layers::filtering::convolution;
     use crate::nn::layers::nn_layers::Layer;
     use crate::nn::loss::loss_func::LossFunc;
@@ -290,13 +291,25 @@ mod tests {
                     lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     cache: false,
                 }),
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_conv".to_owned(),
+                }),
                 Layer::Flatten,
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_flat".to_owned(),
+                }),
                 Layer::Dense(dense_layer::DenseConfig {
                     init_mode: dense_layer::DenseLayerInit::Random(),
                     biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     out_values: 1,
                     in_values: 6 * 6 * 2,
+                }),
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_dense".to_owned(),
                 }),
             ],
         }), LossFunc::Mse).unwrap();

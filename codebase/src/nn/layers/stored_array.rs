@@ -1,7 +1,7 @@
 use crate::ArrayDynF;
 use crate::gpu::buffers::{download_array_from_gpu, GpuBuffer, upload_array_to_gpu};
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::nn::utils::shape_length;
+use crate::utils::shape_length;
 use crate::utils::GenericResult;
 
 #[derive(Clone)]

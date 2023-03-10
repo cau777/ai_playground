@@ -1,10 +1,8 @@
-use std::error::Error;
 use ndarray::{Array, Array0, Array1, Array2, Array3, Array4, Array5, azip, Dimension, IxDyn};
 // TODO: (repo) add data files sources
 pub use ndarray;
 
-pub type GenericResult<T> = Result<T, GenericError>;
-pub type GenericError = Box<dyn Error>;
+pub type GenericResult<T> = anyhow::Result<T>;
 
 type F = f32;
 pub type ArrayF<D> = Array<F, D>;
@@ -99,9 +97,17 @@ pub fn as_array<const N: usize, T: Default + Copy>(slice: &[T]) -> [T; N] {
 
 pub const EPSILON: f32 = 0.0000001;
 
+#[inline]
+pub fn shape_length(shape: &[usize]) -> usize {
+    shape.iter().copied()
+        .chain(1..=1) // Just append 1 to the iterator
+        .reduce(|a, b| a * b).unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::utils::get_dims_after_filter_dyn;
+
+    use super::*;
 
     #[test]
     fn test_get_dims_after_filter() {
@@ -114,4 +120,13 @@ mod tests {
 
         assert_eq!(get_dims_after_filter_dyn(&[1, 1, 6, 6], 2, 3), vec![1, 1, 2, 2]);
     }
+
+    #[test]
+    fn test_len() {
+        assert_eq!(shape_length(&[]), Array0F::zeros(()).len());
+        assert_eq!(shape_length(&[10]), 10);
+        assert_eq!(shape_length(&[5, 5]), 25);
+        assert_eq!(shape_length(&[3, 3, 3]), 27);
+    }
 }
+

@@ -3,7 +3,7 @@ use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, Copy
 use std::sync::Arc;
 use crate::ArrayDynF;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::utils::GenericResult;
+use crate::utils::{GenericResult, shape_length};
 
 pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<GpuBuffer> {
     let cpu_buffer = CpuAccessibleBuffer::from_iter(
@@ -45,10 +45,13 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
 
 
 pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &GlobalGpu) -> GenericResult<ArrayDynF> {
+    let shape_len = shape_length(&shape) as u64;
+    assert_eq!(buffer.len(), shape_len);
+
     let cpu_buffer = unsafe {
         CpuAccessibleBuffer::uninitialized_array(
             &gpu.memory_alloc,
-            buffer.len(),
+            shape_len,
             vulkano::buffer::BufferUsage {
                 transfer_dst: true,
                 ..vulkano::buffer::BufferUsage::empty()
