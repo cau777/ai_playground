@@ -1,7 +1,8 @@
 use crate::ArrayDynF;
 use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_runner_2::{PipelineCreateInfo, ShaderRunner2};
+use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
+use crate::gpu::shader_runner_2::{ShaderRunner2};
 use crate::gpu::shaders;
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::*;
@@ -19,7 +20,7 @@ impl LayerOps<()> for ReluLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult { Ok(()) }
 
     fn forward(data: ForwardData, _: &()) -> LayerResult {
-        let ForwardData { inputs, assigner,  .. } = data;
+        let ForwardData { inputs, assigner, .. } = data;
         let key = assigner.get_key(gen_name());
 
         // Only use the GPU if the data is already there
@@ -51,13 +52,19 @@ fn forward_cpu(inputs: ArrayDynF) -> ArrayDynF {
 }
 
 fn forward_gpu(id: String, inputs: GpuBuffer, gpu: &GlobalGpu, shape: &[usize]) -> GenericResult<GpuBuffer> {
-    let mut runner = ShaderRunner2::new(id, gpu.clone(), vec![shape_length(shape)], || PipelineCreateInfo {
-        entry: "main".to_owned(),
-        load_module: shaders::relu_forward::load,
-        constants: shaders::relu_forward::SpecializationConstants {},
+    ShaderContext::register(&id, gpu.clone(), &[shape_length(shape) as u64], |mut b| {
+        b.register_shader("forward", shaders::relu_forward::load, vec![
+            (ContextBinding(0), ShaderBinding(0)),
+        ], &shaders::relu_forward::SpecializationConstants {})?;
+        Ok(b)
     })?;
-    runner.create_input_buffer(0, StoredArray::GpuLocal {shape: shape.to_vec(), data: inputs, gpu: gpu.clone()})?;
-    runner.execute([shape_length(shape) as u32, 1, 1], shaders::relu_forward::BLOCK_SIZE)
+
+    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
+
+    runner
+        .update_buffer_with_buffer(ContextBinding(0), inputs)?
+        .dispatch("forward", [shape_length(shape) as u32, 1, 1], shaders::relu_forward::BLOCK_SIZE)?;
+    runner.finish()
 }
 
 #[cfg(test)]
@@ -68,17 +75,17 @@ mod tests {
 
     #[test]
     fn test_forward_gpu() {
-        let inputs = Array3F::from_shape_vec((2,2,2),
-                                                     vec![1.0, 2.0, 3.0, -1.0, -9.0, 0.0, -1.5, 1.0]).unwrap().into_dyn();
-        let expected_array = Array3F::from_shape_vec((2,2,2),
+        let inputs = Array3F::from_shape_vec((2, 2, 2),
+                                             vec![1.0, 2.0, 3.0, -1.0, -9.0, 0.0, -1.5, 1.0]).unwrap().into_dyn();
+        let expected_array = Array3F::from_shape_vec((2, 2, 2),
                                                      vec![1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0]).unwrap().into_dyn();
 
         let gpu = GpuData::new_global().unwrap();
-        let inputs = StoredArray::Memory {data: inputs}.into_gpu_local(gpu.clone()).unwrap();
+        let inputs = StoredArray::Memory { data: inputs }.into_gpu_local(gpu.clone()).unwrap();
 
 
-        let output = forward_gpu("".to_owned(), inputs, &gpu, &[2,2,2]).unwrap();
-        let output = StoredArray::GpuLocal {gpu, data: output, shape: vec![2,2,2]}.into_memory().unwrap();
+        let output = forward_gpu("".to_owned(), inputs, &gpu, &[2, 2, 2]).unwrap();
+        let output = StoredArray::GpuLocal { gpu, data: output, shape: vec![2, 2, 2] }.into_memory().unwrap();
 
         assert!(arrays_almost_equal(&output, &expected_array));
     }

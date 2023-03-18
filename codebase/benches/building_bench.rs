@@ -22,7 +22,7 @@ use codebase::nn::loss::loss_func::LossFunc;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("funcs");
-    group.measurement_time(Duration::from_secs(30));
+    group.measurement_time(Duration::from_secs(60));
     {
         let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
             layers: vec![

@@ -1,22 +1,27 @@
+use std::collections::HashMap;
 use std::sync::Arc;
-use vulkano::buffer::{ CpuAccessibleBuffer, DeviceLocalBuffer};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo, PrimaryAutoCommandBuffer};
+use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer};
+use vulkano::command_buffer::{AutoCommandBufferBuilder, BufferCopy, CommandBufferUsage, CopyBufferInfo, FillBufferInfo, PrimaryAutoCommandBuffer};
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::Device;
 use vulkano::pipeline::{ComputePipeline, Pipeline};
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
-use crate::gpu::gpu_data::{GlobalGpu, PipelineObjects};
+use crate::ArrayDynF;
+use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
+use crate::gpu::gpu_data::GlobalGpu;
+use crate::gpu::pipeline_objects::{BufferObject, PipelineObjects};
+use crate::gpu::shader_context::{ContextBinding, ShaderContextKey};
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::GenericResult;
 
 pub struct PipelineCreateInfo<TConstants: SpecializationConstants, TLoadModule: FnOnce(Arc<Device>) -> LoadModuleResult> {
     pub load_module: TLoadModule,
-    pub entry: String,
+    pub entries: Vec<String>,
     pub constants: TConstants,
 }
 
 pub struct ShaderRunner2 {
-    id: String,
+    context: ShaderContextKey,
     gpu: GlobalGpu,
     builder: AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
 }
@@ -25,41 +30,31 @@ type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
 type LoadModuleResult = Result<Arc<ShaderModule>, ShaderCreationError>;
 
 impl ShaderRunner2 {
-    pub fn new<TConstants: SpecializationConstants, TLoadModule: FnOnce(Arc<Device>) -> LoadModuleResult>(
-        unique_id: String, gpu: GlobalGpu, buffers_lengths: Vec<usize>,
-        info: impl FnOnce() -> PipelineCreateInfo<TConstants, TLoadModule>,
-    ) -> GenericResult<Self> {
-        let should_create = {
-            let read = gpu.pipeline_objects.read().unwrap();
-            let prev = read.get(&unique_id);
-            prev.is_none() || prev.unwrap().buffers_lengths != buffers_lengths
-        };
-
-        if should_create {
-            let mut write = gpu.pipeline_objects.write().unwrap();
-            write.insert(unique_id.clone(), Self::build_objects(&gpu, buffers_lengths, (info)())?);
-        }
-
+    pub fn new(context_key: ShaderContextKey, gpu: GlobalGpu) -> GenericResult<Self> {
         let builder = AutoCommandBufferBuilder::primary(
             &gpu.cmd_alloc,
             gpu.queue.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
         )?;
 
-
         Ok(Self {
-            id: unique_id,
+            context: context_key,
             gpu,
             builder,
         })
     }
 
     fn build_objects<TConstants: SpecializationConstants, TLoadModule: FnOnce(Arc<Device>) -> LoadModuleResult>
-    (gpu: &GlobalGpu, buffers_lengths: Vec<usize>, info: PipelineCreateInfo<TConstants, TLoadModule>) -> GenericResult<PipelineObjects> {
+    (gpu: &GlobalGpu, buffers_lengths:&[usize], info: PipelineCreateInfo<TConstants, TLoadModule>) -> GenericResult<PipelineObjects> {
         if buffers_lengths.is_empty() {
             panic!("By convention, all shaders must have an output buffer");
         }
-        let pipeline = Self::build_pipeline(gpu, info.load_module, &info.entry, &info.constants)?;
+        let mut pipelines= HashMap::new();
+        let shader = (info.load_module)(gpu.device.clone())?;
+        for entry in &info.entries {
+            pipelines.insert(entry.to_owned(), Self::build_pipeline(gpu, &shader, entry, &info.constants)?);
+        }
+        let any_pipeline = pipelines.values().next().unwrap();
 
         let mut buffers = Vec::new();
         let mut writes = Vec::new();
@@ -77,11 +72,15 @@ impl ShaderRunner2 {
                 gpu.device.active_queue_family_indices().iter().copied(),
             )?;
 
-            buffers.push(buffer.clone());
+            buffers.push(BufferObject {
+                buffer: buffer.clone(),
+                length: len,
+                checksums: vec![],
+            });
             writes.push(WriteDescriptorSet::buffer(index as u32, buffer));
         }
 
-        let layouts = pipeline.layout().set_layouts();
+        let layouts = any_pipeline.layout().set_layouts();
         let layout = layouts.get(0)
             .ok_or_else(|| anyhow::anyhow!("No layouts found"))?;
 
@@ -92,16 +91,14 @@ impl ShaderRunner2 {
         )?;
 
         Ok(PipelineObjects {
-            pipeline,
+            pipelines,
             buffers,
             descriptor_set,
-            buffers_lengths
         })
     }
 
-    fn build_pipeline(gpu: &GlobalGpu, load_module: impl FnOnce(Arc<Device>) -> LoadModuleResult,
+    fn build_pipeline(gpu: &GlobalGpu, shader: &ShaderModule,
                       entrypoint: &str, constants: &impl SpecializationConstants) -> GenericResult<Arc<ComputePipeline>> {
-        let shader = load_module(gpu.device.clone())?;
         let entry = shader.entry_point(entrypoint)
             .ok_or_else(|| anyhow::anyhow!("Can't find function {} on shader", entrypoint))?;
 
@@ -114,64 +111,204 @@ impl ShaderRunner2 {
         )?)
     }
 
-    pub fn create_input_buffer(&mut self, binding: usize, data: StoredArray) -> GenericResult<()> {
-        match data {
-            StoredArray::Memory { data } => {
-                let read = self.gpu.pipeline_objects.read().unwrap();
-                let objects = read.get(&self.id)
-                    .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
-
-                let buffer = CpuAccessibleBuffer::from_iter(
-                    &self.gpu.memory_alloc,
-                    vulkano::buffer::BufferUsage {
-                        transfer_src: true,
-                        ..vulkano::buffer::BufferUsage::empty()
-                    },
-                    false,
-                    data.iter().copied(),
-                )?;
-
-                self.builder
-                    .copy_buffer(CopyBufferInfo::buffers(buffer, objects.buffers[binding].clone()))?;
-            }
-            StoredArray::GpuLocal { data, .. } => {
-                let read = self.gpu.pipeline_objects.read().unwrap();
-                let objects = read.get(&self.id)
-                    .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
-
-                self.builder
-                    .copy_buffer(CopyBufferInfo::buffers(data, objects.buffers[binding].clone()))?;
-            }
-        }
-        Ok(())
+    pub fn update_buffer_with_memory(&mut self, binding: ContextBinding, data: &ArrayDynF,
+                                     checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
+        self.update_buffer_with_memory_checked(binding, data, checksum, &mut false)
     }
 
-    pub fn execute(self, total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<GpuBuffer> {
-        let group_counts = Self::create_groups(total_times, block_size)?;
+    pub fn update_buffer_with_memory_checked(&mut self, binding: ContextBinding, data: &ArrayDynF,
+                                     checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
+        let buffer = CpuAccessibleBuffer::from_iter(
+            &self.gpu.memory_alloc,
+            vulkano::buffer::BufferUsage {
+                transfer_src: true,
+                ..vulkano::buffer::BufferUsage::empty()
+            },
+            false,
+            data.iter().copied(),
+        )?;
 
-        let Self { mut builder, id, gpu, .. } = self;
-        let read = gpu.pipeline_objects.read().unwrap();
-        let objects = read.get(&id)
+        let mut write = self.gpu.contexts.write().unwrap();
+        let context = write.get_mut(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
 
-        builder
-            .bind_pipeline_compute(objects.pipeline.clone())
+        let buffer_obj = &mut context.get_buffer_object_mut(binding)
+            .ok_or_else(|| anyhow::anyhow!("Binding {:?} not found", binding))?;
+
+        let copy_info = match checksum {
+            BufferChecksumMethod::None => {
+                buffer_obj.checksums = vec![];
+                Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
+            }
+            BufferChecksumMethod::Single => {
+                match data.as_slice() {
+                    Some(slice) => {
+                        let checksum = vec![checksum_slice(slice)];
+                        let should_copy = checksum != buffer_obj.checksums;
+                        buffer_obj.checksums = checksum;
+
+                        if should_copy {
+                            Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
+                        } else {
+                            None
+                        }
+                    }
+                    None => {
+                        println!("No slice");
+                        buffer_obj.checksums = vec![];
+                        Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
+                    }
+                }
+            }
+            BufferChecksumMethod::Split => {
+                match data.as_slice() {
+                    Some(slice) => {
+                        let chunk_size = CHUNK_SIZE;
+                        let checksums: Vec<_> = slice.chunks(chunk_size).map(checksum_slice).collect();
+
+                        let result = if checksums.len() != buffer_obj.checksums.len() {
+                            // If the lengths are different, perform a full copy
+                            Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
+                        } else if checksums != buffer_obj.checksums {
+                            // If the buffers have some different chunks, copy only the different chunks
+                            let mut info = CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone());
+                            info.regions.clear();
+
+                            for (index, (prev, new)) in std::iter::zip(&buffer_obj.checksums, &checksums).enumerate() {
+                                if prev != new {
+                                    let offset = chunk_size * index;
+                                    let copy = BufferCopy {
+                                        src_offset: offset as u64,
+                                        dst_offset: offset as u64,
+                                        size: u64::min(buffer_obj.length - offset as u64, chunk_size as u64),
+                                        ..BufferCopy::default()
+                                    };
+                                    info.regions.push(copy);
+                                }
+                            }
+
+                            Some(info)
+                        } else {
+                            // If the buffers are equal
+                            None
+                        };
+
+                        buffer_obj.checksums = checksums;
+                        result
+                    }
+                    None => {
+                        buffer_obj.checksums = vec![];
+                        Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
+                    }
+                }
+            }
+        };
+
+        match copy_info {
+            Some(copy_info) => {
+                self.builder.copy_buffer(copy_info)?;
+                *changed = true;
+            }
+            None => {
+                *changed = false;
+            }
+        };
+
+        drop(write);
+        Ok(self)
+    }
+
+    pub fn update_buffer_with_buffer(&mut self, binding: ContextBinding, data: GpuBuffer) -> GenericResult<&mut Self> {
+        let read = self.gpu.contexts.read().unwrap();
+        let context = read.get(&self.context)
+            .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
+
+        let dst_buffer = context.get_buffer(binding)
+            .ok_or_else(|| anyhow::anyhow!("Binding {:?} was not found", binding))?;
+
+        self.builder
+            .copy_buffer(CopyBufferInfo::buffers(data, dst_buffer))?;
+
+        drop(read);
+        Ok(self)
+    }
+
+    pub fn update_buffer_with_binding(&mut self, src_binding: ContextBinding, dst_binding: ContextBinding) -> GenericResult<&mut Self> {
+        let read = self.gpu.contexts.read().unwrap();
+        let objects = read.get(&self.context)
+            .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
+
+        self.builder.copy_buffer(CopyBufferInfo::buffers(
+            objects.get_buffer(src_binding)
+                .ok_or_else(||anyhow::anyhow!("Source buffer does not exist"))?,
+            objects.get_buffer(dst_binding)
+                .ok_or_else(||anyhow::anyhow!("Destination buffer does not exist"))?,
+        ))?;
+
+        drop(read);
+        Ok(self)
+    }
+
+    pub fn update_buffer_with_stored_array(&mut self, binding: ContextBinding, data: &StoredArray,
+                                           checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
+        match data {
+            StoredArray::Memory { data } => self.update_buffer_with_memory(binding, data, checksum),
+            StoredArray::GpuLocal { data, .. } => self.update_buffer_with_buffer(binding, data.clone()),
+        }?;
+        Ok(self)
+    }
+
+    pub fn update_buffer_with_val(&mut self,binding: ContextBinding, value: f32) -> GenericResult<&mut Self> {
+        let read = self.gpu.contexts.read().unwrap();
+        let objects = read.get(&self.context)
+            .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
+
+        let mut info = FillBufferInfo::dst_buffer(objects.get_buffer(binding)
+            .ok_or_else(||anyhow::anyhow!("Destination buffer does not exist"))?);
+        info.data = value.to_bits();
+
+        self.builder.fill_buffer(info)?;
+        drop(read);
+        Ok(self)
+    }
+
+    pub fn dispatch(&mut self, shader_name: &str, total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<&mut Self> {
+        let group_counts = Self::create_groups(total_times, block_size)?;
+
+        let read = self.gpu.contexts.read().unwrap();
+        let context = read.get(&self.context)
+            .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
+        let objects = context.get_pipeline_objects(shader_name);
+        let pipeline = objects.pipeline.clone();
+        let descriptors = objects.descriptor_set.clone();
+
+        self.builder
+            .bind_pipeline_compute(pipeline.clone())
             .bind_descriptor_sets(
                 vulkano::pipeline::PipelineBindPoint::Compute,
-                objects.pipeline.layout().clone(),
+                pipeline.layout().clone(),
                 0,
-                objects.descriptor_set.clone(),
+                descriptors,
             )
             .dispatch(group_counts)?;
+
+        drop(read);
+        Ok(self)
+    }
+
+    pub fn finish(self) -> GenericResult<GpuBuffer> {
+        let Self {builder, gpu, context, ..} = self;
 
         let cmd = builder.build()?;
         gpu.exec_cmd(cmd)?.wait(None)?;
 
-        // Necessary to avoid memory leaks
+        // Necessary to avoid memory leaks TODO: review
         gpu.cmd_alloc.clear(gpu.queue.queue_family_index());
         gpu.descriptor_alloc.clear_all();
 
-        Ok(objects.buffers[0].clone())
+        let read = gpu.contexts.read().unwrap();
+        // TODO: improve
+        Ok(read[&context].get_buffer(ContextBinding(0)).unwrap())
     }
 
     fn create_groups(total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<[u32; 3]> {

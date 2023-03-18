@@ -8,15 +8,31 @@ pub mod convolution_inputs_grad {
 }
 
 pub mod convolution_forward {
-    #[cfg(test)]
-    pub const BLOCK_SIZE: [u32; 3] = [1, 2, 2];
+    pub mod forward {
+        pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
 
-    #[cfg(not(test))]
-    pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
+        vulkano_shaders::shader! {
+            ty: "compute",
+            path: "./src/gpu/shaders/convolution_forward/forward.glsl"
+        }
+    }
 
-    vulkano_shaders::shader! {
-        ty: "compute",
-        path: "./src/gpu/shaders/convolution_forward.glsl"
+    pub mod validate_cache_1 {
+        pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
+
+        vulkano_shaders::shader! {
+            ty: "compute",
+            path: "./src/gpu/shaders/convolution_forward/validate_cache_1.glsl"
+        }
+    }
+
+    pub mod validate_cache_2 {
+        pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
+
+        vulkano_shaders::shader! {
+            ty: "compute",
+            path: "./src/gpu/shaders/convolution_forward/validate_cache_2.glsl"
+        }
     }
 }
 
@@ -30,10 +46,6 @@ pub mod relu_forward {
 }
 
 pub mod max_pool_forward {
-    #[cfg(test)]
-    pub const BLOCK_SIZE: [u32; 3] = [1, 2, 2];
-
-    #[cfg(not(test))]
     pub const BLOCK_SIZE: [u32; 3] = [8, 2, 2];
 
     vulkano_shaders::shader! {

@@ -2,7 +2,8 @@ use ndarray::s;
 use crate::{Array4F};
 use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_runner_2::{PipelineCreateInfo, ShaderRunner2};
+use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
+use crate::gpu::shader_runner_2::{ShaderRunner2};
 use crate::gpu::shaders;
 use crate::nn::layers::filtering::max_pool::{gen_name, MaxPoolConfig};
 use crate::nn::layers::filtering::pad4d;
@@ -46,11 +47,16 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
 fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, in_shape: Vec<usize>) -> GenericResult<StoredArray> {
     let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
+    let buffers_lengths = [
+        shape_length(&out_shape) as u64,
+        shape_length(&in_shape) as u64,
+    ];
 
-    let mut runner = ShaderRunner2::new(id, gpu.clone(), vec![shape_length(&out_shape), shape_length(&in_shape)], || PipelineCreateInfo {
-        entry: "main".to_owned(),
-        load_module: shaders::max_pool_forward::load,
-        constants: shaders::max_pool_forward::SpecializationConstants {
+    ShaderContext::register(&id, gpu.clone(), &buffers_lengths, |mut b| {
+        b.register_shader("forward", shaders::max_pool_forward::load, vec![
+            (ContextBinding(0), ShaderBinding(0)),
+            (ContextBinding(1), ShaderBinding(1)),
+        ], &shaders::max_pool_forward::SpecializationConstants {
             in_channels: out_shape[1] as u32,
             size: layer_config.size as u32,
             stride: layer_config.stride as u32,
@@ -59,12 +65,17 @@ fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &Max
             input_height: in_shape[2] as u32,
             input_width: in_shape[3] as u32,
             padding: layer_config.padding as u32,
-        },
+        })?;
+        Ok(b)
     })?;
 
-    runner.create_input_buffer(1, StoredArray::GpuLocal { gpu: gpu.clone(), data: inputs.clone(), shape: in_shape.clone() })?;
-    let result = runner.execute([out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
-                                shaders::max_pool_forward::BLOCK_SIZE)?;
+    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
+
+    runner.update_buffer_with_buffer(ContextBinding(1), inputs)?
+        .dispatch("forward", [out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
+                  shaders::max_pool_forward::BLOCK_SIZE)?;
+
+    let result = runner.finish()?;
 
     Ok(StoredArray::GpuLocal { gpu, data: result, shape: out_shape.to_vec() })
 }

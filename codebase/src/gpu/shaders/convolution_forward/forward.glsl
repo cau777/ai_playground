@@ -1,4 +1,5 @@
 #version 450
+
 layout(local_size_x = 8, local_size_y = 2, local_size_z = 2) in;
 layout(set = 0, binding = 0) buffer ResultData {
     float data[];
@@ -8,9 +9,13 @@ layout(set = 0, binding = 1) buffer KernelData {
     float data[];
 } kernel_data;
 
-layout(set = 0, binding = 2) buffer GradData {
+layout(set = 0, binding = 2) buffer InputData {
     float data[];
 } input_data;
+
+layout(set = 0, binding = 3) buffer CacheInvalidData {
+    float data[];
+} cache_invalid;
 
 layout(constant_id = 0) const uint in_channels = 0;
 layout(constant_id = 1) const uint out_channels = 0;
@@ -35,8 +40,12 @@ void main() {
     const uint h_offset = h * stride;
     const uint w_offset = w * stride;
 
+    if (floatBitsToUint(cache_invalid.data[b*out_height*out_width + h*out_width + w]) != 0x1) {
+        return;
+    }
+
     float result = 0.0;
-    
+
     const uint inputs_section_0 = in_channels * input_height * input_width;
     const uint inputs_section_1 = input_height * input_width;
     const uint inputs_section_2 = input_width;
@@ -48,21 +57,21 @@ void main() {
     for (uint kh = 0; kh < kernel_size; kh++) {
         for (uint kw = 0; kw < kernel_size; kw++) {
             for (uint in_c = 0; in_c < in_channels; in_c++) {
-                const uint result_h = h_offset + kh - padding;
-                const uint result_w = w_offset + kw - padding;
-                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + result_h*inputs_section_2 + result_w];
+                const uint input_h = h_offset + kh - padding;
+                const uint input_w = w_offset + kw - padding;
+                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + input_h*inputs_section_2 + input_w];
                 const float k = kernel_data.data[out_c*kernel_sections_0 + in_c*kernel_sections_1 + kh*kernel_sections_2 + kw];
-                result += i * k * float(result_h < input_height) * float(result_w < input_width);
+                result += i * k * float(input_h < input_height) * float(input_w < input_width);
             }
         }
     }
 
-    const uint index = b*out_channels*out_height*out_width + out_c*out_height*out_width + h*out_width + w;
-    result_data.data[index] = result;
+    const uint result_index = b*out_channels*out_height*out_width + out_c*out_height*out_width + h*out_width + w;
+    result_data.data[result_index] = result;
 }
 
 /*
-Shader equivalent in Rust
+Function equivalent in Rust
 Array4F::from_shape_fn((batch_size, layer_config.out_channels, new_height, new_width), |(b, out_c, h, w)| {
     let h_offset = h * stride;
     let w_offset = w * stride;

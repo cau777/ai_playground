@@ -40,7 +40,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
         let InitData { assigner, storage } = data;
         let key = assigner.get_key(gen_name(layer_config));
 
-        if !storage.contains_key(&key) {
+        if let std::collections::hash_map::Entry::Vacant(e) = storage.entry(key) {
             let weights: Array2F;
             let biases: Array1F;
 
@@ -60,7 +60,7 @@ impl LayerOps<DenseConfig> for DenseLayer {
                 }
             }
 
-            storage.insert(key, vec![weights.into_dyn(), biases.into_dyn()]);
+            e.insert(vec![weights.into_dyn(), biases.into_dyn()]);
         }
 
         Ok(())

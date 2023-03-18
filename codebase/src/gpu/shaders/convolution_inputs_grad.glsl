@@ -58,8 +58,8 @@ void main() {
 
     while (kernel_h < max_h) {
         uint grad_h = (padded_h - kernel_h) / stride;
-        const uint max_w = min(kernel_size, padded_w + 1); // Asserts the condition grad_w >= 0
-        const uint min_w = max(padded_w / stride + 1, grad_width) - grad_width; // Asserts the condition grad_w < grad_max_w
+        const uint max_w = min(kernel_size, padded_w + 1);// Asserts the condition grad_w >= 0
+        const uint min_w = max(padded_w / stride + 1, grad_width) - grad_width;// Asserts the condition grad_w < grad_max_w
 
         uint kernel_w = max(padded_w % stride, min_w);
         while (kernel_w < max_w) {
@@ -77,8 +77,8 @@ void main() {
         kernel_h += stride;
     }
 
-    const uint index = b*in_channels*out_height*out_width + in_c*out_height*out_width + h*out_width + w;
-    result_data.data[index] = result;
+    const uint result_index = b*in_channels*out_height*out_width + in_c*out_height*out_width + h*out_width + w;
+    result_data.data[result_index] = result;
 }
 
 /*

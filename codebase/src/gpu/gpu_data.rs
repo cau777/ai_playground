@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, DeviceExtensions, physical::PhysicalDeviceType};
+use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, physical::PhysicalDeviceType, Queue, QueueCreateInfo};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
@@ -10,16 +10,10 @@ use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::sync::{FenceSignalFuture, GpuFuture, NowFuture};
 use crate::gpu::pools::Pools;
+use crate::gpu::shader_context::{ShaderContextKey, ShaderContext};
 use crate::utils::GenericResult;
 
 pub type GlobalGpu = Arc<GpuData>;
-
-pub struct PipelineObjects {
-    pub pipeline: Arc<vulkano::pipeline::ComputePipeline>,
-    pub buffers: Vec<crate::gpu::buffers::GpuBuffer>,
-    pub descriptor_set: Arc<vulkano::descriptor_set::PersistentDescriptorSet>,
-    pub buffers_lengths: Vec<usize>,
-}
 
 pub struct GpuData {
     pub device: Arc<Device>,
@@ -30,7 +24,7 @@ pub struct GpuData {
     pub cache: Option<Arc<PipelineCache>>,
     pub memory_alloc: Arc<StandardMemoryAllocator>,
     pub pools: Pools,
-    pub pipeline_objects: RwLock<HashMap<String, PipelineObjects>>
+    pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>
 }
 
 impl GpuData {
@@ -95,7 +89,7 @@ impl GpuData {
             device,
             pools: Pools::new(memory_alloc.clone()),
             memory_alloc,
-            pipeline_objects: RwLock::new(HashMap::new()),
+            contexts: RwLock::new(HashMap::new()),
         })
     }
 

@@ -88,9 +88,9 @@ mod tests {
                 [2.0, 4.0, -99.0, 32.0],
                 [16.0, 69.0, -69.0, 1.0],
                 [-8.0, 0.0, 0.0, 4.0]
-            ]
+            ],
         ];
-        stack![Axis(0), arr].into_dyn()
+        stack![Axis(0), arr, arr, arr, arr].into_dyn()
     }
 
     pub fn create_forward_outputs() -> ArrayDynF {
@@ -104,7 +104,7 @@ mod tests {
                 [69.,  4.]
             ]
         ];
-        stack![Axis(0), result].into_dyn()
+        stack![Axis(0), result, result, result, result].into_dyn()
     }
 
     #[test]
@@ -122,7 +122,7 @@ mod tests {
              [  0. , -48.3,  -0. ,   0. ],
              [ -0. ,   0. ,   0. ,  -2.8]]
         ];
-        let expected = stack![Axis(0), expected].into_dyn();
+        let expected = stack![Axis(0), expected, expected, expected, expected].into_dyn();
 
         fn backward(inputs: ArrayDynF, grad: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
             let mut forward_cache = GenericStorage::new();
