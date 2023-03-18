@@ -57,6 +57,7 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
                 Some(gpu) => match gpu_forward_with_cache(key.clone(), inputs.clone(), &kernel, gpu, layer_config) {
                     Ok(v) => v,
                     Err(e) => {
+                        #[cfg(debug_assertions)]
                         eprintln!("{:?}", e);
                         cpu_forward(inputs, kernel, layer_config)?
                     }

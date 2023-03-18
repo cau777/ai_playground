@@ -181,7 +181,7 @@ impl DecisionTreesBuilder {
         }
 
         let replacement = storages.iter()
-            .filter_map(|o| o.clone().cloned())
+            .filter_map(|&o| o.cloned())
             .map(|mut o| {
                 for arr in o.values_mut() {
                     for item in arr {

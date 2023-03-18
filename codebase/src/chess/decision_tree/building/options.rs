@@ -10,6 +10,7 @@ pub struct BuilderOptions {
     pub random_node_chance: f64,
     pub limits: LimiterFactors,
     pub on_game_result: OnGameResultFn,
+    pub add_random_to_openings: bool,
 }
 
 pub enum NextNodeStrategy {
@@ -34,6 +35,7 @@ impl Default for BuilderOptions {
             random_node_chance: 0.0,
             limits: Default::default(),
             on_game_result: Box::new(|_| {}),
+            add_random_to_openings: true,
         }
     }
 }
