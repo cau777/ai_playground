@@ -47,6 +47,7 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
 pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &GlobalGpu) -> GenericResult<ArrayDynF> {
     let shape_len = shape_length(&shape) as u64;
     assert_eq!(buffer.len(), shape_len);
+    // TODO: pool?
 
     let cpu_buffer = unsafe {
         CpuAccessibleBuffer::uninitialized_array(
@@ -76,3 +77,4 @@ pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &Glob
 }
 
 pub type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
+pub type CpuBuffer = Arc<CpuAccessibleBuffer<[f32]>>;

@@ -5,11 +5,12 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::Device;
 use vulkano::pipeline::{ComputePipeline, Pipeline};
 use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
-use crate::gpu::buffers::GpuBuffer;
+use crate::gpu::buffers::{CpuBuffer, GpuBuffer};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::utils::GenericResult;
 
 pub struct ContextSharedBuffer {
+    pub aux_buffer: Option<CpuBuffer>,
     pub buffer: GpuBuffer,
     pub length: u64,
     pub checksums: Vec<u64>,
@@ -41,8 +42,8 @@ impl ShaderContext {
         let should_create = {
             let read = gpu.contexts.read().unwrap();
             let prev = read.get(key);
-            prev.is_none() ||
-                std::iter::zip(&prev.unwrap().buffers, buffers_lengths.iter()).any(|(prev, length)| prev.length != *length)
+            prev.is_none() || std::iter::zip(&prev.unwrap().buffers, buffers_lengths.iter())
+                .any(|(prev, length)| prev.length != *length)
         };
 
         if should_create {
@@ -104,6 +105,7 @@ impl ContextBuilder {
             )?;
 
             buffers.push(ContextSharedBuffer {
+                aux_buffer: None,
                 length,
                 checksums: vec![],
                 buffer,

@@ -6,12 +6,14 @@ mod digits;
 mod files;
 mod chess;
 
+use std::fs::OpenOptions;
+use std::io::Read;
 use std::sync::Arc;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
 use codebase::integration::deserialization::{deserialize_storage};
-use codebase::integration::layers_loading::{ModelXmlConfig};
+use codebase::integration::layers_loading::{load_model_xml, ModelXmlConfig};
 use codebase::nn::controller::NNController;
 use codebase::nn::layers::nn_layers::GenericStorage;
 use http::{StatusCode};
@@ -19,6 +21,7 @@ use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
 
 fn main() {
+    return profile_code();
     let config = &EnvConfig::new();
     if config.profile {
         profile_code();
@@ -58,39 +61,34 @@ fn profile_code() {
     use codebase::nn::lr_calculators::constant_lr::*;
     use codebase::nn::loss::loss_func::*;
 
-    let controller = NNController::new(Layer::Sequential(sequential_layer::SequentialConfig {
-        layers: vec![
-            Layer::Convolution(ConvolutionConfig {
-                in_channels: 6,
-                stride: 1,
-                kernel_size: 3,
-                init_mode: ConvolutionInitMode::HeNormal(),
-                out_channels: 2,
-                padding: 0,
-                lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                cache: false,
-            }),
-            Layer::Flatten,
-            Layer::Dense(dense_layer::DenseConfig {
-                init_mode: dense_layer::DenseLayerInit::Random(),
-                biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-                out_values: 1,
-                in_values: 6 * 6 * 2,
-            }),
-        ],
-    }), LossFunc::Mse).unwrap();
+    let mut file = OpenOptions::new().read(true).open("./profile_config.xml").unwrap();
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).unwrap();
+
+    let controller = NNController::new(load_model_xml(
+        &bytes
+    ).unwrap().main_layer, LossFunc::Mse).unwrap();
 
     let builder = DecisionTreesBuilder::new(
-        vec![DecisionTree::new(true)],
-        vec![TreeCursor::new(codebase::chess::board_controller::BoardController::new_start())],
+        vec![
+            DecisionTree::new(true),
+        ],
+        vec![
+            TreeCursor::new(codebase::chess::board_controller::BoardController::new_start()),
+        ],
         BuilderOptions {
             limits: LimiterFactors {
-                max_explored_nodes: Some(5_000),
+                max_iterations: Some(500),
                 ..Default::default()
             },
-            batch_size: 32,
-            max_cache_bytes: 2_000,
+            next_node_strategy: codebase::chess::decision_tree::building::NextNodeStrategy::Computed {
+                eval_delta_exp: 6.0,
+                depth_delta_exp: 0.002,
+            },
+            batch_size: 64,
+            max_cache_bytes: 10_000,
+            add_random_to_openings: false,
+            random_node_chance: 0.0,
             ..Default::default()
         }
     );

@@ -64,6 +64,7 @@ impl SubtreesTrainer {
             max_cache_bytes: self.max_cache_size_kb * 1_000,
             on_game_result: Box::new(|_| {}),
             random_node_chance: random_node_chance * 2.0,
+            ..Default::default()
         };
 
         let (mut tree, mut cursor) = DecisionTreesBuilder::new(tree, cursor, options)

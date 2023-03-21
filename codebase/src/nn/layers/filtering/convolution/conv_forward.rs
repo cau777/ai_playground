@@ -14,10 +14,13 @@ use crate::utils::{Array1F, shape_length};
 use crate::utils::{Array3F, GenericResult, get_dims_after_filter_4};
 
 // TODO: avoid clones
+// TODO: inline
 pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
     let key = assigner.get_key(gen_name(layer_config));
-    let inputs_to_cache = if matches!(prev_iteration_cache, Some(_)) {
+
+    let cache_enabled = layer_config.cache && matches!(prev_iteration_cache, Some(_));
+    let inputs_to_cache = if cache_enabled {
         Some(inputs.to_memory()?)
     } else {
         None
@@ -67,14 +70,17 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
         }
     };
 
-    if let Some(cache) = prev_iteration_cache {
-        cache.insert(key, vec![inputs_to_cache.unwrap(), result.to_memory()?]);
+    if cache_enabled {
+        prev_iteration_cache.unwrap()
+            .insert(key, vec![inputs_to_cache.unwrap(), result.to_memory()?]);
     }
 
     Ok(result)
 }
 
+#[inline(never)]
 pub fn cpu_forward(inputs: StoredArray, kernel: ArrayDynF, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
+    println!("cpu_forward");
     let kernel = kernel.into_dimensionality()?;
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
     let inputs = inputs.into_memory()?.into_dimensionality()?;
@@ -100,16 +106,23 @@ pub fn cpu_forward(inputs: StoredArray, kernel: ArrayDynF, layer_config: &Convol
     Ok(StoredArray::Memory { data: stack(Axis(0), &views)?.into_dyn() })
 }
 
+#[inline(never)]
 pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_results: ArrayDynF, kernel: ArrayDynF,
                          layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let kernel = kernel.into_dimensionality()?;
     let ConvolutionConfig { stride, kernel_size, out_channels, .. } = layer_config;
     let inputs = inputs.into_memory()?.into_dimensionality()?;
+    let inputs = pad4d(inputs, layer_config.padding);
+    let prev_inputs = pad4d(prev_inputs.into_dimensionality()?, layer_config.padding);
+    let prev_results = prev_results.into_dimensionality()?;
 
     let [batch, _, new_height, new_width] = get_dims_after_filter_4(inputs.shape(), *kernel_size, *stride);
 
-    let useful_cache = find_useful_from_prev(&prev_inputs.into_dimensionality()?, &prev_results.into_dimensionality()?,
-                                             &inputs, *kernel_size, *stride);
+    let useful_cache = find_useful_from_prev(
+        &prev_inputs,
+        &prev_results,
+        &inputs, *kernel_size, *stride,
+    );
     let mut result = Array4F::zeros((batch, layer_config.out_channels, new_height, new_width));
 
     Zip::from(inputs.outer_iter())
@@ -134,6 +147,7 @@ pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_resul
     Ok(StoredArray::Memory { data: result.into_dyn() })
 }
 
+#[inline(never)]
 pub fn gpu_forward(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
 
@@ -186,6 +200,7 @@ pub fn gpu_forward(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: Glo
     Ok(StoredArray::GpuLocal { gpu, shape: osh.to_vec(), data: result })
 }
 
+#[inline(never)]
 pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: GlobalGpu,
                               layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;

@@ -36,7 +36,7 @@ fn remove_padding_4d(array: Array4F, padding: usize) -> Array4F {
 
 fn find_useful_from_prev(prev_inputs: &Array4F, prev_result: &Array4F, curr_input: &Array4F, size: usize, stride: usize) -> Array4<Option<f32>> {
     if prev_inputs.shape() != curr_input.shape() {
-        panic!("Invalid shapes");
+        panic!("Invalid shapes {:?} {:?}", prev_inputs.shape(), curr_input.shape());
     }
 
     let [batch, ich, ih, iw]: [usize; 4] = curr_input.shape().try_into().unwrap();

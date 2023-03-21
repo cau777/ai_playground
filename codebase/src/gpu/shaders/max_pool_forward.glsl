@@ -31,16 +31,19 @@ void main() {
 
     float result = -9999999999.0;
 
-    const uint inputs_section_0 = in_channels * input_height * input_width;
-    const uint inputs_section_1 = input_height * input_width;
-    const uint inputs_section_2 = input_width;
+    //    const uint inputs_section_0 = in_channels * input_height * input_width;
+    //    const uint inputs_section_1 = input_height * input_width;
+    //    const uint inputs_section_2 = input_width;
+    const uint index_precompute_1 = b * in_channels * input_height * input_width + c * input_height * input_width;
 
     for (uint kh = 0; kh < size; kh++) {
+        const uint result_h = h_offset + kh - padding;
+        const uint index_precompute_2 = index_precompute_1 + result_h * input_width;
+
         for (uint kw = 0; kw < size; kw++) {
-            const uint result_h = h_offset + kh - padding;
             const uint result_w = w_offset + kw - padding;
-            const float i = input_data.data[b*inputs_section_0 + c*inputs_section_1 + result_h*inputs_section_2 + result_w];
-            result = max(result, i * float(result_h < input_height) * float(result_w < input_width));
+            const float i = input_data.data[index_precompute_2 + result_w];
+            result = max(result, i * float((result_h < input_height) && (result_w < input_width)));
         }
     }
 

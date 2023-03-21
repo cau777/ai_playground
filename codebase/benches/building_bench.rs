@@ -68,6 +68,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                     batch_size: 32,
                     max_cache_bytes: 5_000,
                     add_random_to_openings: false,
+                    random_node_chance: 0.0,
                     ..BuilderOptions::default()
                 },
             );

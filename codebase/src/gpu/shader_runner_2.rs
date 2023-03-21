@@ -10,15 +10,9 @@ use crate::ArrayDynF;
 use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::pipeline_objects::{BufferObject, PipelineObjects};
-use crate::gpu::shader_context::{ContextBinding, ShaderContextKey};
+use crate::gpu::shader_context::{ContextBinding, ContextSharedBuffer, ShaderContextKey};
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::GenericResult;
-
-pub struct PipelineCreateInfo<TConstants: SpecializationConstants, TLoadModule: FnOnce(Arc<Device>) -> LoadModuleResult> {
-    pub load_module: TLoadModule,
-    pub entries: Vec<String>,
-    pub constants: TConstants,
-}
 
 pub struct ShaderRunner2 {
     context: ShaderContextKey,
@@ -44,96 +38,26 @@ impl ShaderRunner2 {
         })
     }
 
-    fn build_objects<TConstants: SpecializationConstants, TLoadModule: FnOnce(Arc<Device>) -> LoadModuleResult>
-    (gpu: &GlobalGpu, buffers_lengths:&[usize], info: PipelineCreateInfo<TConstants, TLoadModule>) -> GenericResult<PipelineObjects> {
-        if buffers_lengths.is_empty() {
-            panic!("By convention, all shaders must have an output buffer");
-        }
-        let mut pipelines= HashMap::new();
-        let shader = (info.load_module)(gpu.device.clone())?;
-        for entry in &info.entries {
-            pipelines.insert(entry.to_owned(), Self::build_pipeline(gpu, &shader, entry, &info.constants)?);
-        }
-        let any_pipeline = pipelines.values().next().unwrap();
-
-        let mut buffers = Vec::new();
-        let mut writes = Vec::new();
-
-        for (index, &len) in buffers_lengths.iter().enumerate() {
-            let buffer = DeviceLocalBuffer::<[f32]>::array(
-                &gpu.memory_alloc,
-                len as u64,
-                vulkano::buffer::BufferUsage {
-                    storage_buffer: true,
-                    transfer_dst: true,
-                    transfer_src: true,
-                    ..vulkano::buffer::BufferUsage::empty()
-                },
-                gpu.device.active_queue_family_indices().iter().copied(),
-            )?;
-
-            buffers.push(BufferObject {
-                buffer: buffer.clone(),
-                length: len,
-                checksums: vec![],
-            });
-            writes.push(WriteDescriptorSet::buffer(index as u32, buffer));
-        }
-
-        let layouts = any_pipeline.layout().set_layouts();
-        let layout = layouts.get(0)
-            .ok_or_else(|| anyhow::anyhow!("No layouts found"))?;
-
-        let descriptor_set = PersistentDescriptorSet::new(
-            &gpu.descriptor_alloc,
-            layout.clone(),
-            writes.into_iter(),
-        )?;
-
-        Ok(PipelineObjects {
-            pipelines,
-            buffers,
-            descriptor_set,
-        })
-    }
-
-    fn build_pipeline(gpu: &GlobalGpu, shader: &ShaderModule,
-                      entrypoint: &str, constants: &impl SpecializationConstants) -> GenericResult<Arc<ComputePipeline>> {
-        let entry = shader.entry_point(entrypoint)
-            .ok_or_else(|| anyhow::anyhow!("Can't find function {} on shader", entrypoint))?;
-
-        Ok(ComputePipeline::new(
-            gpu.device.clone(),
-            entry,
-            constants,
-            gpu.cache.clone(),
-            |_| {},
-        )?)
-    }
-
+    // TODO: inline
+    #[inline(never)]
     pub fn update_buffer_with_memory(&mut self, binding: ContextBinding, data: &ArrayDynF,
                                      checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
         self.update_buffer_with_memory_checked(binding, data, checksum, &mut false)
     }
-
+    #[inline(never)]
     pub fn update_buffer_with_memory_checked(&mut self, binding: ContextBinding, data: &ArrayDynF,
-                                     checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
-        let buffer = CpuAccessibleBuffer::from_iter(
-            &self.gpu.memory_alloc,
-            vulkano::buffer::BufferUsage {
-                transfer_src: true,
-                ..vulkano::buffer::BufferUsage::empty()
-            },
-            false,
-            data.iter().copied(),
-        )?;
-
+                                             checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
         let mut write = self.gpu.contexts.write().unwrap();
         let context = write.get_mut(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
-
-        let buffer_obj = &mut context.get_buffer_object_mut(binding)
+        let buffer_obj = context.get_buffer_object_mut(binding)
             .ok_or_else(|| anyhow::anyhow!("Binding {:?} not found", binding))?;
+
+        if data.len() as u64 != buffer_obj.length {
+            return Err(anyhow::anyhow!("Supplied data has wrong length"));
+        }
+
+        let buffer = Self::temp_create(buffer_obj, &self.gpu, data)?;
 
         let copy_info = match checksum {
             BufferChecksumMethod::None => {
@@ -218,6 +142,54 @@ impl ShaderRunner2 {
         Ok(self)
     }
 
+    #[inline(never)]
+    fn temp_create(buffer_obj: &mut ContextSharedBuffer, gpu: &GlobalGpu, data: &ArrayDynF)
+                   -> GenericResult<Arc<dyn vulkano::buffer::BufferAccess>> {
+        match buffer_obj.aux_buffer.as_ref() {
+            Some(buffer) => {
+                match data.as_slice() {
+                    Some(slice) => {
+                        // Copying from a slice is faster
+                        let mut write = buffer.write()?;
+                        write.copy_from_slice(slice);
+                    }
+                    None => {
+                        let mut write = buffer.write()?;
+                        std::iter::zip(write.iter_mut(), data.iter())
+                            .for_each(|(w, d)| *w = *d);
+                    }
+                }
+
+                Ok(buffer.clone())
+            }
+            None => {
+                let buffer = CpuAccessibleBuffer::from_iter(
+                    &gpu.memory_alloc,
+                    vulkano::buffer::BufferUsage {
+                        transfer_src: true,
+                        ..vulkano::buffer::BufferUsage::empty()
+                    },
+                    false,
+                    data.iter().copied(),
+                )?;
+
+                buffer_obj.aux_buffer = Some(buffer.clone());
+
+                Ok(buffer)
+            }
+        }
+        // CpuAccessibleBuffer::from_iter(
+        //     &self.gpu.memory_alloc,
+        //     vulkano::buffer::BufferUsage {
+        //         transfer_src: true,
+        //         ..vulkano::buffer::BufferUsage::empty()
+        //     },
+        //     false,
+        //     data.iter().copied(),
+        // )
+    }
+
+    #[inline(never)]
     pub fn update_buffer_with_buffer(&mut self, binding: ContextBinding, data: GpuBuffer) -> GenericResult<&mut Self> {
         let read = self.gpu.contexts.read().unwrap();
         let context = read.get(&self.context)
@@ -232,7 +204,7 @@ impl ShaderRunner2 {
         drop(read);
         Ok(self)
     }
-
+    #[inline(never)]
     pub fn update_buffer_with_binding(&mut self, src_binding: ContextBinding, dst_binding: ContextBinding) -> GenericResult<&mut Self> {
         let read = self.gpu.contexts.read().unwrap();
         let objects = read.get(&self.context)
@@ -240,15 +212,15 @@ impl ShaderRunner2 {
 
         self.builder.copy_buffer(CopyBufferInfo::buffers(
             objects.get_buffer(src_binding)
-                .ok_or_else(||anyhow::anyhow!("Source buffer does not exist"))?,
+                .ok_or_else(|| anyhow::anyhow!("Source buffer does not exist"))?,
             objects.get_buffer(dst_binding)
-                .ok_or_else(||anyhow::anyhow!("Destination buffer does not exist"))?,
+                .ok_or_else(|| anyhow::anyhow!("Destination buffer does not exist"))?,
         ))?;
 
         drop(read);
         Ok(self)
     }
-
+    #[inline(never)]
     pub fn update_buffer_with_stored_array(&mut self, binding: ContextBinding, data: &StoredArray,
                                            checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
         match data {
@@ -258,13 +230,13 @@ impl ShaderRunner2 {
         Ok(self)
     }
 
-    pub fn update_buffer_with_val(&mut self,binding: ContextBinding, value: f32) -> GenericResult<&mut Self> {
+    pub fn update_buffer_with_val(&mut self, binding: ContextBinding, value: f32) -> GenericResult<&mut Self> {
         let read = self.gpu.contexts.read().unwrap();
         let objects = read.get(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
 
         let mut info = FillBufferInfo::dst_buffer(objects.get_buffer(binding)
-            .ok_or_else(||anyhow::anyhow!("Destination buffer does not exist"))?);
+            .ok_or_else(|| anyhow::anyhow!("Destination buffer does not exist"))?);
         info.data = value.to_bits();
 
         self.builder.fill_buffer(info)?;
@@ -297,7 +269,7 @@ impl ShaderRunner2 {
     }
 
     pub fn finish(self) -> GenericResult<GpuBuffer> {
-        let Self {builder, gpu, context, ..} = self;
+        let Self { builder, gpu, context, .. } = self;
 
         let cmd = builder.build()?;
         gpu.exec_cmd(cmd)?.wait(None)?;

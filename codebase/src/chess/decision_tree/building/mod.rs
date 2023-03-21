@@ -200,15 +200,15 @@ impl DecisionTreesBuilder {
     }
 
     fn fill_requests(&self, requests: &mut RequestStorage, producer: &mut GamesProducer) -> Result<(), BuildingError> {
-        let mut parts_len: usize = requests.iter().map(|o| o.parts.len()).sum();
+        let mut parts_len: usize = requests.iter().map(|o| o.count_pending()).sum();
 
-        while parts_len < self.options.batch_size {
+        while parts_len < self.options.batch_size + 10 {
             match producer.next_checked()? {
                 Some(new) => {
                     parts_len += new.parts.len();
                     requests.push(new);
                 }
-                None => break
+                None => break,
             }
         }
 

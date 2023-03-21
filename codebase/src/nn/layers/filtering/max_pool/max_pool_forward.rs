@@ -71,7 +71,8 @@ fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &Max
 
     let mut runner = ShaderRunner2::new(id, gpu.clone())?;
 
-    runner.update_buffer_with_buffer(ContextBinding(1), inputs)?
+    runner
+        .update_buffer_with_buffer(ContextBinding(1), inputs)?
         .dispatch("forward", [out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
                   shaders::max_pool_forward::BLOCK_SIZE)?;
 

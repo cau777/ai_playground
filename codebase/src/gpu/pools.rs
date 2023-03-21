@@ -4,7 +4,8 @@ use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
 
 pub struct Pools {
     pub gpu_only_pool: CpuBufferPool<f32>,
-    // pub download_pool: CpuBufferPool<f32>,
+    pub download_pool: CpuBufferPool<f32>,
+    pub upload_pool: CpuBufferPool<f32>,
 }
 
 impl Pools {
@@ -14,12 +15,17 @@ impl Pools {
                 storage_buffer: true,
                 transfer_dst: true,
                 ..BufferUsage::empty()
-            }, MemoryUsage::Upload), // Gpu-Only would be more appropriate, but it's not implemented yet
-            // download_pool: CpuBufferPool::new(memory_alloc, BufferUsage {
-            //     storage_buffer: true,
-            //     transfer_src: true,
-            //     ..BufferUsage::empty()
-            // }, MemoryUsage::Download),
+            }, MemoryUsage::Download),
+            download_pool: CpuBufferPool::new(memory_alloc.clone(), BufferUsage {
+                //storage_buffer: true,
+                transfer_dst: true,
+                ..BufferUsage::empty()
+            }, MemoryUsage::Download),
+            upload_pool: CpuBufferPool::new(memory_alloc.clone(), BufferUsage {
+                //storage_buffer: true,
+                transfer_src: true,
+                ..BufferUsage::empty()
+            }, MemoryUsage::Upload),
         }
     }
 }
