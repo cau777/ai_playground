@@ -1,10 +1,26 @@
 use ndarray::{Axis, stack};
 use crate::ArrayDynF;
+use crate::gpu::buffers::upload_array_to_gpu;
+use crate::gpu::gpu_data::GlobalGpu;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::controller::NNController;
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::{forward_layer, ForwardData, GenericStorage};
+use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::GenericResult;
+
+fn prepare_inputs(inputs: ArrayDynF, gpu: Option<GlobalGpu>) -> GenericResult<StoredArray> {
+    Ok(match gpu {
+        Some(gpu) => {
+            StoredArray::GpuLocal {
+                shape: inputs.shape().to_vec(),
+                data: upload_array_to_gpu(&inputs, &gpu)?,
+                gpu,
+            }
+        }
+        None => inputs.into()
+    })
+}
 
 impl NNController {
     /// The same as eval_batch except without the "batch" dimension in the input and the output
@@ -20,10 +36,10 @@ impl NNController {
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
 
-        Ok(forward_layer(
+        forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs: inputs.into(),
+                inputs: prepare_inputs(inputs, gpu.clone())?,
                 assigner: &mut assigner,
                 storage: &self.storage,
                 forward_cache: None,
@@ -31,11 +47,11 @@ impl NNController {
                 prev_iteration_cache: None,
                 gpu,
             },
-        )?.into_memory()?)
+        )?.into_memory()
     }
 
     pub fn eval_with_cache(&self, inputs: ArrayDynF, prev_iteration_cache: Option<GenericStorage>)
-        -> GenericResult<(ArrayDynF, GenericStorage)> {
+                           -> GenericResult<(ArrayDynF, GenericStorage)> {
         let mut assigner = KeyAssigner::new();
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
@@ -44,7 +60,7 @@ impl NNController {
         let result = forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs: inputs.into(),
+                inputs: prepare_inputs(inputs, gpu.clone())?,
                 assigner: &mut assigner,
                 storage: &self.storage,
                 forward_cache: None,

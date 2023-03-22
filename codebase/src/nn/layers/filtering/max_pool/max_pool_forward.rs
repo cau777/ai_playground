@@ -1,10 +1,9 @@
 use ndarray::s;
 use crate::{Array4F};
-use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
 use crate::gpu::shader_runner_2::{ShaderRunner2};
-use crate::gpu::shaders;
+use crate::gpu::{BufferChecksumMethod, shaders};
 use crate::nn::layers::filtering::max_pool::{gen_name, MaxPoolConfig};
 use crate::nn::layers::filtering::pad4d;
 use crate::nn::layers::nn_layers::{ForwardData, LayerResult};
@@ -13,20 +12,24 @@ use crate::utils::shape_length;
 use crate::utils::{GenericResult, get_dims_after_filter_4};
 
 pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
-    let ForwardData { inputs, forward_cache, assigner, .. } = data;
+    let ForwardData { inputs, forward_cache, assigner, gpu, .. } = data;
 
     let key = assigner.get_key(gen_name());
     if let Some(forward_cache) = forward_cache {
         forward_cache.insert(key.clone(), vec![inputs.to_memory()?.into_dyn()]);
     }
 
-    let result = match inputs {
-        StoredArray::Memory { data } => {
-            forward_cpu(data.into_dimensionality()?, layer_config.size, layer_config.stride, layer_config.padding)
+    let result = if matches!(inputs, StoredArray::GpuLocal {..}) {
+        match forward_gpu(key, &inputs, gpu.unwrap(), layer_config) {
+            Ok(v) => v,
+            Err(_e) => {
+                #[cfg(debug_assertions)]
+                println!("{:?}", _e);
+                forward_cpu(inputs.into_memory()?.into_dimensionality()?, layer_config.size, layer_config.stride, layer_config.padding)
+            }
         }
-        StoredArray::GpuLocal { data, gpu, shape } => {
-            forward_gpu(key, data, gpu, layer_config, shape)?
-        }
+    } else {
+        forward_cpu(inputs.into_memory()?.into_dimensionality()?, layer_config.size, layer_config.stride, layer_config.padding)
     };
 
     Ok(result)
@@ -44,12 +47,13 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
     }).into_dyn().into()
 }
 
-fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &MaxPoolConfig, in_shape: Vec<usize>) -> GenericResult<StoredArray> {
+fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu, layer_config: &MaxPoolConfig) -> GenericResult<StoredArray> {
+    let in_shape = inputs.shape();
     let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
     let buffers_lengths = [
         shape_length(&out_shape) as u64,
-        shape_length(&in_shape) as u64,
+        shape_length(in_shape) as u64,
     ];
 
     ShaderContext::register(&id, gpu.clone(), &buffers_lengths, |mut b| {
@@ -72,7 +76,7 @@ fn forward_gpu(id: String, inputs: GpuBuffer, gpu: GlobalGpu, layer_config: &Max
     let mut runner = ShaderRunner2::new(id, gpu.clone())?;
 
     runner
-        .update_buffer_with_buffer(ContextBinding(1), inputs)?
+        .update_buffer_with_stored_array(ContextBinding(1), inputs, BufferChecksumMethod::None)?
         .dispatch("forward", [out_shape[0] * out_shape[1], out_shape[2], out_shape[3]].map(|o| o as u32),
                   shaders::max_pool_forward::BLOCK_SIZE)?;
 
@@ -152,8 +156,12 @@ mod tests {
 
         let cpu_out = forward_cpu(inputs.clone(), config.size, config.stride, config.padding)
             .into_memory().unwrap();
-        let gpu_out = forward_gpu("".to_owned(), upload_array_to_gpu(&inputs.into_dyn(), &gpu).unwrap(), gpu, &config, shape)
-            .unwrap().into_memory().unwrap();
+        let gpu_out = forward_gpu(
+            "".to_owned(),
+            &StoredArray::GpuLocal { data: upload_array_to_gpu(&inputs.into_dyn(), &gpu).unwrap(), gpu: gpu.clone(), shape },
+            gpu,
+            &config
+        ).unwrap().into_memory().unwrap();
 
         assert_eq!(cpu_out.shape(), gpu_out.shape());
         println!("{:?}\n----------\n{:?}", cpu_out, gpu_out);

@@ -1,9 +1,8 @@
 use crate::ArrayDynF;
-use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
 use crate::gpu::shader_runner_2::{ShaderRunner2};
-use crate::gpu::shaders;
+use crate::gpu::{BufferChecksumMethod, shaders};
 use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::*;
 use crate::nn::layers::stored_array::StoredArray;
@@ -20,20 +19,22 @@ impl LayerOps<()> for ReluLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult { Ok(()) }
 
     fn forward(data: ForwardData, _: &()) -> LayerResult {
-        let ForwardData { inputs, assigner, .. } = data;
+        let ForwardData { inputs, assigner, gpu, .. } = data;
         let key = assigner.get_key(gen_name());
 
         // Only use the GPU if the data is already there
-        Ok(match inputs {
-            StoredArray::Memory { data } => StoredArray::Memory {
-                data: forward_cpu(data)
-            },
-            StoredArray::GpuLocal { data, gpu, shape } => StoredArray::GpuLocal {
-                data: forward_gpu(key, data, &gpu, &shape)?,
-                gpu,
-                shape,
+        if matches!(inputs, StoredArray::GpuLocal {..}) {
+            match forward_gpu(key, &inputs, gpu.unwrap()) {
+                Ok(v) => Ok(v),
+                Err(e) => {
+                    #[cfg(debug_assertions)]
+                    eprintln!("{:?}", e);
+                    Ok(forward_cpu(inputs.into_memory()?))
+                }
             }
-        })
+        } else {
+            Ok(forward_cpu(inputs.into_memory()?))
+        }
     }
 
     fn backward(data: BackwardData, _: &()) -> LayerResult {
@@ -47,12 +48,14 @@ impl LayerOps<()> for ReluLayer {
     }
 }
 
-fn forward_cpu(inputs: ArrayDynF) -> ArrayDynF {
-    inputs.mapv_into(|o| if o > 0.0 { o } else { 0.0 })
+fn forward_cpu(inputs: ArrayDynF) -> StoredArray {
+    inputs.mapv_into(|o| if o > 0.0 { o } else { 0.0 }).into()
 }
 
-fn forward_gpu(id: String, inputs: GpuBuffer, gpu: &GlobalGpu, shape: &[usize]) -> GenericResult<GpuBuffer> {
-    ShaderContext::register(&id, gpu.clone(), &[shape_length(shape) as u64], |mut b| {
+fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu) -> GenericResult<StoredArray> {
+    let shape= inputs.shape().to_vec();
+
+    ShaderContext::register(&id, gpu.clone(), &[shape_length(&shape) as u64], |mut b| {
         b.register_shader("forward", shaders::relu_forward::load, vec![
             (ContextBinding(0), ShaderBinding(0)),
         ], &shaders::relu_forward::SpecializationConstants {})?;
@@ -62,13 +65,14 @@ fn forward_gpu(id: String, inputs: GpuBuffer, gpu: &GlobalGpu, shape: &[usize]) 
     let mut runner = ShaderRunner2::new(id, gpu.clone())?;
 
     runner
-        .update_buffer_with_buffer(ContextBinding(0), inputs)?
-        .dispatch("forward", [shape_length(shape) as u32, 1, 1], shaders::relu_forward::BLOCK_SIZE)?;
-    runner.finish()
+        .update_buffer_with_stored_array(ContextBinding(0), inputs, BufferChecksumMethod::None)?
+        .dispatch("forward", [shape_length(&shape) as u32, 1, 1], shaders::relu_forward::BLOCK_SIZE)?;
+    Ok(StoredArray::GpuLocal { data: runner.finish()?, gpu, shape })
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::gpu::buffers::upload_array_to_gpu;
     use crate::gpu::gpu_data::GpuData;
     use crate::utils::{Array3F, arrays_almost_equal};
     use super::*;
@@ -81,11 +85,11 @@ mod tests {
                                                      vec![1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0]).unwrap().into_dyn();
 
         let gpu = GpuData::new_global().unwrap();
-        let inputs = StoredArray::Memory { data: inputs }.into_gpu_local(gpu.clone()).unwrap();
+        let inputs = StoredArray::GpuLocal {data:  upload_array_to_gpu(&inputs, &gpu).unwrap(), shape: inputs.shape().to_vec(), gpu: gpu.clone()};
 
 
-        let output = forward_gpu("".to_owned(), inputs, &gpu, &[2, 2, 2]).unwrap();
-        let output = StoredArray::GpuLocal { gpu, data: output, shape: vec![2, 2, 2] }.into_memory().unwrap();
+        let output = forward_gpu("".to_owned(), &inputs, gpu)
+            .unwrap().into_memory().unwrap();
 
         assert!(arrays_almost_equal(&output, &expected_array));
     }

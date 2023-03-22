@@ -10,7 +10,7 @@ use crate::nn::layers::filtering::convolution::{ConvolutionConfig, gen_name};
 use crate::nn::layers::filtering::{find_useful_from_prev, pad4d};
 use crate::nn::layers::nn_layers::{ForwardData, LayerResult};
 use crate::nn::layers::stored_array::StoredArray;
-use crate::utils::{Array1F, shape_length};
+use crate::utils::{shape_length};
 use crate::utils::{Array3F, GenericResult, get_dims_after_filter_4};
 
 // TODO: avoid clones
@@ -80,7 +80,6 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
 
 #[inline(never)]
 pub fn cpu_forward(inputs: StoredArray, kernel: ArrayDynF, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
-    println!("cpu_forward");
     let kernel = kernel.into_dimensionality()?;
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
     let inputs = inputs.into_memory()?.into_dimensionality()?;
@@ -148,59 +147,6 @@ pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_resul
 }
 
 #[inline(never)]
-pub fn gpu_forward(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
-    let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
-
-    let ish = inputs.shape();
-    let padded_ish = [ish[0], ish[1], ish[2] + 2 * layer_config.padding, ish[3] + 2 * layer_config.padding];
-    let [batch_size, _, new_height, new_width] = get_dims_after_filter_4(&padded_ish, *kernel_size, *stride);
-    let osh = [batch_size, layer_config.out_channels, new_height, new_width];
-    let buffer_lengths = [
-        shape_length(&osh),
-        kernel.len(),
-        inputs.len(),
-        inputs.len(),
-        ish[0] * ish[2] * ish[3],
-        osh[0] * osh[2] * osh[3]
-    ].map(|o| o as u64);
-
-    ShaderContext::register(&id, gpu.clone(), &buffer_lengths, |mut b| {
-        let constants = shaders::convolution_forward::forward::SpecializationConstants {
-            in_channels: layer_config.in_channels as u32,
-            out_channels: layer_config.out_channels as u32,
-            kernel_size: layer_config.kernel_size as u32,
-            stride: layer_config.stride as u32,
-            out_height: osh[2] as u32,
-            out_width: osh[3] as u32,
-            input_height: ish[2] as u32,
-            input_width: ish[3] as u32,
-            padding: layer_config.padding as u32,
-        };
-
-        b.register_shader("forward", shaders::convolution_forward::forward::load, vec![
-            (ContextBinding(0), ShaderBinding(0)),
-            (ContextBinding(1), ShaderBinding(1)),
-            (ContextBinding(2), ShaderBinding(2)),
-            (ContextBinding(3), ShaderBinding(3)),
-        ], &constants)?;
-        Ok(b)
-    })?;
-
-
-    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
-
-    runner.update_buffer_with_memory(ContextBinding(1), kernel, BufferChecksumMethod::Single)?
-        .update_buffer_with_stored_array(ContextBinding(2), &inputs, BufferChecksumMethod::Split)?
-        .update_buffer_with_val(ContextBinding(3), f32::from_bits(1))?
-        .dispatch("forward", [osh[0] * osh[1], osh[2], osh[3]].map(|o| o as u32),
-                  shaders::convolution_forward::forward::BLOCK_SIZE)?;
-
-    let result = runner.finish()?;
-
-    Ok(StoredArray::GpuLocal { gpu, shape: osh.to_vec(), data: result })
-}
-
-#[inline(never)]
 pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: GlobalGpu,
                               layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
@@ -252,7 +198,7 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
         Ok(b)
     })?;
 
-    let mut runner = ShaderRunner2::new(id.to_owned(), gpu.clone())?;
+    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
     let mut changed = false;
     runner.update_buffer_with_memory_checked(ContextBinding(1), kernel, BufferChecksumMethod::Single, &mut changed)?;
 
@@ -268,22 +214,6 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
     ;
 
     let result = runner.finish()?;
-
-
-    // TODO: remove
-    /*{
-        let read = gpu.contexts.read().unwrap();
-        let context = &read[&id];
-        print!("-------------------------------------");
-        context.print_buffer(ContextBinding(0), gpu.clone());
-        // context.print_buffer(ContextBinding(1), gpu.clone());
-        // context.print_buffer(ContextBinding(2), gpu.clone());
-        // context.print_buffer(ContextBinding(3), gpu.clone());
-        context.print_buffer(ContextBinding(4), gpu.clone());
-        context.print_buffer(ContextBinding(5), gpu.clone());
-        print!("-------------------------------------");
-    }*/
-
     Ok(StoredArray::GpuLocal { gpu, shape: osh.to_vec(), data: result })
 }
 
@@ -306,6 +236,7 @@ fn apply_conv_filter(kernel: &Array4F, stride: &usize, kernel_size: &usize, inpu
 
 #[cfg(test)]
 mod tests {
+    use ndarray_rand::rand::{Rng, thread_rng};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
     use crate::gpu::gpu_data::GpuData;
@@ -323,7 +254,7 @@ mod tests {
     // TODO: remove
     #[test]
     fn test_debug() {
-        let rand = ndarray_rand::rand_distr::Normal::new(0.0, 1.0).unwrap();
+        let rand = Normal::new(0.0, 1.0).unwrap();
         let inputs = Array4F::random((4, 2, 2, 2), rand);
         let kernel = Array4F::random((4, 2, 2, 2), rand);
 
@@ -344,7 +275,7 @@ mod tests {
         let gpu = Some(GpuData::new_global().unwrap());
 
         for _ in 0..3 {
-            let result = forward(
+            let _result = forward(
                 ForwardData {
                     inputs: inputs.clone().into_dyn().into(),
                     forward_cache: None,
@@ -460,13 +391,29 @@ mod tests {
         };
 
         let dist = Normal::new(0.0, 1.0).unwrap();
-        let inputs = Array4F::random((8, config.in_channels, 5, 5), &dist);
-        let kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist).into_dyn();
-        let expected = cpu_forward(StoredArray::Memory { data: inputs.clone().into_dyn() }, kernels.clone(), &config).unwrap().into_memory().unwrap();
-        let actual = gpu_forward("".to_owned(), StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
-            .unwrap().into_memory().unwrap();
+        let inputs = Array4F::random((8, config.in_channels, 8, 8), &dist);
+        let mut kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist).into_dyn();
 
-        println!("{:?}\n\n------\n\n{:?}", expected, actual);
-        assert!(arrays_almost_equal(&expected, &actual));
+
+        for x in 0..10 {
+            if x == 5 {
+                kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist).into_dyn();
+            }
+            let mut inputs = inputs.clone();
+            if x % 3 == 0 {
+                let mut rng = thread_rng();
+                inputs.iter_mut().for_each(|o| {
+                    if rng.gen_bool(0.1) {
+                        *o *= rng.gen_range(0.0..2.0);
+                    }
+                });
+            }
+
+            let expected = cpu_forward(StoredArray::Memory { data: inputs.clone().into_dyn() }, kernels.clone(), &config).unwrap().into_memory().unwrap();
+            let actual = gpu_forward_with_cache("".to_owned(), StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
+                .unwrap().into_memory().unwrap();
+
+            assert!(arrays_almost_equal(&expected, &actual));
+        }
     }
 }

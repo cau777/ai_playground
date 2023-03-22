@@ -1,15 +1,10 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, BufferCopy, CommandBufferUsage, CopyBufferInfo, FillBufferInfo, PrimaryAutoCommandBuffer};
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
-use vulkano::device::Device;
-use vulkano::pipeline::{ComputePipeline, Pipeline};
-use vulkano::shader::{ShaderCreationError, ShaderModule, SpecializationConstants};
+use vulkano::pipeline::{Pipeline};
 use crate::ArrayDynF;
 use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::pipeline_objects::{BufferObject, PipelineObjects};
 use crate::gpu::shader_context::{ContextBinding, ContextSharedBuffer, ShaderContextKey};
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::GenericResult;
@@ -21,7 +16,6 @@ pub struct ShaderRunner2 {
 }
 
 type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
-type LoadModuleResult = Result<Arc<ShaderModule>, ShaderCreationError>;
 
 impl ShaderRunner2 {
     pub fn new(context_key: ShaderContextKey, gpu: GlobalGpu) -> GenericResult<Self> {
@@ -44,9 +38,12 @@ impl ShaderRunner2 {
                                      checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
         self.update_buffer_with_memory_checked(binding, data, checksum, &mut false)
     }
+
     #[inline(never)]
     pub fn update_buffer_with_memory_checked(&mut self, binding: ContextBinding, data: &ArrayDynF,
                                              checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
+        const ELEMENT_SIZE: u64 = std::mem::size_of::<f32>() as u64;
+
         let mut write = self.gpu.contexts.write().unwrap();
         let context = write.get_mut(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
@@ -102,9 +99,9 @@ impl ShaderRunner2 {
                                 if prev != new {
                                     let offset = chunk_size * index;
                                     let copy = BufferCopy {
-                                        src_offset: offset as u64,
-                                        dst_offset: offset as u64,
-                                        size: u64::min(buffer_obj.length - offset as u64, chunk_size as u64),
+                                        src_offset: offset as u64 * ELEMENT_SIZE,
+                                        dst_offset: offset as u64 * ELEMENT_SIZE,
+                                        size: u64::min(buffer_obj.length - offset as u64, chunk_size as u64) * ELEMENT_SIZE,
                                         ..BufferCopy::default()
                                     };
                                     info.regions.push(copy);
@@ -178,15 +175,6 @@ impl ShaderRunner2 {
                 Ok(buffer)
             }
         }
-        // CpuAccessibleBuffer::from_iter(
-        //     &self.gpu.memory_alloc,
-        //     vulkano::buffer::BufferUsage {
-        //         transfer_src: true,
-        //         ..vulkano::buffer::BufferUsage::empty()
-        //     },
-        //     false,
-        //     data.iter().copied(),
-        // )
     }
 
     #[inline(never)]
@@ -195,15 +183,35 @@ impl ShaderRunner2 {
         let context = read.get(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
 
-        let dst_buffer = context.get_buffer(binding)
+        let dst_buffer = context.get_buffer_object(binding)
             .ok_or_else(|| anyhow::anyhow!("Binding {:?} was not found", binding))?;
 
-        self.builder
-            .copy_buffer(CopyBufferInfo::buffers(data, dst_buffer))?;
+        self.builder.copy_buffer(CopyBufferInfo::buffers(data, dst_buffer.buffer.clone()))?;
 
         drop(read);
         Ok(self)
     }
+
+    #[inline(never)]
+    pub fn update_buffer_with_buffer_custom(&mut self, binding: ContextBinding, data: GpuBuffer,
+                                            copies: Vec<BufferCopy>) -> GenericResult<&mut Self> {
+        let read = self.gpu.contexts.read().unwrap();
+        let context = read.get(&self.context)
+            .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
+
+        let dst_buffer = context.get_buffer_object(binding)
+            .ok_or_else(|| anyhow::anyhow!("Binding {:?} was not found", binding))?;
+
+        let mut copy_info = CopyBufferInfo::buffers(data, dst_buffer.buffer.clone());
+        copy_info.regions.clear();
+        copy_info.regions.extend(copies.into_iter());
+
+        self.builder.copy_buffer(copy_info)?;
+
+        drop(read);
+        Ok(self)
+    }
+
     #[inline(never)]
     pub fn update_buffer_with_binding(&mut self, src_binding: ContextBinding, dst_binding: ContextBinding) -> GenericResult<&mut Self> {
         let read = self.gpu.contexts.read().unwrap();

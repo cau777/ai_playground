@@ -1,21 +1,14 @@
 use std::time::Duration;
-use codebase::nn::batch_config::BatchConfig;
-use codebase::nn::key_assigner::KeyAssigner;
 use codebase::nn::layers::*;
 use codebase::nn::layers::nn_layers::*;
 use codebase::nn::lr_calculators::constant_lr::ConstantLrConfig;
 use codebase::nn::lr_calculators::lr_calculator::LrCalc;
-use codebase::utils::*;
-use ndarray_rand::rand_distr::Normal;
-use ndarray_rand::RandomExt;
 use codebase::chess::decision_tree::{building, DecisionTree};
-
 use criterion::*;
 use codebase::chess::board_controller::BoardController;
 use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::nn::controller::NNController;
-use codebase::nn::layers::debug_layer::{DebugLayerConfig};
 use codebase::nn::layers::filtering::convolution;
 use codebase::nn::loss::loss_func::LossFunc;
 
@@ -98,7 +91,6 @@ fn criterion_benchmark(c: &mut Criterion) {
             let (_tree2, _) = builder.build(&controller);
         }));
     }
-
 
     group.finish();
 }
