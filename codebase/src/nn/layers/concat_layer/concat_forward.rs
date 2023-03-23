@@ -1,7 +1,8 @@
 use ndarray::{Axis, concatenate};
+use vulkano::buffer::BufferAccess;
 use vulkano::command_buffer::BufferCopy;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_context::{ContextBinding, ShaderContext};
+use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderContext};
 use crate::gpu::shader_runner_2::ShaderRunner2;
 use crate::nn::layers::concat_layer::{ConcatConfig, gen_name};
 use crate::nn::layers::nn_layers::*;
@@ -74,17 +75,24 @@ pub fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
 
 fn forward_gpu(results: Vec<StoredArray>, sections: &[usize], gpu: GlobalGpu, key: String, concat_dim: usize) -> GenericResult<StoredArray> {
     const ELEMENT_SIZE: u64 = std::mem::size_of::<f32>() as u64;
+
     let mut osh = results[0].shape().to_vec();
     osh[concat_dim] = sections.iter().copied().sum();
     let copy_count = shape_length(&osh[..concat_dim]) as u64;
     let total_copy_size = shape_length(&osh[concat_dim..]) as u64 * ELEMENT_SIZE;
 
-    ShaderContext::register(&key, gpu.clone(), &[shape_length(&osh) as u64], Ok)?;
+    ShaderContext::register(&key, gpu.clone(), &[
+        BufferConfig::floats(shape_length(&osh) as u64)
+    ], Ok)?;
     let mut runner = ShaderRunner2::new(key, gpu.clone())?;
     let mut small_offset = 0;
 
     for r in results {
         if let StoredArray::GpuLocal { data, shape, .. } = r {
+            if data.size() % ELEMENT_SIZE != 0 {
+                return Err(anyhow::anyhow!("Buffer size is not a multiple of {}. This probably means that the buffer type is not f32", ELEMENT_SIZE));
+            }
+
             let copy_size = shape_length(&shape[concat_dim..]) as u64 * ELEMENT_SIZE;
 
             let mut copies = Vec::new();

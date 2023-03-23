@@ -2,11 +2,11 @@
 layout(local_size_x = 8, local_size_y = 2, local_size_z = 2) in;
 
 layout(set = 0, binding = 0) buffer ResultData {
-    float data[];
+    bool data[];
 } result;
 
 layout(set = 0, binding = 1) buffer InputData {
-    float data[];
+    bool data[];
 } inputs;
 
 layout(constant_id = 0) const uint in_channels = 0;
@@ -26,11 +26,10 @@ void main() {
     const uint b = gl_GlobalInvocationID.x;
     const uint h = gl_GlobalInvocationID.y;
     const uint w = gl_GlobalInvocationID.z;
-    const float flag = uintBitsToFloat(1);
 
     const uint h_offset = h * stride;
     const uint w_offset = w * stride;
-    float new_value = 0x0;
+    bool new_value = false;
 
     for (uint kh = 0; kh < kernel_size; kh++) {
         for (uint kw = 0; kw < kernel_size; kw++) {
@@ -38,11 +37,11 @@ void main() {
             const uint input_w = w_offset + kw - padding;
 
             const bool in_bounds = (input_h < input_height) && (input_w < input_width);
-            const uint invalid = uint(in_bounds) & floatBitsToUint(inputs.data[b*input_height*input_width + input_h*input_width + input_w]);
+            const bool invalid = in_bounds && inputs.data[b*input_height*input_width + input_h*input_width + input_w];
 
 //            new_value = float(floatBitsToUint(inputs.data[b*input_height*input_width + input_h*input_width + input_w]));
-            if (invalid == 0x1) {
-                new_value = flag;
+            if (invalid) {
+                new_value = true;
                 break;
             }
         }

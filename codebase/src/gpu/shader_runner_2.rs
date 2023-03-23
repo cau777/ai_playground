@@ -1,8 +1,9 @@
 use std::sync::Arc;
-use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer};
+use vulkano::buffer::{CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, BufferCopy, CommandBufferUsage, CopyBufferInfo, FillBufferInfo, PrimaryAutoCommandBuffer};
 use vulkano::pipeline::{Pipeline};
 use crate::ArrayDynF;
+use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_context::{ContextBinding, ContextSharedBuffer, ShaderContextKey};
@@ -14,8 +15,6 @@ pub struct ShaderRunner2 {
     gpu: GlobalGpu,
     builder: AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
 }
-
-type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
 
 impl ShaderRunner2 {
     pub fn new(context_key: ShaderContextKey, gpu: GlobalGpu) -> GenericResult<Self> {
@@ -42,13 +41,12 @@ impl ShaderRunner2 {
     #[inline(never)]
     pub fn update_buffer_with_memory_checked(&mut self, binding: ContextBinding, data: &ArrayDynF,
                                              checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
-        const ELEMENT_SIZE: u64 = std::mem::size_of::<f32>() as u64;
-
         let mut write = self.gpu.contexts.write().unwrap();
         let context = write.get_mut(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
         let buffer_obj = context.get_buffer_object_mut(binding)
             .ok_or_else(|| anyhow::anyhow!("Binding {:?} not found", binding))?;
+        let element_size = buffer_obj.element_size;
 
         if data.len() as u64 != buffer_obj.length {
             return Err(anyhow::anyhow!("Supplied data has wrong length"));
@@ -99,9 +97,9 @@ impl ShaderRunner2 {
                                 if prev != new {
                                     let offset = chunk_size * index;
                                     let copy = BufferCopy {
-                                        src_offset: offset as u64 * ELEMENT_SIZE,
-                                        dst_offset: offset as u64 * ELEMENT_SIZE,
-                                        size: u64::min(buffer_obj.length - offset as u64, chunk_size as u64) * ELEMENT_SIZE,
+                                        src_offset: offset as u64 * element_size,
+                                        dst_offset: offset as u64 * element_size,
+                                        size: u64::min(buffer_obj.length - offset as u64, chunk_size as u64) * element_size,
                                         ..BufferCopy::default()
                                     };
                                     info.regions.push(copy);

@@ -4,7 +4,7 @@ use crate::{Array4F, ArrayDynF};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_runner_2::{ShaderRunner2};
 use crate::gpu::{BufferChecksumMethod, shaders};
-use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
+use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderBinding, ShaderContext};
 use crate::nn::generic_storage::clone_from_storage1;
 use crate::nn::layers::filtering::convolution::{ConvolutionConfig, gen_name};
 use crate::nn::layers::filtering::{find_useful_from_prev, pad4d};
@@ -13,18 +13,11 @@ use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::{shape_length};
 use crate::utils::{Array3F, GenericResult, get_dims_after_filter_4};
 
-// TODO: avoid clones
 // TODO: inline
 pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
     let key = assigner.get_key(gen_name(layer_config));
 
-    let cache_enabled = layer_config.cache && matches!(prev_iteration_cache, Some(_));
-    let inputs_to_cache = if cache_enabled {
-        Some(inputs.to_memory()?)
-    } else {
-        None
-    };
 
     if let Some(forward_cache) = forward_cache {
         forward_cache.insert(key.clone(), vec![inputs.to_memory()?]);
@@ -32,48 +25,48 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
 
     let [kernel] = clone_from_storage1(storage, &key);
 
-    let prev_values: Option<[ArrayDynF; 2]> = if layer_config.cache {
-        prev_iteration_cache.as_mut()
-            .and_then(|o| o.remove(&key))
-            .map(|o| o.try_into().unwrap())
-    } else {
-        None
-    };
-
-    let result = match prev_values {
-        Some([prev_inputs, prev_result]) => {
-            cpu_forward_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
-            // match data.gpu {
-            //     Some(gpu) => match gpu_forward_with_cache(key.clone(), inputs.clone(),
-            //                                               &kernel, gpu, layer_config) {
-            //         Ok(v) => v,
-            //         Err(e) => {
-            //             eprintln!("{:?}", e);
-            //             cpu_forward_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
-            //         }
-            //     }
-            //     None => cpu_forward_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
-            // }
-        }
-        None => {
-            match data.gpu {
-                Some(gpu) => match gpu_forward_with_cache(key.clone(), inputs.clone(), &kernel, gpu, layer_config) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        #[cfg(debug_assertions)]
-                        eprintln!("{:?}", e);
-                        cpu_forward(inputs, kernel, layer_config)?
-                    }
-                }
-                None => cpu_forward(inputs, kernel, layer_config)?
+    let result = match data.gpu {
+        Some(gpu) => match gpu_forward_with_cache(key, inputs.clone(), &kernel, gpu, layer_config) {
+            Ok(v) => v,
+            Err(e) => {
+                #[cfg(debug_assertions)]
+                eprintln!("{:?}", e);
+                cpu_forward(inputs, kernel, layer_config)?
             }
         }
-    };
+        None => {
+            let cache_enabled = layer_config.cache && prev_iteration_cache.is_some();
+            let inputs_to_cache = if cache_enabled {
+                Some(inputs.to_memory()?)
+            } else {
+                None
+            };
 
-    if cache_enabled {
-        prev_iteration_cache.unwrap()
-            .insert(key, vec![inputs_to_cache.unwrap(), result.to_memory()?]);
-    }
+            let prev_values: Option<[ArrayDynF; 2]> = if cache_enabled {
+                prev_iteration_cache.as_mut()
+                    .and_then(|o| o.remove(&key))
+                    .and_then(|o| o.try_into().ok())
+            } else {
+                None
+            };
+
+            let result = match prev_values {
+                Some([prev_inputs, prev_result]) => {
+                    cpu_forward_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
+                }
+                None => {
+                    cpu_forward(inputs, kernel, layer_config)?
+                }
+            };
+
+            if let Some(inputs_to_cache) = inputs_to_cache {
+                prev_iteration_cache.unwrap()
+                    .insert(key, vec![inputs_to_cache, result.to_memory()?]);
+            }
+
+            result
+        }
+    };
 
     Ok(result)
 }
@@ -157,13 +150,13 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
     let osh = [batch_size, layer_config.out_channels, new_height, new_width];
 
     let buffer_lengths = [
-        shape_length(&osh),
-        kernel.len(),
-        inputs.len(),
-        inputs.len(),
-        ish[0] * ish[2] * ish[3],
-        osh[0] * osh[2] * osh[3]
-    ].map(|o| o as u64);
+        BufferConfig::floats(shape_length(&osh)),
+        BufferConfig::floats(kernel.len()),
+        BufferConfig::floats(inputs.len()),
+        BufferConfig::bools(inputs.len()),
+        BufferConfig::bools(ish[0] * ish[2] * ish[3]),
+        BufferConfig::bools(osh[0] * osh[2] * osh[3]),
+    ];
 
     ShaderContext::register(&id, gpu.clone(), &buffer_lengths, |mut b| {
         let constants = shaders::convolution_forward::forward::SpecializationConstants {
@@ -176,6 +169,7 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
             input_height: ish[2] as u32,
             input_width: ish[3] as u32,
             padding: layer_config.padding as u32,
+            cache_enabled: layer_config.cache as u32,
         };
 
         b.register_shader("forward", shaders::convolution_forward::forward::load, vec![
@@ -206,12 +200,19 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
         runner.update_buffer_with_val(ContextBinding(3), 0.0)?;
     }
 
-    runner.update_buffer_with_stored_array(ContextBinding(2), &inputs, BufferChecksumMethod::Split)?
-        .dispatch("validate_cache_1", [ish[0], ish[2], ish[3]].map(|o| o as u32), shaders::convolution_forward::validate_cache_1::BLOCK_SIZE)?
-        .dispatch("validate_cache_2", [osh[0], osh[2], osh[3]].map(|o| o as u32), shaders::convolution_forward::validate_cache_2::BLOCK_SIZE)?
+    runner.update_buffer_with_stored_array(ContextBinding(2), &inputs, BufferChecksumMethod::Split)?;
+
+    if layer_config.cache {
+        runner.dispatch("validate_cache_1", [ish[0], ish[2], ish[3]].map(|o| o as u32), shaders::convolution_forward::validate_cache_1::BLOCK_SIZE)?
+            .dispatch("validate_cache_2", [osh[0], osh[2], osh[3]].map(|o| o as u32), shaders::convolution_forward::validate_cache_2::BLOCK_SIZE)?;
+    }
+
+    runner
         .dispatch("forward", [osh[0] * osh[1], osh[2], osh[3]].map(|o| o as u32), shaders::convolution_forward::forward::BLOCK_SIZE)?
-        .update_buffer_with_binding(ContextBinding(2), ContextBinding(3))?
     ;
+    if layer_config.cache {
+        runner.update_buffer_with_binding(ContextBinding(2), ContextBinding(3))?;
+    }
 
     let result = runner.finish()?;
     Ok(StoredArray::GpuLocal { gpu, shape: osh.to_vec(), data: result })
@@ -413,6 +414,7 @@ mod tests {
             let actual = gpu_forward_with_cache("".to_owned(), StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
                 .unwrap().into_memory().unwrap();
 
+            println!("{:?}\n---------------\n{:?}", actual, expected);
             assert!(arrays_almost_equal(&expected, &actual));
         }
     }

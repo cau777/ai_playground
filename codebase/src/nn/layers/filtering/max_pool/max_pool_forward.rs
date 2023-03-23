@@ -1,7 +1,7 @@
 use ndarray::s;
 use crate::{Array4F};
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
+use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderBinding, ShaderContext};
 use crate::gpu::shader_runner_2::{ShaderRunner2};
 use crate::gpu::{BufferChecksumMethod, shaders};
 use crate::nn::layers::filtering::max_pool::{gen_name, MaxPoolConfig};
@@ -52,8 +52,8 @@ fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu, layer_config: &
     let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
     let buffers_lengths = [
-        shape_length(&out_shape) as u64,
-        shape_length(in_shape) as u64,
+        BufferConfig::floats(shape_length(&out_shape)),
+        BufferConfig::floats(shape_length(in_shape)),
     ];
 
     ShaderContext::register(&id, gpu.clone(), &buffers_lengths, |mut b| {

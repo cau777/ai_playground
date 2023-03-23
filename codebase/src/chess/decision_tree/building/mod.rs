@@ -78,12 +78,6 @@ impl DecisionTreesBuilder {
             let parts = Self::take_parts(&requests, self.options.batch_size);
 
             if !parts.is_empty() {
-                // {
-                //     let r = requests.get(parts[0].owner());
-                //     println!("{:?} {:?}", r.game_index, r.node_index);
-                // println!("{:?}", &trees[r.game_index].borrow().nodes[r.node_index]);
-                // }
-
                 let inputs: Vec<_> = parts.iter()
                     .map(|o| {
                         if let RequestPart::Pending { array, .. } = o { array.view() } else { panic!("RequestPart should be Pending") }

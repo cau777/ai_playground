@@ -14,6 +14,7 @@ pub struct ContextSharedBuffer {
     pub buffer: GpuBuffer,
     pub length: u64,
     pub checksums: Vec<u64>,
+    pub element_size: u64,
 }
 
 pub struct ShaderContext {
@@ -37,17 +38,19 @@ pub struct ShaderBinding(pub usize);
 pub type ShaderContextKey = String;
 
 impl ShaderContext {
-    pub fn register(key: &ShaderContextKey, gpu: GlobalGpu, buffers_lengths: &[u64],
+    pub fn register(key: &ShaderContextKey, gpu: GlobalGpu, buffer_configs: &[BufferConfig],
                     create_fn: impl FnOnce(ContextBuilder) -> GenericResult<ContextBuilder>) -> GenericResult<()> {
         let should_create = {
             let read = gpu.contexts.read().unwrap();
             let prev = read.get(key);
-            prev.is_none() || std::iter::zip(&prev.unwrap().buffers, buffers_lengths.iter())
-                .any(|(prev, length)| prev.length != *length)
+            prev.is_none() || std::iter::zip(&prev.unwrap().buffers, buffer_configs.iter())
+                .any(|(prev, new)| {
+                    prev.length != new.length || prev.element_size != new.ty.size()
+                })
         };
 
         if should_create {
-            let builder = ContextBuilder::new(buffers_lengths, gpu.clone())?;
+            let builder = ContextBuilder::new(buffer_configs, gpu.clone())?;
             let mut write = gpu.contexts.write().unwrap();
             write.insert(key.to_owned(), (create_fn)(builder)?.finish()?);
         }
@@ -87,28 +90,67 @@ pub struct ContextBuilder {
     gpu: GlobalGpu,
 }
 
+#[derive(Copy, Clone)]
+pub struct BufferConfig {
+    length: u64,
+    ty: BufferType,
+}
+
+#[derive(Copy, Clone)]
+pub enum BufferType {
+    Float,
+    Bool,
+    Uint,
+}
+
+impl BufferType {
+    pub fn size(&self) -> u64 {
+        match self {
+            BufferType::Bool => 1,
+            BufferType::Float => 4,
+            BufferType::Uint => 4,
+        }
+    }
+}
+
+impl BufferConfig {
+    pub fn floats(length: impl TryInto<u64>) -> Self {
+        Self {
+            length: length.try_into().map_err(|_| anyhow::anyhow!("Buffer size too big")).unwrap(),
+            ty: BufferType::Float,
+        }
+    }
+    pub fn bools(length: impl TryInto<u64>) -> Self {
+        Self {
+            length: length.try_into().map_err(|_| anyhow::anyhow!("Buffer size too big")).unwrap(),
+            ty: BufferType::Bool,
+        }
+    }
+    pub fn uints(length: impl TryInto<u64>) -> Self {
+        Self {
+            length: length.try_into().map_err(|_| anyhow::anyhow!("Buffer size too big")).unwrap(),
+            ty: BufferType::Uint,
+        }
+    }
+}
+
 impl ContextBuilder {
-    pub fn new(buffer_lengths: &[u64], gpu: GlobalGpu) -> GenericResult<Self> {
+    pub fn new(buffer_configs: &[BufferConfig], gpu: GlobalGpu) -> GenericResult<Self> {
         let mut buffers = Vec::new();
 
-        for &length in buffer_lengths {
-            let buffer = DeviceLocalBuffer::<[f32]>::array(
-                &gpu.memory_alloc,
-                length as u64,
-                vulkano::buffer::BufferUsage {
-                    storage_buffer: true,
-                    transfer_dst: true,
-                    transfer_src: true,
-                    ..vulkano::buffer::BufferUsage::empty()
-                },
-                gpu.device.active_queue_family_indices().iter().copied(),
-            )?;
+        for &BufferConfig { length, ty } in buffer_configs {
+            let buffer = match ty {
+                BufferType::Bool => Self::create_buffer::<u8>(length, &gpu),
+                BufferType::Float => Self::create_buffer::<f32>(length, &gpu),
+                BufferType::Uint => Self::create_buffer::<u32>(length, &gpu),
+            }?;
 
             buffers.push(ContextSharedBuffer {
                 aux_buffer: None,
                 length,
                 checksums: vec![],
                 buffer,
+                element_size: ty.size(),
             });
         }
 
@@ -117,6 +159,21 @@ impl ContextBuilder {
             buffers,
             gpu,
         })
+    }
+
+    fn create_buffer<T>(length: u64, gpu: &GlobalGpu) -> GenericResult<GpuBuffer>
+        where [T]: vulkano::buffer::BufferContents {
+        Ok(DeviceLocalBuffer::<[T]>::array(
+            &gpu.memory_alloc,
+            length,
+            vulkano::buffer::BufferUsage {
+                storage_buffer: true,
+                transfer_dst: true,
+                transfer_src: true,
+                ..vulkano::buffer::BufferUsage::empty()
+            },
+            gpu.device.active_queue_family_indices().iter().copied(),
+        )?)
     }
 
     pub fn register_shader(&mut self, name: &str,

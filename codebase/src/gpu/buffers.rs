@@ -1,4 +1,4 @@
-use vulkano::buffer::{CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess};
+use vulkano::buffer::{BufferAccess, CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use std::sync::Arc;
 use crate::ArrayDynF;
@@ -46,7 +46,7 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
 
 pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &GlobalGpu) -> GenericResult<ArrayDynF> {
     let shape_len = shape_length(&shape) as u64;
-    assert_eq!(buffer.len(), shape_len);
+    assert_eq!(buffer.size(), shape_len * std::mem::size_of::<f32>() as u64);
     // TODO: pool?
 
     let cpu_buffer = unsafe {
@@ -76,5 +76,5 @@ pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &Glob
     Ok(ArrayDynF::from_shape_vec(shape, vec)?)
 }
 
-pub type GpuBuffer = Arc<DeviceLocalBuffer<[f32]>>;
+pub type GpuBuffer = Arc<dyn BufferAccess>;
 pub type CpuBuffer = Arc<CpuAccessibleBuffer<[f32]>>;

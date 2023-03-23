@@ -2,7 +2,7 @@
 layout(local_size_x = 8, local_size_y = 2, local_size_z = 2) in;
 
 layout(set = 0, binding = 0) buffer ResultData {
-    float data[];
+    bool data[];
 } result;
 
 layout(set = 0, binding = 1) buffer InputData {
@@ -30,15 +30,14 @@ void main() {
     const uint b = gl_GlobalInvocationID.x;
     const uint h = gl_GlobalInvocationID.y;
     const uint w = gl_GlobalInvocationID.z;
-    const float flag = uintBitsToFloat(1);
 
-    float new_value = 0x0;
+    bool new_value = false;
 
     for (uint c = 0; c < in_channels; c++) {
         const uint input_index = b*in_channels*input_height*input_width + c*input_height*input_width + h*input_width + w;
 
         if (abs(inputs.data[input_index] - prev_inputs.data[input_index]) > 0.0001) {
-            new_value = flag;
+            new_value = true;
             break;
         }
     }

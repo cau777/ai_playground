@@ -14,7 +14,7 @@ layout(set = 0, binding = 2) buffer InputData {
 } input_data;
 
 layout(set = 0, binding = 3) buffer CacheInvalidData {
-    float data[];
+    bool data[];
 } cache_invalid;
 
 layout(constant_id = 0) const uint in_channels = 0;
@@ -29,6 +29,7 @@ layout(constant_id = 6) const uint out_width = 0;
 layout(constant_id = 7) const uint out_height = 0;
 
 layout(constant_id = 8) const uint padding = 0;
+layout(constant_id = 9) const uint cache_enabled = 0;
 
 void main() {
     const uint b_and_in_c = gl_GlobalInvocationID.x;
@@ -40,28 +41,31 @@ void main() {
     const uint h_offset = h * stride;
     const uint w_offset = w * stride;
 
-    if (floatBitsToUint(cache_invalid.data[b*out_height*out_width + h*out_width + w]) != 0x1) {
+    if (cache_enabled == 1 && !cache_invalid.data[b*out_height*out_width + h*out_width + w]) {
         return;
     }
 
     float result = 0.0;
 
-    const uint inputs_section_0 = in_channels * input_height * input_width;
-    const uint inputs_section_1 = input_height * input_width;
-    const uint inputs_section_2 = input_width;
+    const uint batch_section = b * in_channels * input_height * input_width;
+    const uint out_c_section = out_c * in_channels * kernel_size * kernel_size;
 
-    const uint kernel_sections_0 = in_channels*kernel_size*kernel_size;
+    const uint inputs_section_1 = input_height * input_width;
     const uint kernel_sections_1 = kernel_size*kernel_size;
-    const uint kernel_sections_2 = kernel_size;
 
     for (uint kh = 0; kh < kernel_size; kh++) {
+        const uint input_h = h_offset + kh - padding;
+        const uint partial_input_index = batch_section + input_h * input_width;
+        const uint partial_kernel_index = out_c_section + kh * kernel_size;
+
         for (uint kw = 0; kw < kernel_size; kw++) {
+            const uint input_w = w_offset + kw - padding;
+            const float in_bounds_factor = float(input_h < input_height && input_w < input_width);
+
             for (uint in_c = 0; in_c < in_channels; in_c++) {
-                const uint input_h = h_offset + kh - padding;
-                const uint input_w = w_offset + kw - padding;
-                const float i = input_data.data[b*inputs_section_0 + in_c*inputs_section_1 + input_h*inputs_section_2 + input_w];
-                const float k = kernel_data.data[out_c*kernel_sections_0 + in_c*kernel_sections_1 + kh*kernel_sections_2 + kw];
-                result += i * k * float(input_h < input_height) * float(input_w < input_width);
+                const float i = input_data.data[partial_input_index + in_c*inputs_section_1 + input_w];
+                const float k = kernel_data.data[partial_kernel_index + in_c*kernel_sections_1 + kw];
+                result += i * k * in_bounds_factor;
             }
         }
     }

@@ -1,6 +1,6 @@
 use crate::ArrayDynF;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_context::{ContextBinding, ShaderBinding, ShaderContext};
+use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderBinding, ShaderContext};
 use crate::gpu::shader_runner_2::{ShaderRunner2};
 use crate::gpu::{BufferChecksumMethod, shaders};
 use crate::nn::generic_storage::remove_from_storage1;
@@ -55,7 +55,7 @@ fn forward_cpu(inputs: ArrayDynF) -> StoredArray {
 fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu) -> GenericResult<StoredArray> {
     let shape= inputs.shape().to_vec();
 
-    ShaderContext::register(&id, gpu.clone(), &[shape_length(&shape) as u64], |mut b| {
+    ShaderContext::register(&id, gpu.clone(), &[BufferConfig::floats(shape_length(&shape))], |mut b| {
         b.register_shader("forward", shaders::relu_forward::load, vec![
             (ContextBinding(0), ShaderBinding(0)),
         ], &shaders::relu_forward::SpecializationConstants {})?;
