@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn test_backward() {
         let inputs: ArrayDynF = get_grad();
-        let cache = get_forward_cache();
+        let cache = get_inputs();
         let expected = get_backward_result();
 
         let mut storage = get_storage();
@@ -233,9 +233,10 @@ mod tests {
 
     #[test]
     fn test_calc_kernel_grad() {
-        let inputs = get_forward_cache().into_dimensionality().unwrap();
-        let grad = get_grad().into_dimensionality().unwrap();
         let config = get_config();
+        let inputs = get_inputs().into_dimensionality().unwrap();
+        let inputs = pad4d(inputs, config.padding);
+        let grad = get_grad().into_dimensionality().unwrap();
         let expected = get_kernels_grad();
         let result = calc_kernel_grad(&inputs, &grad, &config);
 

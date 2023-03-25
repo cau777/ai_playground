@@ -252,81 +252,6 @@ mod tests {
     use crate::utils::arrays_almost_equal;
     use super::*;
 
-    // TODO: remove
-    #[test]
-    fn test_debug() {
-        let rand = Normal::new(0.0, 1.0).unwrap();
-        let inputs = Array4F::random((4, 2, 2, 2), rand);
-        let kernel = Array4F::random((4, 2, 2, 2), rand);
-
-        let key = "convolution_2_4_1_1_0_0";
-
-        let config = ConvolutionConfig {
-            padding: 0,
-            stride: 1,
-            kernel_size: 1,
-            cache: false,
-            init_mode: ConvolutionInitMode::Kernel(get_kernels()),
-            lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
-            in_channels: 2,
-            out_channels: 4,
-        };
-        let mut storage = GenericStorage::new();
-        storage.insert(key.to_owned(), vec![kernel.into_dyn()]);
-        let gpu = Some(GpuData::new_global().unwrap());
-
-        for _ in 0..3 {
-            let _result = forward(
-                ForwardData {
-                    inputs: inputs.clone().into_dyn().into(),
-                    forward_cache: None,
-                    storage: &mut storage,
-                    assigner: &mut KeyAssigner::new(),
-                    batch_config: &BatchConfig::new_train(),
-                    prev_iteration_cache: None,
-                    gpu: gpu.clone(),
-                },
-                &config,
-            ).unwrap();
-            // println!("{:?}", result.into_memory().unwrap());
-        }
-
-        let mut inputs = inputs;
-        inputs[(0, 0, 0, 0)] = 1.0;
-
-        for _ in 0..2 {
-            let _result = forward(
-                ForwardData {
-                    inputs: inputs.clone().into_dyn().into(),
-                    forward_cache: None,
-                    storage: &mut storage,
-                    assigner: &mut KeyAssigner::new(),
-                    batch_config: &BatchConfig::new_train(),
-                    prev_iteration_cache: None,
-                    gpu: gpu.clone(),
-                },
-                &config,
-            ).unwrap();
-        }
-
-        *storage.get_mut(key).unwrap().get_mut(0).unwrap().iter_mut().next().unwrap() = 5.0;
-
-        for _ in 0..2 {
-            let _result = forward(
-                ForwardData {
-                    inputs: inputs.clone().into_dyn().into(),
-                    forward_cache: None,
-                    storage: &mut storage,
-                    assigner: &mut KeyAssigner::new(),
-                    batch_config: &BatchConfig::new_train(),
-                    prev_iteration_cache: None,
-                    gpu: gpu.clone(),
-                },
-                &config,
-            ).unwrap();
-        }
-    }
-
     #[test]
     fn test_forward_cpu() {
         let inputs = get_inputs();
@@ -384,7 +309,7 @@ mod tests {
             in_channels: 6,
             out_channels: 3,
             stride: 2,
-            padding: 0,
+            padding: 2,
             init_mode: HeNormal(),
             lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
             kernel_size: 2,
@@ -394,7 +319,6 @@ mod tests {
         let dist = Normal::new(0.0, 1.0).unwrap();
         let inputs = Array4F::random((8, config.in_channels, 8, 8), &dist);
         let mut kernels = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist).into_dyn();
-
 
         for x in 0..10 {
             if x == 5 {
