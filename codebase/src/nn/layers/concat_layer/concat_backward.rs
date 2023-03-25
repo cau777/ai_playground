@@ -29,6 +29,7 @@ pub fn backward(data: BackwardData, layer_config: &ConcatConfig) -> LayerResult 
             forward_cache: data.forward_cache,
             backward_cache: data.backward_cache,
         })?.into_memory()?;
+        // println!("conv_back {:?}", layer_result.shape());
 
         result = Some(match result {
             Some(v) => v + layer_result,

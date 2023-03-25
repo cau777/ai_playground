@@ -78,6 +78,7 @@ impl NNController {
             },
         )?;
 
+        self.finish_method()?;
         Ok(loss_mean)
     }
 }

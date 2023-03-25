@@ -57,7 +57,7 @@ impl Cache {
 
         storage.values()
             .flat_map(|o| o)
-            .map(|o| o.len() as u64 * ITEM_SIZE)
+            .map(|o| o.len() as u64 * ITEM_SIZE + 8)
             .sum()
     }
 

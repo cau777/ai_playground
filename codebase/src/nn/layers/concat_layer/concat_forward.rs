@@ -64,7 +64,7 @@ pub fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
         match forward_gpu(results.clone(), &splits, gpu.unwrap(), key, concat_dim) {
             Ok(v) => Ok(v),
             Err(e) => {
-                eprintln!("{:?}", e);
+                eprintln!("{}", e);
                 forward_cpu(results, concat_dim)
             }
         }
@@ -73,8 +73,9 @@ pub fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
     }
 }
 
-fn forward_gpu(results: Vec<StoredArray>, sections: &[usize], gpu: GlobalGpu, key: String, concat_dim: usize) -> GenericResult<StoredArray> {
+fn forward_gpu(results: Vec<StoredArray>, sections: &[usize], gpu: GlobalGpu, id: String, concat_dim: usize) -> GenericResult<StoredArray> {
     const ELEMENT_SIZE: u64 = std::mem::size_of::<f32>() as u64;
+    let key = (id, "forward".to_owned());
 
     let mut osh = results[0].shape().to_vec();
     osh[concat_dim] = sections.iter().copied().sum();

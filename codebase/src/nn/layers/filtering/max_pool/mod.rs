@@ -3,7 +3,7 @@ mod max_pool_forward;
 use ndarray::s;
 use crate::Array4F;
 use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::filtering::{remove_padding_4d};
+use crate::nn::layers::filtering::{pad4d, remove_padding_4d};
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::utils::get_dims_after_filter_4;
 
@@ -24,6 +24,7 @@ fn gen_name() -> String {
 impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
     fn init(_: InitData, _: &MaxPoolConfig) -> EmptyLayerResult { Ok(()) }
 
+    #[inline(never)]
     fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
         max_pool_forward::forward(data, layer_config)
     }
@@ -35,6 +36,7 @@ impl LayerOps<MaxPoolConfig> for MaxPoolLayer {
         let key = assigner.get_key(gen_name());
         let [inputs] = remove_from_storage1(forward_cache, &key);
         let inputs: Array4F = inputs.into_dimensionality()?;
+        let inputs = pad4d(inputs, layer_config.padding);
 
         let size = layer_config.size;
         let stride = layer_config.stride;

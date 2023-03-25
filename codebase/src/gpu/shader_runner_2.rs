@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use ndarray::Dimension;
 use vulkano::buffer::{CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, BufferCopy, CommandBufferUsage, CopyBufferInfo, FillBufferInfo, PrimaryAutoCommandBuffer};
 use vulkano::pipeline::{Pipeline};
@@ -8,7 +9,7 @@ use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_context::{ContextBinding, ContextSharedBuffer, ShaderContextKey};
 use crate::nn::layers::stored_array::StoredArray;
-use crate::utils::GenericResult;
+use crate::utils::{ArrayF, GenericResult};
 
 pub struct ShaderRunner2 {
     context: ShaderContextKey,
@@ -33,14 +34,18 @@ impl ShaderRunner2 {
 
     // TODO: inline
     #[inline(never)]
-    pub fn update_buffer_with_memory(&mut self, binding: ContextBinding, data: &ArrayDynF,
-                                     checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
+    pub fn update_buffer_with_memory<T: Dimension>(
+        &mut self, binding: ContextBinding, data: &ArrayF<T>,
+        checksum: BufferChecksumMethod,
+    ) -> GenericResult<&mut Self> {
         self.update_buffer_with_memory_checked(binding, data, checksum, &mut false)
     }
 
     #[inline(never)]
-    pub fn update_buffer_with_memory_checked(&mut self, binding: ContextBinding, data: &ArrayDynF,
-                                             checksum: BufferChecksumMethod, changed: &mut bool) -> GenericResult<&mut Self> {
+    pub fn update_buffer_with_memory_checked<T: Dimension>(
+        &mut self, binding: ContextBinding, data: &ArrayF<T>,
+        checksum: BufferChecksumMethod, changed: &mut bool,
+    ) -> GenericResult<&mut Self> {
         let mut write = self.gpu.contexts.write().unwrap();
         let context = write.get_mut(&self.context)
             .ok_or_else(|| anyhow::anyhow!("Id not found in gpu.pipeline_objects"))?;
@@ -52,7 +57,7 @@ impl ShaderRunner2 {
             return Err(anyhow::anyhow!("Supplied data has wrong length"));
         }
 
-        let buffer = Self::temp_create(buffer_obj, &self.gpu, data)?;
+        let buffer = Self::create_aux_upload_buffer(buffer_obj, &self.gpu, data)?;
 
         let copy_info = match checksum {
             BufferChecksumMethod::None => {
@@ -73,7 +78,6 @@ impl ShaderRunner2 {
                         }
                     }
                     None => {
-                        println!("No slice");
                         buffer_obj.checksums = vec![];
                         Some(CopyBufferInfo::buffers(buffer, buffer_obj.buffer.clone()))
                     }
@@ -138,8 +142,9 @@ impl ShaderRunner2 {
     }
 
     #[inline(never)]
-    fn temp_create(buffer_obj: &mut ContextSharedBuffer, gpu: &GlobalGpu, data: &ArrayDynF)
-                   -> GenericResult<Arc<dyn vulkano::buffer::BufferAccess>> {
+    fn create_aux_upload_buffer<T: Dimension>(
+        buffer_obj: &mut ContextSharedBuffer, gpu: &GlobalGpu, data: &ArrayF<T>
+    ) -> GenericResult<Arc<dyn vulkano::buffer::BufferAccess>> {
         match buffer_obj.aux_buffer.as_ref() {
             Some(buffer) => {
                 match data.as_slice() {
@@ -159,7 +164,7 @@ impl ShaderRunner2 {
             }
             None => {
                 let buffer = CpuAccessibleBuffer::from_iter(
-                    &gpu.memory_alloc,
+                    &gpu.std_mem_alloc,
                     vulkano::buffer::BufferUsage {
                         transfer_src: true,
                         ..vulkano::buffer::BufferUsage::empty()

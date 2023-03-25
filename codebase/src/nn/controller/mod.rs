@@ -2,7 +2,7 @@ mod evaluating;
 mod training;
 mod testing;
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use crate::gpu::gpu_data::{GlobalGpu, GpuData};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
@@ -32,6 +32,7 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
+    cached_gpu_age: Mutex<u64>,
     cached_gpu: Arc<RwLock<Option<Option<GlobalGpu>>>>,
 }
 
@@ -53,6 +54,7 @@ impl NNController {
             storage,
             loss,
             cached_gpu: Arc::new(RwLock::new(None)),
+            cached_gpu_age: Mutex::new(0),
         })
     }
 
@@ -72,6 +74,7 @@ impl NNController {
             storage,
             loss,
             cached_gpu: Arc::new(RwLock::new(None)),
+            cached_gpu_age: Mutex::new(0),
         })
     }
 
@@ -81,7 +84,13 @@ impl NNController {
     }
 
     fn get_gpu(&self) -> Option<GlobalGpu> {
-        if self.cached_gpu.read().unwrap().is_none() {
+        let mut gpu_age = self.cached_gpu_age.lock().unwrap();
+        *gpu_age += 1;
+
+        if self.cached_gpu.read().unwrap().is_none()
+            || *gpu_age > 10_000
+        {
+            *gpu_age = 0;
             let new_gpu = match GpuData::new_global() {
                 Ok(v) => Some(v),
                 Err(e) => {
@@ -90,9 +99,25 @@ impl NNController {
                 }
             };
 
-            *self.cached_gpu.write().unwrap() = Some(new_gpu);
+            let mut prev =self.cached_gpu.write().unwrap();
+            if let Some(prev) = prev.as_ref() {
+                if let Some(prev ) = prev.as_ref() {
+                    prev.contexts.write().unwrap().clear();
+                    prev.cmd_alloc.clear(prev.queue.queue_family_index());
+                    prev.descriptor_alloc.clear_all();
+                }
+            }
+            *prev = Some(new_gpu);
         }
+
         self.cached_gpu.read().unwrap().clone().unwrap()
+    }
+
+    fn finish_method(&self) -> GenericResult<()> {
+        if let Some(gpu) = self.get_gpu() {
+            gpu.reset_fast_mem_alloc()?;
+        }
+        Ok(())
     }
 }
 

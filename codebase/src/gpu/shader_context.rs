@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::DeviceLocalBuffer;
@@ -35,18 +36,21 @@ pub struct ContextBinding(pub usize);
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ShaderBinding(pub usize);
 
-pub type ShaderContextKey = String;
+pub type ShaderContextKey = (String, String);
 
 impl ShaderContext {
     pub fn register(key: &ShaderContextKey, gpu: GlobalGpu, buffer_configs: &[BufferConfig],
                     create_fn: impl FnOnce(ContextBuilder) -> GenericResult<ContextBuilder>) -> GenericResult<()> {
         let should_create = {
             let read = gpu.contexts.read().unwrap();
-            let prev = read.get(key);
-            prev.is_none() || std::iter::zip(&prev.unwrap().buffers, buffer_configs.iter())
-                .any(|(prev, new)| {
-                    prev.length != new.length || prev.element_size != new.ty.size()
-                })
+            match read.get(key) {
+                Some(prev) => {
+                    std::iter::zip(&prev.buffers, buffer_configs.iter()).any(|(prev, new)| {
+                        prev.length != new.length || prev.element_size != new.ty.size()
+                    })
+                }
+                None => true
+            }
         };
 
         if should_create {
@@ -164,7 +168,7 @@ impl ContextBuilder {
     fn create_buffer<T>(length: u64, gpu: &GlobalGpu) -> GenericResult<GpuBuffer>
         where [T]: vulkano::buffer::BufferContents {
         Ok(DeviceLocalBuffer::<[T]>::array(
-            &gpu.memory_alloc,
+            &gpu.std_mem_alloc,
             length,
             vulkano::buffer::BufferUsage {
                 storage_buffer: true,

@@ -38,6 +38,7 @@ impl NNController {
             .mapv(|o| o as f64)
             .mean()
             .unwrap();
+        self.finish_method()?;
         Ok(loss_mean)
     }
 }

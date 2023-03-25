@@ -20,8 +20,16 @@ use http::{StatusCode};
 use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
 
+// #[cfg(feature = "dhat-heap")]
+// #[global_allocator]
+// static ALLOC: dhat::Alloc = dhat::Alloc;
+
 fn main() {
-    return profile_code();
+    // #[cfg(feature = "dhat-heap")]
+    // let _profiler = dhat::Profiler::builder().trim_backtraces(Some(50)).build();
+    // profile_code();
+    // return;
+
     let config = &EnvConfig::new();
     if config.profile {
         profile_code();
@@ -54,14 +62,9 @@ fn init(model_config: ModelXmlConfig, client: &ServerClient, name: &str) -> Gene
 }
 
 fn profile_code() {
-    use codebase::nn::layers::*;
-    use codebase::nn::layers::nn_layers::*;
-    use codebase::nn::layers::filtering::convolution::*;
-    use codebase::nn::lr_calculators::lr_calculator::*;
-    use codebase::nn::lr_calculators::constant_lr::*;
     use codebase::nn::loss::loss_func::*;
 
-    let mut file = OpenOptions::new().read(true).open("./profile_config.xml").unwrap();
+    let mut file = OpenOptions::new().read(true).open(r"C:\Users\caua_\Projects\ai_playground\trainer\profile_config.xml").unwrap();
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).unwrap();
 
@@ -78,7 +81,7 @@ fn profile_code() {
         ],
         BuilderOptions {
             limits: LimiterFactors {
-                max_iterations: Some(500),
+                max_iterations: Some(200),
                 ..Default::default()
             },
             next_node_strategy: codebase::chess::decision_tree::building::NextNodeStrategy::Computed {
@@ -94,4 +97,40 @@ fn profile_code() {
     );
     let (tree, _) = builder.build(&controller);
     println!("tree_len = {}", tree[0].len());
+//     println!("After building");
+//     std::io::stdin().read_line(&mut String::new()).unwrap();
+//
+//     drop(builder);
+//     drop(tree);
+//     use codebase::gpu::gpu_data::GpuData;
+//     let NNController {cached_gpu, storage,..} = controller;
+//     let gpu = Arc::try_unwrap(Arc::try_unwrap(cached_gpu).ok().unwrap().into_inner().unwrap().unwrap().unwrap()).ok().unwrap();
+//     // println!("storage len {}", storage.len());
+//
+//     gpu.reset_fast_mem_alloc();
+//     let GpuData {device, queue, descriptor_alloc, cmd_alloc, cache, std_mem_alloc, fast_mem_alloc, pools, contexts}
+// =gpu;
+
+    //     = Arc::try_unwrap(Arc::try_unwrap(cached_gpu).ok().unwrap().into_inner().unwrap().unwrap().unwrap()).ok().unwrap();
+    //
+    //
+    // drop(storage);
+    // drop(pools);
+    // drop(cmd_alloc);
+    // drop(descriptor_alloc);
+    // drop(std_mem_alloc);
+    // drop(queue);
+    // drop(device);
+    // drop(contexts);
+    // drop(cache);
+    // println!("first dropped");
+    // std::io::stdin().read_line(&mut String::new()).unwrap();
+    //
+    // drop(fast_mem_alloc);
+    // println!("fast_mem_alloc dropped");
+    // std::io::stdin().read_line(&mut String::new()).unwrap();
+    //
+    // println!("second dropped");
+    // std::io::stdin().read_line(&mut String::new()).unwrap();
+
 }

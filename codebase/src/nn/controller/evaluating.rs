@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use ndarray::{Axis, stack};
 use crate::ArrayDynF;
 use crate::gpu::buffers::upload_array_to_gpu;
@@ -36,7 +37,7 @@ impl NNController {
         let config = BatchConfig::new_not_train();
         let gpu = self.get_gpu();
 
-        forward_layer(
+        let result = forward_layer(
             &self.main_layer,
             ForwardData {
                 inputs: prepare_inputs(inputs, gpu.clone())?,
@@ -47,7 +48,9 @@ impl NNController {
                 prev_iteration_cache: None,
                 gpu,
             },
-        )?.into_memory()
+        )?.into_memory()?;
+        self.finish_method()?;
+        Ok(result)
     }
 
     pub fn eval_with_cache(&self, inputs: ArrayDynF, prev_iteration_cache: Option<GenericStorage>)
@@ -68,8 +71,9 @@ impl NNController {
                 prev_iteration_cache: Some(&mut cache),
                 gpu,
             },
-        )?;
+        )?.into_memory()?;
 
-        Ok((result.into_memory()?, cache))
+        self.finish_method()?;
+        Ok((result, cache))
     }
 }

@@ -5,7 +5,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::pipeline::cache::PipelineCache;
-use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::memory::allocator::{FastMemoryAllocator, StandardMemoryAllocator};
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::sync::{FenceSignalFuture, GpuFuture, NowFuture};
@@ -22,9 +22,10 @@ pub struct GpuData {
     pub descriptor_alloc: StandardDescriptorSetAllocator,
     pub cmd_alloc: StandardCommandBufferAllocator,
     pub cache: Option<Arc<PipelineCache>>,
-    pub memory_alloc: Arc<StandardMemoryAllocator>,
+    pub std_mem_alloc: Arc<StandardMemoryAllocator>,
+    pub fast_mem_alloc: RwLock<FastMemoryAllocator>,
     pub pools: Pools,
-    pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>
+    pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>,
 }
 
 impl GpuData {
@@ -78,7 +79,7 @@ impl GpuData {
             ..Default::default()
         })?;
 
-        let memory_alloc= Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+        let memory_alloc = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         Ok(Self {
             queue: queues.next().ok_or(anyhow::anyhow!("Should create 1 queue"))?,
@@ -86,9 +87,10 @@ impl GpuData {
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
             cache: PipelineCache::empty(device.clone()).map_err(|e| println!("{:?}", e)).ok(),
+            fast_mem_alloc: RwLock::new(FastMemoryAllocator::new_default(device.clone())),
             device,
             pools: Pools::new(memory_alloc.clone()),
-            memory_alloc,
+            std_mem_alloc: memory_alloc,
             contexts: RwLock::new(HashMap::new()),
         })
     }
@@ -97,5 +99,10 @@ impl GpuData {
         Ok(vulkano::sync::now(self.device.clone())
             .then_execute(self.queue.clone(), cmd)?
             .then_signal_fence_and_flush()?)
+    }
+
+    pub fn reset_fast_mem_alloc(&self) -> GenericResult<()> {
+        *self.fast_mem_alloc.write().unwrap() = FastMemoryAllocator::new_default(self.device.clone());
+        Ok(())
     }
 }

@@ -18,7 +18,6 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
     let ForwardData { inputs, storage, assigner, forward_cache, mut prev_iteration_cache, .. } = data;
     let key = assigner.get_key(gen_name(layer_config));
 
-
     if let Some(forward_cache) = forward_cache {
         forward_cache.insert(key.clone(), vec![inputs.to_memory()?]);
     }
@@ -30,7 +29,7 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
             Ok(v) => v,
             Err(e) => {
                 #[cfg(debug_assertions)]
-                eprintln!("{:?}", e);
+                eprintln!("{}", e);
                 cpu_forward(inputs, kernel, layer_config)?
             }
         }
@@ -143,6 +142,7 @@ pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_resul
 pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDynF, gpu: GlobalGpu,
                               layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let ConvolutionConfig { stride, kernel_size, .. } = layer_config;
+    let key = (id, "forward".to_owned());
 
     let ish = inputs.shape();
     let padded_ish = [ish[0], ish[1], ish[2] + 2 * layer_config.padding, ish[3] + 2 * layer_config.padding];
@@ -158,7 +158,7 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
         BufferConfig::bools(osh[0] * osh[2] * osh[3]),
     ];
 
-    ShaderContext::register(&id, gpu.clone(), &buffer_lengths, |mut b| {
+    ShaderContext::register(&key, gpu.clone(), &buffer_lengths, |mut b| {
         let constants = shaders::convolution_forward::forward::SpecializationConstants {
             in_channels: layer_config.in_channels as u32,
             out_channels: layer_config.out_channels as u32,
@@ -192,7 +192,7 @@ pub fn gpu_forward_with_cache(id: String, inputs: StoredArray, kernel: &ArrayDyn
         Ok(b)
     })?;
 
-    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
+    let mut runner = ShaderRunner2::new(key, gpu.clone())?;
     let mut changed = false;
     runner.update_buffer_with_memory_checked(ContextBinding(1), kernel, BufferChecksumMethod::Single, &mut changed)?;
 

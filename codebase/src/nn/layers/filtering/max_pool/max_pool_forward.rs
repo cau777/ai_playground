@@ -24,7 +24,7 @@ pub fn forward(data: ForwardData, layer_config: &MaxPoolConfig) -> LayerResult {
             Ok(v) => v,
             Err(_e) => {
                 #[cfg(debug_assertions)]
-                println!("{:?}", _e);
+                println!("{}", _e);
                 forward_cpu(inputs.into_memory()?.into_dimensionality()?, layer_config.size, layer_config.stride, layer_config.padding)
             }
         }
@@ -48,6 +48,7 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
 }
 
 fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu, layer_config: &MaxPoolConfig) -> GenericResult<StoredArray> {
+    let key = (id, "forward".to_owned());
     let in_shape = inputs.shape();
     let padded_ish = [in_shape[0], in_shape[1], in_shape[2] + 2 * layer_config.padding, in_shape[3] + 2 * layer_config.padding];
     let out_shape = get_dims_after_filter_4(&padded_ish, layer_config.size, layer_config.stride);
@@ -56,7 +57,7 @@ fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu, layer_config: &
         BufferConfig::floats(shape_length(in_shape)),
     ];
 
-    ShaderContext::register(&id, gpu.clone(), &buffers_lengths, |mut b| {
+    ShaderContext::register(&key, gpu.clone(), &buffers_lengths, |mut b| {
         b.register_shader("forward", shaders::max_pool_forward::load, vec![
             (ContextBinding(0), ShaderBinding(0)),
             (ContextBinding(1), ShaderBinding(1)),
@@ -73,7 +74,7 @@ fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu, layer_config: &
         Ok(b)
     })?;
 
-    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
+    let mut runner = ShaderRunner2::new(key, gpu.clone())?;
 
     runner
         .update_buffer_with_stored_array(ContextBinding(1), inputs, BufferChecksumMethod::None)?

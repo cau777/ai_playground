@@ -19,8 +19,12 @@ impl LayerOps<()> for ReluLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult { Ok(()) }
 
     fn forward(data: ForwardData, _: &()) -> LayerResult {
-        let ForwardData { inputs, assigner, gpu, .. } = data;
+        let ForwardData { inputs, assigner, gpu, forward_cache, .. } = data;
         let key = assigner.get_key(gen_name());
+
+        if let Some(forward_cache) = forward_cache{
+            forward_cache.insert(key.clone(), vec![inputs.to_memory()?]);
+        }
 
         // Only use the GPU if the data is already there
         if matches!(inputs, StoredArray::GpuLocal {..}) {
@@ -28,7 +32,7 @@ impl LayerOps<()> for ReluLayer {
                 Ok(v) => Ok(v),
                 Err(e) => {
                     #[cfg(debug_assertions)]
-                    eprintln!("{:?}", e);
+                    eprintln!("{}", e);
                     Ok(forward_cpu(inputs.into_memory()?))
                 }
             }
@@ -54,15 +58,16 @@ fn forward_cpu(inputs: ArrayDynF) -> StoredArray {
 
 fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu) -> GenericResult<StoredArray> {
     let shape= inputs.shape().to_vec();
+    let key = (id, "forward".to_owned());
 
-    ShaderContext::register(&id, gpu.clone(), &[BufferConfig::floats(shape_length(&shape))], |mut b| {
+    ShaderContext::register(&key, gpu.clone(), &[BufferConfig::floats(shape_length(&shape))], |mut b| {
         b.register_shader("forward", shaders::relu_forward::load, vec![
             (ContextBinding(0), ShaderBinding(0)),
         ], &shaders::relu_forward::SpecializationConstants {})?;
         Ok(b)
     })?;
 
-    let mut runner = ShaderRunner2::new(id, gpu.clone())?;
+    let mut runner = ShaderRunner2::new(key, gpu.clone())?;
 
     runner
         .update_buffer_with_stored_array(ContextBinding(0), inputs, BufferChecksumMethod::None)?

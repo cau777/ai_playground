@@ -41,7 +41,7 @@ impl StoredArray {
     pub fn shape(&self) -> &[usize] {
         match self {
             StoredArray::Memory { data } => data.shape(),
-            StoredArray::GpuLocal { shape, .. } => &shape,
+            StoredArray::GpuLocal { shape, .. } => shape,
         }
     }
 
