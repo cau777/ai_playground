@@ -148,7 +148,7 @@ pub fn gpu_inputs_grad(id: String, inputs: &Array4F, grad: &Array4F, kernel: &Ar
     let ish = ish.map(|o| o as u32);
     let gsh: [usize; 4] = grad.shape().try_into()?;
     let gsh = gsh.map(|o| o as u32);
-    let buffers= [
+    let buffers = [
         BufferConfig::floats(shape_length(&osh)),
         BufferConfig::floats(shape_length(kernel.shape())),
         BufferConfig::floats(shape_length(grad.shape())),
@@ -176,9 +176,11 @@ pub fn gpu_inputs_grad(id: String, inputs: &Array4F, grad: &Array4F, kernel: &Ar
     })?;
 
     let mut runner = ShaderRunner2::new(key, gpu.clone())?;
-    runner.update_buffer_with_memory(ContextBinding(1), kernel, BufferChecksumMethod::Single)?;
-    runner.update_buffer_with_memory(ContextBinding(2), grad, BufferChecksumMethod::None)?;
 
+    runner.update_buffer_with_memory(ContextBinding(1), kernel, BufferChecksumMethod::Single)?
+        .update_buffer_with_memory(ContextBinding(2), grad, BufferChecksumMethod::None)?
+        .dispatch("backward", [osh[0] * osh[1], osh[2], osh[3]].map(|o| o as u32),
+                  shaders::convolution_inputs_grad::BLOCK_SIZE)?;
     let result = runner.finish()?;
     let result = download_array_from_gpu(&result, osh.to_vec(), &gpu)?;
     Ok(result.into_dimensionality()?)
@@ -264,6 +266,7 @@ mod tests {
 
         let expected = cpu_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
         let actual = gpu_inputs_grad(String::new(), &inputs, &grad, &kernel, GpuData::new_global().unwrap(), &config).unwrap();
+        println!("{:?}\n---------\n{:?}", actual, expected);
         assert!(arrays_almost_equal(&expected, &actual));
     }
 }
