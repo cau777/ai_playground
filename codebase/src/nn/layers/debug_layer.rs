@@ -19,6 +19,7 @@ lazy_static! {
 pub enum DebugAction {
     PrintShape,
     PrintTime,
+    PrintArray,
     Call(fn(tag: &str, data: &InitData, name: &str), fn(tag: &str, data: &ForwardData, name: &str), fn(tag: &str, data: &BackwardData, name: &str)),
     PrintElapsed,
 }
@@ -46,6 +47,7 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
                 f(&layer_config.tag, &data, &key)
             }
             DebugAction::PrintElapsed => {}
+            DebugAction::PrintArray => {}
         }
         Ok(())
     }
@@ -58,6 +60,9 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
             }
             DebugAction::PrintTime => {
                 println!("Forward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
+            }
+            DebugAction::PrintArray => {
+                println!("Forward:{}:array={:?}", layer_config.tag, data.inputs.to_memory()?.iter().take(400).collect::<Vec<_>>())
             }
             DebugAction::PrintElapsed => {
                 let mut prev = PREVIOUS_INSTANT.lock().unwrap();
@@ -79,6 +84,9 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
             }
             DebugAction::PrintTime => {
                 println!("Backward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
+            }
+            DebugAction::PrintArray => {
+                println!("Backward:{}:array={:?}", layer_config.tag, data.grad.iter().take(400).collect::<Vec<_>>())
             }
             DebugAction::PrintElapsed => {
                 let mut prev = PREVIOUS_INSTANT.lock().unwrap();

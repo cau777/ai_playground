@@ -161,6 +161,7 @@ fn load_layer(element: &Element) -> Result<Layer> {
                     "print_shape" => debug_layer::DebugAction::PrintShape,
                     "print_time" => debug_layer::DebugAction::PrintTime,
                     "print_elapsed" => debug_layer::DebugAction::PrintElapsed,
+                    "print_array" => debug_layer::DebugAction::PrintArray,
                     _ => return Err(XmlError::AttributeParseError(element.name.clone(), "action", action.clone()))
                 },
                 tag: get_string_attr(element, "tag")?,
