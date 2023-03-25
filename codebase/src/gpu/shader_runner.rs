@@ -110,7 +110,7 @@ impl ShaderRunner {
         let group_counts = Self::create_groups(total_times, block_size)?;
 
         let layouts = self.pipeline.layout().set_layouts();
-        let layout = layouts.get(0).ok_or(anyhow::anyhow!("No layouts found"))?;
+        let layout = layouts.get(0).ok_or_else(||anyhow::anyhow!("No layouts found"))?;
 
         let set = PersistentDescriptorSet::new(
             &self.gpu.descriptor_alloc,

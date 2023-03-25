@@ -20,7 +20,7 @@ impl StoredArray {
     pub fn to_memory(&self) -> GenericResult<ArrayDynF> {
         match self {
             StoredArray::Memory { data } => Ok(data.clone()),
-            StoredArray::GpuLocal { data, gpu, shape } => download_array_from_gpu(&data, shape.clone(), &gpu),
+            StoredArray::GpuLocal { data, gpu, shape } => download_array_from_gpu(data, shape.clone(), gpu),
         }
     }
 

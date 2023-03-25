@@ -56,7 +56,7 @@ impl Cache {
         const ITEM_SIZE: u64 = mem::size_of::<f32>() as u64;
 
         storage.values()
-            .flat_map(|o| o)
+            .flatten()
             .map(|o| o.len() as u64 * ITEM_SIZE + 8)
             .sum()
     }

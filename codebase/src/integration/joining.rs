@@ -12,7 +12,7 @@ pub fn join_as_bytes(objects: &[&[u8]]) -> Vec<u8> {
     result
 }
 
-pub fn split_bytes<'a>(mut bytes: &'a [u8]) -> DeserResult<Vec<&'a [u8]>> {
+pub fn split_bytes(mut bytes: &[u8]) -> DeserResult<Vec<&[u8]>> {
     let count = read_u32(&mut bytes)?;
     let mut result = Vec::with_capacity(count as usize);
 
@@ -25,7 +25,7 @@ pub fn split_bytes<'a>(mut bytes: &'a [u8]) -> DeserResult<Vec<&'a [u8]>> {
     Ok(result)
 }
 
-pub fn split_bytes_3<'a>(bytes: &'a [u8])-> DeserResult<[&'a [u8]; 3]> {
+pub fn split_bytes_3(bytes: &[u8]) -> DeserResult<[&[u8]; 3]> {
     let mut result = split_bytes(bytes)?;
     if result.len() != 3 {
         panic!("Incorrect number of arguments. Expected 3, found {}", result.len());

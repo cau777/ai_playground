@@ -120,10 +120,10 @@ mod tests {
     use crate::nn::loss::loss_func::LossFunc;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
-    use crate::utils::{Array1F, Array2F};
+    use crate::utils::{Array2F};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
-    use crate::nn::layers::dense_layer::{DenseConfig, DenseLayer, DenseLayerInit};
+    use crate::nn::layers::dense_layer::{DenseConfig, DenseLayerInit};
 
     #[test]
     fn test_train() {

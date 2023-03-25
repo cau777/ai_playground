@@ -225,7 +225,7 @@ fn load_lr(element: &Element) -> Result<LrCalc> {
     }
 }
 
-fn load_single_child<'a>(element: &'a Element) -> Result<&'a Element> {
+fn load_single_child(element: &Element) -> Result<&Element> {
     let mut result = None;
     let mut count = 0;
 
@@ -245,7 +245,7 @@ fn load_single_child<'a>(element: &'a Element) -> Result<&'a Element> {
     }
 }
 
-fn iter_elements(elements: &Vec<xmltree::XMLNode>) -> impl Iterator<Item=&Element> {
+fn iter_elements(elements: &[xmltree::XMLNode]) -> impl Iterator<Item=&Element> {
     elements.iter().filter_map(|o| o.as_element())
 }
 
@@ -327,12 +327,10 @@ mod tests {
 "###;
         let result = load_model_xml(str.as_bytes()).unwrap();
         let mut correct = None;
-        match result.main_layer {
-            Layer::Sequential(l) => match &l.layers[0] {
-                Layer::Dense(d) => correct = Some(d.in_values),
-                _ => {}
-            },
-            _ => {}
+        if let Layer::Sequential(l) = result.main_layer {
+            if let Layer::Dense(d) = &l.layers[0] {
+                correct = Some(d.in_values)
+            }
         }
 
         assert_eq!(correct, Some(784))

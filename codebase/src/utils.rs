@@ -53,7 +53,7 @@ impl<T, D: Dimension> GetBatchSize for Array<T, D> {
 }
 
 #[inline]
-pub fn arrays_almost_equal<D: ndarray::Dimension>(arr1: &ArrayF<D>, arr2: &ArrayF<D>) -> bool {
+pub fn arrays_almost_equal<D: Dimension>(arr1: &ArrayF<D>, arr2: &ArrayF<D>) -> bool {
     azip!(arr1, arr2).all(|a, b| (a - b).abs() < 0.001)
 }
 

@@ -1,7 +1,7 @@
 use std::time::Duration;
 use criterion::*;
 use codebase::gpu::buffers::upload_array_to_gpu;
-use codebase::gpu::gpu_data::{GlobalGpu, GpuData};
+use codebase::gpu::gpu_data::{GpuData};
 use codebase::nn::batch_config::BatchConfig;
 use codebase::nn::key_assigner::KeyAssigner;
 use codebase::nn::layers::filtering::max_pool::*;

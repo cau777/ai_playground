@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 use ndarray::{Axis, stack};
 use crate::ArrayDynF;
 use crate::gpu::buffers::upload_array_to_gpu;

@@ -4,7 +4,7 @@ use ndarray::{Axis, s, stack};
 use crate::Array4F;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderBinding, ShaderContext};
-use crate::gpu::shader_runner::ShaderRunner;
+
 use crate::gpu::shader_runner_2::ShaderRunner2;
 use crate::gpu::{BufferChecksumMethod, shaders};
 use crate::gpu::buffers::download_array_from_gpu;

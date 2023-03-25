@@ -3,7 +3,7 @@ use ndarray::Dimension;
 use vulkano::buffer::{CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, BufferCopy, CommandBufferUsage, CopyBufferInfo, FillBufferInfo, PrimaryAutoCommandBuffer};
 use vulkano::pipeline::{Pipeline};
-use crate::ArrayDynF;
+
 use crate::gpu::buffers::GpuBuffer;
 use crate::gpu::checksum::{BufferChecksumMethod, checksum_slice, CHUNK_SIZE};
 use crate::gpu::gpu_data::GlobalGpu;

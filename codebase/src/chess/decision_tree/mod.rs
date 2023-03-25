@@ -47,7 +47,7 @@ impl DecisionTree {
                 let children_info: Vec<_> = children.iter()
                     .map(|&i| {
                         let child = &self.nodes[i];
-                        (child.movement, child.pre_eval, child.info.clone())
+                        (child.movement, child.pre_eval, child.info)
                     })
                     .collect();
 
@@ -107,7 +107,7 @@ impl DecisionTree {
         self.nodes[index].info.is_ending
     }
 
-    pub fn move_cursor(&self, c: &mut cursor::TreeCursor, target: usize) {
+    pub fn move_cursor(&self, c: &mut TreeCursor, target: usize) {
         c.go_to(target, &self.nodes)
     }
 

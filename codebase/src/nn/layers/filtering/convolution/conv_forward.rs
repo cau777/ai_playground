@@ -291,7 +291,7 @@ mod tests {
             // println!("{:?}", result.into_memory().unwrap());
         }
 
-        let mut inputs = inputs.clone();
+        let mut inputs = inputs;
         inputs[(0, 0, 0, 0)] = 1.0;
 
         for _ in 0..2 {

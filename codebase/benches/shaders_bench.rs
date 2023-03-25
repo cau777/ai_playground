@@ -1,13 +1,12 @@
 use std::sync::Arc;
 use criterion::*;
-use ndarray::parallel::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator};
 use vulkano::buffer::{CpuAccessibleBuffer, BufferUsage, CpuBufferPool};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, DeviceExtensions, physical::PhysicalDeviceType};
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{FastMemoryAllocator, MemoryUsage, StandardMemoryAllocator};
-use vulkano::{VulkanLibrary, DeviceSize, sync};
+use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
+use vulkano::{VulkanLibrary, sync};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
@@ -61,11 +60,11 @@ fn criterion_benchmark(c: &mut Criterion) {
         }],
         ..Default::default()
     }).unwrap();
-    let queue = queues.next().unwrap();
+    let _queue = queues.next().unwrap();
 
-    let cmd_alloc = StandardCommandBufferAllocator::new(device.clone(), Default::default());
-    let descriptor_alloc = StandardDescriptorSetAllocator::new(device.clone());
-    let mem_alloc = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+    let _cmd_alloc = StandardCommandBufferAllocator::new(device.clone(), Default::default());
+    let _descriptor_alloc = StandardDescriptorSetAllocator::new(device.clone());
+    let mem_alloc = Arc::new(StandardMemoryAllocator::new_default(device));
 
     let data = black_box((0..200_000).map(|o| o as f32).collect::<Vec<_>>());
     let array = Array4F::from_shape_vec((2, 10, 100, 100), data.clone()).unwrap();
@@ -111,7 +110,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     }));
 
     let pool = CpuBufferPool::new(
-        mem_alloc.clone(),
+        mem_alloc,
         BufferUsage {
             transfer_src: true,
             ..BufferUsage::empty()
@@ -214,7 +213,7 @@ fn dispatch(buffer: Arc<CpuAccessibleBuffer<[f32]>>, descriptor_alloc: &Standard
     let set = PersistentDescriptorSet::new(
         descriptor_alloc,
         layout.clone(),
-        [WriteDescriptorSet::buffer(0, buffer.clone())],
+        [WriteDescriptorSet::buffer(0, buffer)],
     ).unwrap();
 
     let mut builder = AutoCommandBufferBuilder::primary(

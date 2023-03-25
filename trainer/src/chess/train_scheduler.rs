@@ -155,11 +155,6 @@ impl TrainerScheduler {
     }
 
     fn choose_next(metrics: &[GameMetrics], version: u32) -> TrainingStrategy {
-        return if version % 4 == 0 {
-            TrainingStrategy::FullGames
-        } else {
-            TrainingStrategy::KeyPositions
-        };
         if metrics.len() < 10 {
             return TrainingStrategy::FullGames;
         }

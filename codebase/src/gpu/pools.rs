@@ -21,7 +21,7 @@ impl Pools {
                 transfer_dst: true,
                 ..BufferUsage::empty()
             }, MemoryUsage::Download),
-            upload_pool: CpuBufferPool::new(memory_alloc.clone(), BufferUsage {
+            upload_pool: CpuBufferPool::new(memory_alloc, BufferUsage {
                 //storage_buffer: true,
                 transfer_src: true,
                 ..BufferUsage::empty()

@@ -1,6 +1,6 @@
 use codebase::nn::batch_config::BatchConfig;
 use codebase::nn::key_assigner::KeyAssigner;
-use codebase::nn::layers::*;
+
 use codebase::nn::layers::nn_layers::*;
 use codebase::nn::lr_calculators::constant_lr::ConstantLrConfig;
 use codebase::nn::lr_calculators::lr_calculator::LrCalc;
@@ -11,7 +11,7 @@ use ndarray_rand::RandomExt;
 use criterion::*;
 use codebase::gpu::gpu_data::GpuData;
 use codebase::nn::layers::filtering::convolution;
-use codebase::nn::layers::stored_array::StoredArray;
+
 
 fn criterion_benchmark(c: &mut Criterion) {
     let config = convolution::ConvolutionConfig {

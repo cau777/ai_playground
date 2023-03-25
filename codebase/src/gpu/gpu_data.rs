@@ -82,7 +82,7 @@ impl GpuData {
         let memory_alloc = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         Ok(Self {
-            queue: queues.next().ok_or(anyhow::anyhow!("Should create 1 queue"))?,
+            queue: queues.next().ok_or_else(||anyhow::anyhow!("Should create 1 queue"))?,
             // memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),

@@ -1,7 +1,7 @@
-use vulkano::buffer::{BufferAccess, BufferAccessObject, CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess};
+use vulkano::buffer::{BufferAccess, CpuAccessibleBuffer, DeviceLocalBuffer, TypedBufferAccess};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use std::sync::Arc;
-use vulkano::memory::allocator::FastMemoryAllocator;
+
 use crate::ArrayDynF;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::utils::{GenericResult, shape_length};
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_download_array_from_gpu() {
-        let arr = Array1F::from_shape_vec((20), (0..20).map(|o| o as f32).collect::<Vec<_>>()).unwrap().into_dyn();
+        let arr = Array1F::from_shape_vec(20, (0..20).map(|o| o as f32).collect::<Vec<_>>()).unwrap().into_dyn();
         let gpu = GpuData::new_global().unwrap();
 
         let buffer = upload_array_to_gpu(&arr, &gpu).unwrap();

@@ -38,12 +38,12 @@ enum ErrorKind {
 
 #[derive(Debug)]
 pub struct StorageDeserError {
-    kind: ErrorKind,
+    _kind: ErrorKind,
 }
 
 impl StorageDeserError {
     fn new(kind: ErrorKind) -> Self {
-        Self { kind }
+        Self { _kind: kind }
     }
 }
 
