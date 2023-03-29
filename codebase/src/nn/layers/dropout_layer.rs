@@ -19,6 +19,7 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
     fn forward(data: ForwardData, layer_config: &DropoutConfig) -> LayerResult {
         let ForwardData { forward_cache, assigner, inputs, batch_config, .. } = data;
         let key = assigner.get_key(gen_name(layer_config));
+        let inputs = inputs.into_memory()?;
 
         if batch_config.is_training { // Only perform dropout while training
             let factor = layer_config.drop;
@@ -29,23 +30,27 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
                 .into_shape(inputs.shape())?;
 
             let result = inputs * &dropout;
-            forward_cache.insert(key, vec![dropout]);
-            Ok(result)
+            if let Some(forward_cache) = forward_cache {
+                forward_cache.insert(key, vec![dropout]);
+            }
+            Ok(result.into())
         } else {
-            forward_cache.insert(key, vec![]);
-            Ok(inputs)
+            if let Some(forward_cache) = forward_cache {
+                forward_cache.insert(key, vec![]);
+            }
+            Ok(inputs.into())
         }
     }
 
     fn backward(data: BackwardData, layer_config: &DropoutConfig) -> LayerResult {
-        let BackwardData {forward_cache, assigner, grad, ..} = data;
+        let BackwardData { forward_cache, assigner, grad, .. } = data;
         let key = assigner.get_key(gen_name(layer_config));
         match forward_cache[&key].as_slice() {
             [dropout] => {
-                Ok(grad * dropout)
+                Ok((grad * dropout).into())
             }
             _ => {
-                Ok(grad)
+                Ok(grad.into())
             }
         }
     }
@@ -64,19 +69,19 @@ mod tests {
         let dist = ndarray_rand::rand_distr::Uniform::new(0.0, 1.0);
         let inputs = Array2F::random((5, 5), &dist).into_dyn();
         let mut cache = GenericStorage::new();
-        let config = DropoutConfig{drop: 0.1};
+        let config = DropoutConfig { drop: 0.1 };
         let batch_config = BatchConfig::new_train();
 
         let forward_data = ForwardData {
-            inputs,
+            inputs: inputs.into(),
             assigner: &mut KeyAssigner::new(),
-            forward_cache: &mut cache,
+            forward_cache: Some(&mut cache),
             storage: &GenericStorage::new(),
-            batch_config:  &batch_config,
+            batch_config: &batch_config,
             prev_iteration_cache: None,
             gpu: None,
         };
-        let result = DropoutLayer::forward(forward_data, &config);
+        let result = DropoutLayer::forward(forward_data, &config).unwrap().into_memory().unwrap();
         println!("{:?}", result);
         println!("{:?}", cache);
     }

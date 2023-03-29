@@ -65,30 +65,6 @@ pub fn get_forward_result() -> ArrayDynF {
     stack![Axis(0), result].into_dyn()
 }
 
-pub fn get_forward_cache() -> ArrayDynF {
-    let cache = array![
-            [
-                [0., 0., 0., 0., 0., 0., 0.],
-                [0., 0.22537, 0.51686, 0.5185, 0.60037, 0.53262, 0.],
-                [0., 0.01331, 0.5241, 0.89588, 0.7699, 0.12285, 0.],
-                [0., 0.29587, 0.61202, 0.72614, 0.4635, 0.76911, 0.],
-                [0., 0.19163, 0.55787, 0.55078, 0.47223, 0.79188, 0.],
-                [0., 0.11525, 0.6813, 0.36233, 0.34421, 0.44952, 0.],
-                [0., 0., 0., 0., 0., 0., 0.]
-            ],
-            [
-                [0., 0., 0., 0., 0., 0., 0.],
-                [0., 0.02694, 0.41525, 0.92223, 0.09121, 0.31512, 0.],
-                [0., 0.52802, 0.32806, 0.44892, 0.01633, 0.09703, 0.],
-                [0., 0.69259, 0.83594, 0.42432, 0.84877, 0.54679, 0.],
-                [0., 0.3541, 0.72725, 0.09385, 0.89286, 0.33626, 0.],
-                [0., 0.89183, 0.29685, 0.30165, 0.80624, 0.83761, 0.],
-                [0., 0., 0., 0., 0., 0., 0.]
-            ]
-        ];
-    stack![Axis(0), cache].into_dyn()
-}
-
 pub fn get_backward_result() -> ArrayDynF {
     let result = array![
             [
@@ -147,11 +123,12 @@ pub fn get_config() -> ConvolutionConfig {
         lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
         in_channels: 2,
         out_channels: 3,
+        cache: false,
     }
 }
 
 pub fn get_storage() -> GenericStorage {
     let mut result = GenericStorage::new();
-    result.insert("convolution_2_3_0".to_owned(), vec![get_kernels().into_dyn()]);
+    result.insert("convolution_2_3_2_2_1_0".to_owned(), vec![get_kernels().into_dyn()]);
     result
 }

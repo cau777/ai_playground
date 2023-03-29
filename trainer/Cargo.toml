@@ -12,6 +12,17 @@ reqwest = { version="0.11.12", features=["blocking"] }
 rand = "0.8.5"
 itertools = "0.10.5"
 bloomfilter = "1.0.9"
+#
+#[target.'cfg(not(target_env = "msvc"))'.dependencies]
+#tikv-jemallocator = "0.5"
+
+#dhat = "0.3.2"
+#
+#[features]
+#dhat-heap = []    # if you are doing heap profiling
+
+[profile.dev]
+opt-level = 2
 
 [profile.release]
 lto = true
@@ -19,9 +30,5 @@ opt-level = 3
 codegen-units = 1
 panic = "abort"
 
-# For profiling with flamegraph
+# For profiling
 debug = true
-
-#[target.x86_64-unknown-linux-gnu]
-#linker = "/usr/bin/clang"
-#rustflags = ["-Clink-arg=-fuse-ld=lld", "-Clink-arg=-Wl,--no-rosegment"]

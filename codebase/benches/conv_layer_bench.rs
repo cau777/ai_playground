@@ -1,6 +1,6 @@
 use codebase::nn::batch_config::BatchConfig;
 use codebase::nn::key_assigner::KeyAssigner;
-use codebase::nn::layers::*;
+
 use codebase::nn::layers::nn_layers::*;
 use codebase::nn::lr_calculators::constant_lr::ConstantLrConfig;
 use codebase::nn::lr_calculators::lr_calculator::LrCalc;
@@ -12,6 +12,7 @@ use criterion::*;
 use codebase::gpu::gpu_data::GpuData;
 use codebase::nn::layers::filtering::convolution;
 
+
 fn criterion_benchmark(c: &mut Criterion) {
     let config = convolution::ConvolutionConfig {
         init_mode: convolution::ConvolutionInitMode::HeNormal(),
@@ -21,6 +22,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         in_channels: 32,
         out_channels: 64,
         padding: 2,
+        cache: false,
     };
     let dist = Normal::new(0.0, 1.0).unwrap();
     let mut storage = GenericStorage::new();
@@ -28,16 +30,16 @@ fn criterion_benchmark(c: &mut Criterion) {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
-    let gpu = GpuData::new_global().unwrap();
+    let gpu = get_global_gpu.unwrap();
 
 
     c.bench_function("conv 24x24~64 forward", |b| b.iter(|| {
         convolution::ConvolutionLayer::forward(ForwardData {
-            inputs: black_box(Array4F::random((64, 8, 8, 8), &dist).into_dyn()),
+            inputs: black_box(Array4F::random((64, 8, 8, 8), &dist).into_dyn()).into(),
             storage: &storage,
             batch_config: &BatchConfig::new_not_train(),
             assigner: &mut KeyAssigner::new(),
-            forward_cache: &mut GenericStorage::new(),
+            forward_cache: None,
             prev_iteration_cache: None,
             gpu: Some(gpu.clone()),
         }, &config).unwrap();

@@ -10,7 +10,6 @@ mod conv_train;
 #[cfg(test)]
 mod test_values;
 
-// TODO: forward shader with cache
 #[derive(Clone, Debug)]
 pub struct ConvolutionConfig {
     pub in_channels: usize,
@@ -32,7 +31,8 @@ pub enum ConvolutionInitMode {
 pub struct ConvolutionLayer;
 
 fn gen_name(config: &ConvolutionConfig) -> String {
-    format!("convolution_{}_{}", config.in_channels, config.out_channels)
+    format!("convolution_{}_{}_{}_{}_{}", config.in_channels, config.out_channels, config.kernel_size,
+            config.stride, config.padding)
 }
 
 impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
@@ -40,10 +40,12 @@ impl LayerOps<ConvolutionConfig> for ConvolutionLayer {
         conv_init::init(data, layer_config)
     }
 
+    #[inline(never)]
     fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResult {
         conv_forward::forward(data, layer_config)
     }
 
+    #[inline(never)]
     fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerResult {
         conv_backward::backward(data, layer_config)
     }

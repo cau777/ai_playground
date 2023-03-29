@@ -39,7 +39,7 @@ impl Eq for BoardHashable {}
 
 #[inline]
 fn hash1(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[7][6].is_empty()) as u8) << 0 |
+    ((pieces[7][6].is_empty()) as u8) |
         ((pieces[0][6].is_empty()) as u8) << 1 |
         ((pieces[6][1].ty == Pawn && !pieces[6][1].side) as u8) << 2 |
         ((pieces[7][5].is_empty()) as u8) << 3 |
@@ -51,7 +51,7 @@ fn hash1(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash2(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[7][3].is_empty()) as u8) << 0 |
+    ((pieces[7][3].is_empty()) as u8) |
         ((pieces[0][3].is_empty()) as u8) << 1 |
         ((pieces[1][2].is_empty()) as u8) << 2 |
         ((pieces[7][0].is_empty()) as u8) << 3 |
@@ -63,7 +63,7 @@ fn hash2(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash3(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[1][7].ty == Pawn && pieces[1][7].side) as u8) << 0 |
+    ((pieces[1][7].ty == Pawn && pieces[1][7].side) as u8) |
         ((pieces[7][7].is_empty()) as u8) << 1 |
         ((pieces[7][4].is_empty()) as u8) << 2 |
         ((pieces[0][4].is_empty()) as u8) << 3 |
@@ -75,7 +75,7 @@ fn hash3(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash4(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[0][7].is_empty()) as u8) << 0 |
+    ((pieces[0][7].is_empty()) as u8) |
         ((pieces[7][2].is_empty()) as u8) << 1 |
         ((pieces[6][0].is_empty()) as u8) << 2 |
         ((pieces[1][6].ty == Pawn && pieces[1][6].side) as u8) << 3 |
@@ -87,7 +87,7 @@ fn hash4(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash5(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[7][7].ty == Rook) as u8) << 0 |
+    ((pieces[7][7].ty == Rook) as u8) |
         ((pieces[3][4].is_empty()) as u8) << 1 |
         ((pieces[0][2].is_empty()) as u8) << 2 |
         ((pieces[1][7].is_empty()) as u8) << 3 |
@@ -99,7 +99,7 @@ fn hash5(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash6(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[5][2].is_empty()) as u8) << 0 |
+    ((pieces[5][2].is_empty()) as u8) |
         ((pieces[1][0].is_empty()) as u8) << 1 |
         ((pieces[0][7].ty == Rook) as u8) << 2 |
         ((pieces[6][7].is_empty()) as u8) << 3 |
@@ -111,7 +111,7 @@ fn hash6(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash7(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[0][6].ty == King) as u8) << 0 |
+    ((pieces[0][6].ty == King) as u8) |
         ((pieces[6][2].ty == Pawn) as u8) << 1 |
         ((pieces[0][3].ty == Queen) as u8) << 2 |
         ((pieces[5][4].is_empty()) as u8) << 3 |
@@ -123,7 +123,7 @@ fn hash7(pieces: &BoardArray<BoardPiece>) -> u8 {
 
 #[inline]
 fn hash8(pieces: &BoardArray<BoardPiece>) -> u8 {
-    ((pieces[7][2].ty == Bishop) as u8) << 0 |
+    ((pieces[7][2].ty == Bishop) as u8) |
         ((pieces[6][6].is_empty()) as u8) << 1 |
         ((pieces[3][3].ty == Pawn) as u8) << 2 |
         ((pieces[3][4].ty == Pawn) as u8) << 3 |

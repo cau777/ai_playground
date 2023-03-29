@@ -10,6 +10,7 @@ mod svg_export;
 pub mod building;
 
 pub use node::NodeExtraInfo;
+use crate::chess::decision_tree::cursor::TreeCursor;
 
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
@@ -23,6 +24,43 @@ impl DecisionTree {
             start_side,
             nodes: vec![Node::new(0, Movement::default(), 0.0, 0, None, NodeExtraInfo::default())],
         }
+    }
+
+    pub fn create_subtree(&self, cursor: &mut TreeCursor, index: usize) -> (DecisionTree, TreeCursor) {
+        cursor.go_to(index, &self.nodes);
+        let controller = cursor.get_controller().clone();
+        let new_cursor = TreeCursor::new(controller);
+        let mut new_tree = Self {
+            start_side: self.get_side_at(index),
+            nodes: vec![Node::new(0, Movement::default(), 0.0, 0, None, NodeExtraInfo::default())],
+        };
+
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+        stack.push((index, 0));
+
+        while !stack.is_empty() {
+            let (old_index, new_index) = stack.pop().unwrap();
+
+            if let Some(children) = self.nodes[old_index].children.as_ref() {
+                let len = new_tree.len();
+
+                let children_info: Vec<_> = children.iter()
+                    .map(|&i| {
+                        let child = &self.nodes[i];
+                        (child.movement, child.pre_eval, child.info)
+                    })
+                    .collect();
+
+                new_tree.submit_node_children(new_index, &children_info);
+
+                // New nodes are stored in the same order
+                for (i, &c) in children.iter().enumerate() {
+                    stack.push((c, len + i));
+                }
+            }
+        }
+
+        (new_tree, new_cursor)
     }
 
     pub fn best_path_moves(&self) -> impl Iterator<Item=&Movement> {
@@ -69,7 +107,7 @@ impl DecisionTree {
         self.nodes[index].info.is_ending
     }
 
-    pub fn move_cursor(&self, c: &mut cursor::TreeCursor, target: usize) {
+    pub fn move_cursor(&self, c: &mut TreeCursor, target: usize) {
         c.go_to(target, &self.nodes)
     }
 

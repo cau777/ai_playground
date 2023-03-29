@@ -1,5 +1,6 @@
 use ndarray::{stack, Axis};
 use crate::ArrayDynF;
+use crate::gpu::gpu_data::get_global_gpu;
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::controller::NNController;
 use crate::nn::key_assigner::KeyAssigner;
@@ -19,25 +20,26 @@ impl NNController {
         let config = BatchConfig::new_not_train();
         let mut assigner = KeyAssigner::new();
         let mut forward_cache = GenericStorage::new();
-        let gpu = self.get_gpu();
+        let gpu = get_global_gpu();
 
         let output = forward_layer(
             &self.main_layer,
             ForwardData {
-                inputs,
+                inputs: inputs.into(),
                 assigner: &mut assigner,
                 storage: &self.storage,
-                forward_cache: &mut forward_cache,
+                forward_cache: Some(&mut forward_cache),
                 batch_config: &config,
                 prev_iteration_cache: None,
                 gpu
             },
-        )?;
+        )?.into_memory()?;
 
         let loss_mean = calc_loss(&self.loss, expected, &output)
             .mapv(|o| o as f64)
             .mean()
             .unwrap();
+        self.finish_method()?;
         Ok(loss_mean)
     }
 }

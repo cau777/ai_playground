@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 /// Struct that ensures that all layers that need to store data get a unique key.
+#[derive(Default)]
 pub struct KeyAssigner {
     keys: HashMap<String, u16>,
     reverse: bool

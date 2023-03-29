@@ -59,7 +59,7 @@ mod tests {
         let inputs = get_inputs_actual();
         let expected: Array2F = array![
             [0.34200877, 0.37797814, 0.28001309],
-            [0.2693075, 0.40175958, 0.32893292],
+            [0.2693075, 0.401_759_6, 0.328_932_9],
             [0.26030255, 0.35137169, 0.38832577],
             [0.37797814, 0.34200877, 0.28001309]
         ];
@@ -72,7 +72,7 @@ mod tests {
         let inputs_actual = get_inputs_actual();
         let inputs_expected = get_inputs_expected();
 
-        let expected: ArrayDynF = array![1.07291862, 1.11190113, 1.3459103, 0.97291865].into_dyn();
+        let expected: ArrayDynF = array![1.072_918_7, 1.111_901_2, 1.3459103, 0.972_918_6].into_dyn();
         let result =
             CrossEntropyLoss::calc_loss(&inputs_expected.into_dyn(), &inputs_actual.into_dyn());
         assert!(arrays_almost_equal(&result, &expected));
@@ -86,7 +86,7 @@ mod tests {
             [0.25799123, -0.27797814, -0.28001309],
             [0.1306925, 0.09824042, 0.47106708],
             [0.03969745, -0.25137169, -0.28832577],
-            [0.52202186, 0.15799123, 0.11998691]
+            [0.522_021_9, 0.15799123, 0.11998691]
         ].into_dyn();
         
         let result = CrossEntropyLoss::calc_loss_grad(

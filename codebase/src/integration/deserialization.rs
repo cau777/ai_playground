@@ -29,7 +29,7 @@ fn read_array(source: &mut &[u8]) -> io::Result<ArrayDynF> {
 fn read_storage(source: &mut &[u8]) -> DeserResult<GenericStorage> {
     let mut result = GenericStorage::new();
 
-    while source.len() != 0 {
+    while !source.is_empty() {
         let key_len = read_u32(source)?;
         let mut key_bytes = vec![0; key_len as usize];
         source.read_exact(&mut key_bytes)?;

@@ -3,13 +3,16 @@ use ndarray::parallel::prelude::*;
 use ndarray::{Axis, s, stack};
 use crate::Array4F;
 use crate::gpu::gpu_data::GlobalGpu;
-use crate::gpu::shader_runner::ShaderRunner;
-use crate::gpu::shaders;
+use crate::gpu::shader_context::{BufferConfig, ContextBinding, ShaderBinding, ShaderContext};
+
+use crate::gpu::shader_runner_2::ShaderRunner2;
+use crate::gpu::{BufferChecksumMethod, shaders};
+use crate::gpu::buffers::download_array_from_gpu;
 use crate::nn::generic_storage::{clone_from_storage1, remove_from_storage1};
 use crate::nn::layers::filtering::convolution::{ConvolutionConfig, gen_name};
-use crate::nn::layers::filtering::remove_padding_4d;
+use crate::nn::layers::filtering::{pad4d, remove_padding_4d};
 use crate::nn::layers::nn_layers::{BackwardData, LayerResult};
-use crate::utils::{Array2F, Array5F, GenericResult, get_dims_after_filter_4};
+use crate::utils::{Array2F, Array5F, GenericResult, get_dims_after_filter_4, shape_length};
 
 pub fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerResult {
     let BackwardData {
@@ -24,23 +27,26 @@ pub fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerRe
 
     let [inputs] = remove_from_storage1(forward_cache, &key);
     let inputs = inputs.into_dimensionality()?;
+    let inputs = pad4d(inputs, layer_config.padding);
 
     let grad = grad.into_dimensionality()?;
 
     let kernels_grad = calc_kernel_grad(&inputs, &grad, layer_config);
-    backward_cache.insert(key, vec![kernels_grad.into_dyn()]);
+    backward_cache.insert(key.clone(), vec![kernels_grad.into_dyn()]);
+
     let inputs_grad = match data.gpu {
-        Some(gpu) => match gpu_inputs_grad(&inputs, &grad, &kernel, gpu, layer_config) {
+        Some(gpu) => match gpu_inputs_grad(key, &inputs, &grad, &kernel, gpu, layer_config) {
             Ok(v) => v,
-            Err(e) => {
-                eprintln!("{:?}", e);
+            Err(_e) => {
+                #[cfg(debug_assertions)]
+                eprintln!("{}", _e);
                 cpu_inputs_grad(inputs, grad, kernel, layer_config)
             }
         }
         None => cpu_inputs_grad(inputs, grad, kernel, layer_config)
     };
 
-    Ok(inputs_grad.into_dyn())
+    Ok(inputs_grad.into_dyn().into())
 }
 
 pub fn calc_kernel_grad(inputs: &Array4F, grad: &Array4F, layer_config: &ConvolutionConfig) -> Array4F {
@@ -97,7 +103,7 @@ pub fn cpu_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_co
     let kernel = kernel.insert_axis(Axis(3));
 
     let [batch_size, in_channels, new_height, new_width] =
-        get_dims_after_filter_4(&inputs, *kernel_size, *stride);
+        get_dims_after_filter_4(inputs.shape(), *kernel_size, *stride);
 
     let mut parts = Vec::with_capacity(new_height * new_width);
     (0..(new_height * new_width))
@@ -121,26 +127,38 @@ pub fn cpu_inputs_grad(inputs: Array4F, grad: Array4F, kernel: Array4F, layer_co
             let h_offset = h * stride;
             let w_offset = w * stride;
             padded_result.slice_mut(s![
-                    ..,
-                    ..,
-                    h_offset..(h_offset + kernel_size),
-                    w_offset..(w_offset + kernel_size)
-                ]).add_assign(&arr);
+                ..,
+                ..,
+                h_offset..(h_offset + kernel_size),
+                w_offset..(w_offset + kernel_size)
+            ]).add_assign(&arr);
         });
 
     remove_padding_4d(padded_result, *padding)
 }
 
 
-pub fn gpu_inputs_grad(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<Array4F> {
+pub fn gpu_inputs_grad(id: String, inputs: &Array4F, grad: &Array4F, kernel: &Array4F,
+                       gpu: GlobalGpu, layer_config: &ConvolutionConfig) -> GenericResult<Array4F> {
+    let key = (id, "backward".to_owned());
+
     let ish: [usize; 4] = inputs.shape().try_into()?;
-    let out_shape = (ish[0], ish[1], ish[2] - 2 * layer_config.padding, ish[3] - 2 * layer_config.padding);
+    let osh = [ish[0], ish[1], ish[2] - 2 * layer_config.padding, ish[3] - 2 * layer_config.padding];
 
     let ish = ish.map(|o| o as u32);
     let gsh: [usize; 4] = grad.shape().try_into()?;
     let gsh = gsh.map(|o| o as u32);
-    let mut runner = ShaderRunner::new(gpu, shaders::convolution_inputs_grad::load,
-                                       "main", &shaders::convolution_inputs_grad::SpecializationConstants {
+    let buffers = [
+        BufferConfig::floats(shape_length(&osh)),
+        BufferConfig::floats(shape_length(kernel.shape())),
+        BufferConfig::floats(shape_length(grad.shape())),
+    ];
+    ShaderContext::register(&key, gpu.clone(), &buffers, |mut b| {
+        b.register_shader("backward", shaders::convolution_inputs_grad::load, vec![
+            (ContextBinding(0), ShaderBinding(0)),
+            (ContextBinding(1), ShaderBinding(1)),
+            (ContextBinding(2), ShaderBinding(2)),
+        ], &shaders::convolution_inputs_grad::SpecializationConstants {
             batch_size: ish[0],
             grad_height: gsh[2],
             grad_width: gsh[3],
@@ -151,18 +169,21 @@ pub fn gpu_inputs_grad(inputs: &Array4F, grad: &Array4F, kernel: &Array4F, gpu: 
             kernel_size: layer_config.kernel_size as u32,
             stride: layer_config.stride as u32,
             padding: layer_config.padding as u32,
-            out_height: out_shape.2 as u32,
-            out_width: out_shape.3 as u32,
+            out_height: osh[2] as u32,
+            out_width: osh[3] as u32,
         })?;
+        Ok(b)
+    })?;
 
-    let results_buffer = runner.create_download_buffer(out_shape.0 * out_shape.1 * out_shape.2 * out_shape.3)?;
-    runner.create_gpu_only_buffer(kernel)?;
-    runner.create_gpu_only_buffer(grad)?;
+    let mut runner = ShaderRunner2::new(key, gpu.clone())?;
 
-    runner.execute([out_shape.0 * out_shape.1, out_shape.2, out_shape.3].map(|o| o as u32), shaders::convolution_inputs_grad::BLOCK_SIZE)?;
-    let vec = results_buffer.read()?.to_vec();
-
-    Ok(Array4F::from_shape_vec(out_shape, vec)?)
+    runner.update_buffer_with_memory(ContextBinding(1), kernel, BufferChecksumMethod::Single)?
+        .update_buffer_with_memory(ContextBinding(2), grad, BufferChecksumMethod::None)?
+        .dispatch("backward", [osh[0] * osh[1], osh[2], osh[3]].map(|o| o as u32),
+                  shaders::convolution_inputs_grad::BLOCK_SIZE)?;
+    let result = runner.finish()?;
+    let result = download_array_from_gpu(&result, osh.to_vec(), &gpu)?;
+    Ok(result.into_dimensionality()?)
 }
 
 #[cfg(test)]
@@ -170,7 +191,7 @@ mod tests {
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
     use crate::ArrayDynF;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
@@ -184,14 +205,14 @@ mod tests {
     #[test]
     fn test_backward() {
         let inputs: ArrayDynF = get_grad();
-        let cache = get_forward_cache();
+        let cache = get_inputs();
         let expected = get_backward_result();
 
         let mut storage = get_storage();
         let config = get_config();
 
         let mut forward_cache = GenericStorage::new();
-        forward_cache.insert("convolution_2_3_0".to_owned(), vec![cache]);
+        forward_cache.insert("convolution_2_3_2_2_1_0".to_owned(), vec![cache]);
 
         let result = backward(
             BackwardData {
@@ -207,14 +228,15 @@ mod tests {
         ).unwrap();
 
         // println!("{:?}\r\n--------\r\n{:?}", result, expected);
-        assert!(arrays_almost_equal(&result, &expected));
+        assert!(arrays_almost_equal(&result.into_memory().unwrap(), &expected));
     }
 
     #[test]
     fn test_calc_kernel_grad() {
-        let inputs = get_forward_cache().into_dimensionality().unwrap();
-        let grad = get_grad().into_dimensionality().unwrap();
         let config = get_config();
+        let inputs = get_inputs().into_dimensionality().unwrap();
+        let inputs = pad4d(inputs, config.padding);
+        let grad = get_grad().into_dimensionality().unwrap();
         let expected = get_kernels_grad();
         let result = calc_kernel_grad(&inputs, &grad, &config);
 
@@ -244,7 +266,8 @@ mod tests {
         let kernel = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
 
         let expected = cpu_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
-        let actual = gpu_inputs_grad(&inputs, &grad, &kernel, GpuData::new_global().unwrap(), &config).unwrap();
+        let actual = gpu_inputs_grad(String::new(), &inputs, &grad, &kernel, get_global_gpu().unwrap(), &config).unwrap();
+        println!("{:?}\n---------\n{:?}", actual, expected);
         assert!(arrays_almost_equal(&expected, &actual));
     }
 }

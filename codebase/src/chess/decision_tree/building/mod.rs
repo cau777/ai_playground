@@ -78,12 +78,6 @@ impl DecisionTreesBuilder {
             let parts = Self::take_parts(&requests, self.options.batch_size);
 
             if !parts.is_empty() {
-                // {
-                //     let r = requests.get(parts[0].owner());
-                //     println!("{:?} {:?}", r.game_index, r.node_index);
-                // println!("{:?}", &trees[r.game_index].borrow().nodes[r.node_index]);
-                // }
-
                 let inputs: Vec<_> = parts.iter()
                     .map(|o| {
                         if let RequestPart::Pending { array, .. } = o { array.view() } else { panic!("RequestPart should be Pending") }
@@ -160,7 +154,7 @@ impl DecisionTreesBuilder {
             }
         }
 
-        println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
+        // println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
         (trees.into_iter().map(|o| o.into_inner()).collect(),
          cursors.into_iter().map(|o| o.into_inner()).collect())
     }
@@ -181,8 +175,7 @@ impl DecisionTreesBuilder {
         }
 
         let replacement = storages.iter()
-            .filter_map(|o| o.as_ref())
-            .cloned()
+            .filter_map(|&o| o.cloned())
             .map(|mut o| {
                 for arr in o.values_mut() {
                     for item in arr {
@@ -194,22 +187,22 @@ impl DecisionTreesBuilder {
             .next()?;
 
         let replaced: Vec<_> = storages.into_iter()
-            .map(|o| o.as_ref().unwrap_or(&replacement))
+            .map(|o| o.unwrap_or(&replacement))
             .collect();
 
         combine_storages(&replaced)
     }
 
     fn fill_requests(&self, requests: &mut RequestStorage, producer: &mut GamesProducer) -> Result<(), BuildingError> {
-        let mut parts_len: usize = requests.iter().map(|o| o.parts.len()).sum();
+        let mut parts_len: usize = requests.iter().map(|o| o.count_pending()).sum();
 
-        while parts_len < self.options.batch_size {
+        while parts_len < self.options.batch_size + 10 {
             match producer.next_checked()? {
                 Some(new) => {
                     parts_len += new.parts.len();
                     requests.push(new);
                 }
-                None => break
+                None => break,
             }
         }
 
@@ -241,7 +234,7 @@ impl DecisionTreesBuilder {
                 if let RequestPart::Completed { m, eval, info, cache, .. } = part {
                     data.push((m, eval, info));
                     // We can just push the cache to the array because the nodes are stored in the same order in the tree
-                    caches[req.game_index].push(cache);
+                    caches[req.game_index].insert_next(cache);
                 }
             }
 
@@ -257,6 +250,7 @@ mod tests {
     use crate::chess::board_controller::BoardController;
     use crate::chess::decision_tree::building::limiting_factors::LimiterFactors;
     use crate::nn::layers::{dense_layer, sequential_layer};
+    use crate::nn::layers::debug_layer::{DebugAction, DebugLayerConfig};
     use crate::nn::layers::filtering::convolution;
     use crate::nn::layers::nn_layers::Layer;
     use crate::nn::loss::loss_func::LossFunc;
@@ -289,14 +283,27 @@ mod tests {
                     out_channels: 2,
                     padding: 0,
                     lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
+                    cache: false,
+                }),
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_conv".to_owned(),
                 }),
                 Layer::Flatten,
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_flat".to_owned(),
+                }),
                 Layer::Dense(dense_layer::DenseConfig {
                     init_mode: dense_layer::DenseLayerInit::Random(),
                     biases_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     weights_lr_calc: LrCalc::Constant(ConstantLrConfig::default()),
                     out_values: 1,
                     in_values: 6 * 6 * 2,
+                }),
+                Layer::Debug(DebugLayerConfig {
+                    action: DebugAction::PrintShape,
+                    tag: "after_dense".to_owned(),
                 }),
             ],
         }), LossFunc::Mse).unwrap();

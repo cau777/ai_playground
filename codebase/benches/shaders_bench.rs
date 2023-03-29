@@ -1,16 +1,17 @@
 use std::sync::Arc;
 use criterion::*;
-use vulkano::buffer::{CpuAccessibleBuffer, BufferUsage};
+use vulkano::buffer::{CpuAccessibleBuffer, BufferUsage, CpuBufferPool};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, DeviceExtensions, physical::PhysicalDeviceType};
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{FastMemoryAllocator, StandardMemoryAllocator};
-use vulkano::{VulkanLibrary, DeviceSize, sync};
+use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
+use vulkano::{VulkanLibrary, sync};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
 use vulkano::sync::GpuFuture;
+use codebase::utils::Array4F;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let library = VulkanLibrary::new().unwrap();
@@ -59,82 +60,140 @@ fn criterion_benchmark(c: &mut Criterion) {
         }],
         ..Default::default()
     }).unwrap();
-    let queue = queues.next().unwrap();
+    let _queue = queues.next().unwrap();
 
-    let cmd_alloc = StandardCommandBufferAllocator::new(device.clone(), Default::default());
-    let descriptor_alloc = StandardDescriptorSetAllocator::new(device.clone());
+    let _cmd_alloc = StandardCommandBufferAllocator::new(device.clone(), Default::default());
+    let _descriptor_alloc = StandardDescriptorSetAllocator::new(device.clone());
+    let mem_alloc = Arc::new(StandardMemoryAllocator::new_default(device));
 
-    let mut complete_data: Vec<_> = (0..1_024_000).map(|_| 0.0).collect();
-    complete_data[5_000..6_000].fill(1.0);
+    let data = black_box((0..200_000).map(|o| o as f32).collect::<Vec<_>>());
+    let array = Array4F::from_shape_vec((2, 10, 100, 100), data.clone()).unwrap();
+    let array_dyn = array.clone().into_dyn();
 
-    c.bench_function("create set all", |b| b.iter(|| {
-        let alloc = FastMemoryAllocator::new_default(device.clone());
-
-        let buffer = CpuAccessibleBuffer::from_iter(
-            &alloc,
-            BufferUsage {
-                storage_buffer: true,
-                transfer_dst: true,
-                ..BufferUsage::empty()
-            },
-            false,
-            complete_data.iter().copied(),
-        ).unwrap();
-
-        dispatch(buffer, &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
-        cmd_alloc.clear(queue_family_index);
-        descriptor_alloc.clear_all();
-    }));
-
-    c.bench_function("uninit set some", |b| b.iter(|| unsafe {
-        let alloc = FastMemoryAllocator::new_default(device.clone());
-
-        let buffer = CpuAccessibleBuffer::<[f32]>::uninitialized_array(
-            &alloc,
-            complete_data.len() as DeviceSize,
-            BufferUsage {
-                storage_buffer: true,
-                transfer_dst: true,
-                ..BufferUsage::empty()
-            },
-            false,
-        ).unwrap();
-
-        {
-            let mut write = buffer.write().unwrap();
-            let mut write = write.as_mut();
-            write[5_000..6_000].copy_from_slice(&complete_data[5_000..6_000]);
-        }
-
-        dispatch(buffer, &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
-
-        cmd_alloc.clear(queue_family_index);
-        descriptor_alloc.clear_all();
-    }));
-
-    let std_alloc=StandardMemoryAllocator::new_default(device.clone());
-    let buffer = CpuAccessibleBuffer::from_iter(
-        &std_alloc,
+    let permanent_buffer_1 = CpuAccessibleBuffer::from_iter(
+        &mem_alloc,
         BufferUsage {
-            storage_buffer: true,
-            transfer_dst: true,
+            transfer_src: true,
             ..BufferUsage::empty()
         },
         false,
-        complete_data.iter().copied(),
+        data.iter().cloned(),
     ).unwrap();
-    c.bench_function("static buffer", |b| b.iter(|| {
-        {
-            let mut write = buffer.write().unwrap();
-            let mut write = write.as_mut();
-            write[5_000..6_000].copy_from_slice(&complete_data[5_000..6_000]);
-        }
 
-        dispatch(buffer.clone(), &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
-
-        cmd_alloc.clear(queue_family_index);
-        descriptor_alloc.clear_all();
+    c.bench_function("permanent-slice",|b| b.iter(||{
+        let mut write = permanent_buffer_1.write().unwrap();
+        write.copy_from_slice(&data);
     }));
+
+    c.bench_function("permanent-slice-iter",|b| b.iter(||{
+        let mut write = permanent_buffer_1.write().unwrap();
+        std::iter::zip(write.iter_mut(), data.iter())
+            .for_each(|(a, b)| *a = *b);
+    }));
+
+    c.bench_function("permanent-array",|b| b.iter(||{
+        let mut write = permanent_buffer_1.write().unwrap();
+        std::iter::zip(write.iter_mut(), array.iter())
+            .for_each(|(a, b)| *a = *b);
+    }));
+
+    c.bench_function("permanent-array-par",|b| b.iter(||{
+        let mut write = permanent_buffer_1.write().unwrap();
+        std::iter::zip(write.iter_mut(), array.iter())
+            .for_each(|(a, b)| *a = *b);
+    }));
+
+    c.bench_function("permanent-array-dyn",|b| b.iter(||{
+        let mut write = permanent_buffer_1.write().unwrap();
+        std::iter::zip(write.iter_mut(), array_dyn.iter())
+            .for_each(|(a, b)| *a = *b);
+    }));
+
+    let pool = CpuBufferPool::new(
+        mem_alloc,
+        BufferUsage {
+            transfer_src: true,
+            ..BufferUsage::empty()
+        },
+        MemoryUsage::Upload,
+    );
+
+    c.bench_function("pool", |b| b.iter(|| {
+        pool.from_iter(
+            data.iter().copied()
+        ).unwrap();
+    }));
+    // let mut complete_data: Vec<_> = (0..1_024_000).map(|_| 0.0).collect();
+    // complete_data[5_000..6_000].fill(1.0);
+    //
+    // c.bench_function("create set all", |b| b.iter(|| {
+    //     let alloc = FastMemoryAllocator::new_default(device.clone());
+    //
+    //     let buffer = CpuAccessibleBuffer::from_iter(
+    //         &alloc,
+    //         BufferUsage {
+    //             storage_buffer: true,
+    //             transfer_dst: true,
+    //             ..BufferUsage::empty()
+    //         },
+    //         false,
+    //         complete_data.iter().copied(),
+    //     ).unwrap();
+    //
+    //     dispatch(buffer, &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
+    //     cmd_alloc.clear(queue_family_index);
+    //     descriptor_alloc.clear_all();
+    // }));
+    //
+    // c.bench_function("uninit set some", |b| b.iter(|| unsafe {
+    //     let alloc = FastMemoryAllocator::new_default(device.clone());
+    //
+    //     let buffer = CpuAccessibleBuffer::<[f32]>::uninitialized_array(
+    //         &alloc,
+    //         complete_data.len() as DeviceSize,
+    //         BufferUsage {
+    //             storage_buffer: true,
+    //             transfer_dst: true,
+    //             ..BufferUsage::empty()
+    //         },
+    //         false,
+    //     ).unwrap();
+    //
+    //     {
+    //         let mut write = buffer.write().unwrap();
+    //         let mut write = write.as_mut();
+    //         write[5_000..6_000].copy_from_slice(&complete_data[5_000..6_000]);
+    //     }
+    //
+    //     dispatch(buffer, &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
+    //
+    //     cmd_alloc.clear(queue_family_index);
+    //     descriptor_alloc.clear_all();
+    // }));
+    //
+    // let std_alloc=StandardMemoryAllocator::new_default(device.clone());
+    // let buffer = CpuAccessibleBuffer::from_iter(
+    //     &std_alloc,
+    //     BufferUsage {
+    //         storage_buffer: true,
+    //         transfer_dst: true,
+    //         ..BufferUsage::empty()
+    //     },
+    //     false,
+    //     complete_data.iter().copied(),
+    // ).unwrap();
+    // c.bench_function("static buffer", |b| b.iter(|| {
+    //     {
+    //         let mut write = buffer.write().unwrap();
+    //         let mut write = write.as_mut();
+    //         write[5_000..6_000].copy_from_slice(&complete_data[5_000..6_000]);
+    //     }
+    //
+    //     dispatch(buffer.clone(), &descriptor_alloc, &cmd_alloc, device.clone(), queue.clone());
+    //
+    //     cmd_alloc.clear(queue_family_index);
+    //     descriptor_alloc.clear_all();
+    // }));
 }
 
 fn dispatch(buffer: Arc<CpuAccessibleBuffer<[f32]>>, descriptor_alloc: &StandardDescriptorSetAllocator,
@@ -154,7 +213,7 @@ fn dispatch(buffer: Arc<CpuAccessibleBuffer<[f32]>>, descriptor_alloc: &Standard
     let set = PersistentDescriptorSet::new(
         descriptor_alloc,
         layout.clone(),
-        [WriteDescriptorSet::buffer(0, buffer.clone())],
+        [WriteDescriptorSet::buffer(0, buffer)],
     ).unwrap();
 
     let mut builder = AutoCommandBufferBuilder::primary(

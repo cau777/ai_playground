@@ -25,7 +25,7 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
             let data = ForwardData {
                 inputs,
                 assigner: data.assigner,
-                forward_cache: data.forward_cache,
+                forward_cache: data.forward_cache.as_deref_mut(),
                 storage: data.storage,
                 batch_config: data.batch_config,
                 gpu: data.gpu.clone(),
@@ -48,9 +48,9 @@ impl LayerOps<SequentialConfig> for SequentialLayer {
                 storage: data.storage,
                 gpu: data.gpu.clone(),
             };
-            grad = backward_layer(layer, data)?;
+            grad = backward_layer(layer, data)?.into_memory()?;
         }
-        Ok(grad)
+        Ok(grad.into())
     }
 }
 
@@ -75,6 +75,7 @@ mod tests {
     use crate::nn::layers::sequential_layer::{SequentialLayer, SequentialConfig};
 
     use lazy_static::lazy_static;
+    use crate::utils::Array2F;
 
     lazy_static! {
         static ref INIT_COUNTER: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -118,11 +119,11 @@ mod tests {
     #[test]
     fn test_forward() {
         let data = ForwardData {
-            inputs: Default::default(),
+            inputs: Array2F::zeros((1, 1)).into_dyn().into(),
             batch_config: &BatchConfig::new_train(),
             assigner: &mut KeyAssigner::new(),
             storage: &mut GenericStorage::new(),
-            forward_cache: &mut GenericStorage::new(),
+            forward_cache: None,
             prev_iteration_cache: None,
             gpu: None,
         };

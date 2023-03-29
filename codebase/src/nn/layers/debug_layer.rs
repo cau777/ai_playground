@@ -1,20 +1,27 @@
 use std::fmt::Debug;
+use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
-use std::time;
+use std::time::Instant;
 
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 
 pub struct DebugLayer;
 
-lazy_static!{
-    static ref START_TIME: time::Instant = time::Instant::now();
+lazy_static! {
+    static ref START_TIME: Instant = Instant::now();
+}
+
+lazy_static! {
+    static ref PREVIOUS_INSTANT: Arc<Mutex<Instant>> = Arc::new(Mutex::new(Instant::now()));
 }
 
 #[derive(Clone)]
 pub enum DebugAction {
     PrintShape,
     PrintTime,
+    PrintArray,
     Call(fn(tag: &str, data: &InitData, name: &str), fn(tag: &str, data: &ForwardData, name: &str), fn(tag: &str, data: &BackwardData, name: &str)),
+    PrintElapsed,
 }
 
 #[derive(Clone)]
@@ -39,6 +46,8 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
             DebugAction::Call(f, _, _) => {
                 f(&layer_config.tag, &data, &key)
             }
+            DebugAction::PrintElapsed => {}
+            DebugAction::PrintArray => {}
         }
         Ok(())
     }
@@ -51,6 +60,14 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
             }
             DebugAction::PrintTime => {
                 println!("Forward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
+            }
+            DebugAction::PrintArray => {
+                println!("Forward:{}:array={:?}", layer_config.tag, data.inputs.to_memory()?.iter().take(400).collect::<Vec<_>>())
+            }
+            DebugAction::PrintElapsed => {
+                let mut prev = PREVIOUS_INSTANT.lock().unwrap();
+                println!("Forward:{}:elapsed={:?}", layer_config.tag, prev.elapsed().as_millis());
+                *prev = Instant::now();
             }
             DebugAction::Call(_, f, _) => {
                 f(&layer_config.tag, &data, &key);
@@ -68,10 +85,18 @@ impl LayerOps<DebugLayerConfig> for DebugLayer {
             DebugAction::PrintTime => {
                 println!("Backward:{}:time={:?}", layer_config.tag, START_TIME.elapsed().as_millis())
             }
+            DebugAction::PrintArray => {
+                println!("Backward:{}:array={:?}", layer_config.tag, data.grad.iter().take(400).collect::<Vec<_>>())
+            }
+            DebugAction::PrintElapsed => {
+                let mut prev = PREVIOUS_INSTANT.lock().unwrap();
+                println!("Backward:{}:time={:?}", layer_config.tag, prev.elapsed().as_millis());
+                *prev = Instant::now();
+            }
             DebugAction::Call(_, _, f) => {
                 f(&layer_config.tag, &data, &key);
             }
         }
-        Ok(data.grad)
+        Ok(data.grad.into())
     }
 }

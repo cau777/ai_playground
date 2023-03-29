@@ -1,9 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
-use bloomfilter::Bloom;
 use codebase::chess::board::Board;
-use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
@@ -16,6 +13,7 @@ use codebase::utils::ndarray::{Axis, stack};
 use rand::{Rng, thread_rng};
 use crate::chess::BATCH_SIZE;
 use crate::chess::game_metrics::GameMetrics;
+use crate::chess::utils::{calc_nodes_confidence_2, dedupe};
 use crate::EnvConfig;
 
 pub struct GamesTrainer {
@@ -139,7 +137,7 @@ impl GamesTrainer {
             let tree = &trees[i];
 
             let c = &mut cursors[i];
-            let confidence = self.calc_nodes_confidence_2(tree);
+            let confidence = calc_nodes_confidence_2(tree);
             let total_confidence = confidence.iter()
                 .flatten()
                 .map(|&o| o as f64)
@@ -153,6 +151,7 @@ impl GamesTrainer {
                 .filter(|(_, o)| !o.info.is_opening)
                 // Ignore ending positions, like checkmate
                 .filter(|(_, o)| !o.info.is_ending)
+                .filter(|(_, o)| o.children.is_some())
                 .map(|(i, o)| {
                     c.go_to(i, &tree.nodes);
                     let board = c.get_controller().current().clone();
@@ -178,98 +177,13 @@ impl GamesTrainer {
         //     Self::dedupe(slice.to_vec())
         // }.len());
 
-        let result = Self::dedupe(result_to_dedup);
+        let result = dedupe(result_to_dedup);
         (result, metrics.clone())
     }
-
-    fn dedupe(mut items: Vec<(Board, f32)>) -> Vec<(Board, f32)> {
-        let mut result = Vec::new();
-
-        Self::dedupe_bloom(&mut items, &mut result);
-        Self::dedupe_hashmap(&mut items, &mut result);
-
-        result
-    }
-
-    fn dedupe_bloom(from: &mut Vec<(Board, f32)>, result: &mut Vec<(Board, f32)>) {
-        let mut bloom = Bloom::new(2048, from.len());
-        from.retain(|item| {
-            let hashable = BoardHashable::new(item.0.pieces);
-            let might_be_dup = bloom.check_and_set(&hashable);
-            if !might_be_dup {
-                result.push(item.clone());
-            }
-            might_be_dup
-        })
-    }
-
-    fn dedupe_hashmap(from: &mut Vec<(Board, f32)>, result: &mut Vec<(Board, f32)>)
-    {
-        let mut map = HashMap::new();
-        for item in from.drain(..) {
-            map.insert(BoardHashable::new(item.0.pieces), item);
-        }
-
-        let mut definitely_dupes = HashSet::new();
-        for item in result.iter() {
-            let hashable = BoardHashable::new(item.0.pieces);
-            if map.contains_key(&hashable) {
-                definitely_dupes.insert(hashable);
-            }
-        }
-
-        for (key, value) in map {
-            if !definitely_dupes.contains(&key) {
-                result.push(value)
-            }
-        }
-    }
+    
     fn create_cursor(&self) -> TreeCursor {
         let mut controller = BoardController::new_start();
         controller.add_openings_tree(self.opening_tree.clone());
         TreeCursor::new(controller)
-    }
-
-    fn calc_nodes_confidence_1(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
-        let mut values: Vec<_> = tree.nodes.iter().map(|o| {
-            let side = o.get_current_side(tree.start_side);
-
-            o.children.as_ref()
-                .and_then(|o| {
-                    // Get the instant evaluation of the best child, regardless of deeper nodes
-                    let mut evals: Vec<_> = o.iter()
-                        .map(|&o| tree.nodes[o].pre_eval)
-                        .collect();
-
-                    evals.sort_unstable_by(f32::total_cmp);
-                    if side {
-                        evals.last().copied()
-                    } else {
-                        evals.first().copied()
-                    }
-                })
-                .map(|eval| (o.pre_eval - eval).abs())
-                // Apply function to smooth results
-                .map(|o| f32::exp(o * -0.2))
-        }).collect();
-
-        for (i, node) in tree.nodes.iter().enumerate().skip(1) {
-            if let Some(val) = values[i] {
-                let new = val * values[node.parent].unwrap();
-                values[i] = Some(new.max(0.1))
-            }
-        }
-
-        values
-    }
-
-    fn calc_nodes_confidence_2(&self, tree: &DecisionTree) -> Vec<Option<f32>> {
-        tree.nodes.iter().map(|o| {
-            o.children_eval
-                .map(|eval| (o.pre_eval - eval).abs())
-                // Apply function to smooth results
-                .map(|o| f32::exp(o * -1.0))
-                .map(|o| f32::max(o, 0.1))
-        }).collect()
     }
 }

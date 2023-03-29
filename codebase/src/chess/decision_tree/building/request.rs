@@ -13,10 +13,11 @@ pub struct Request {
 
 impl Request {
     pub fn is_completed(&self) -> bool {
-        self.parts.iter().all(|o| match o {
-            RequestPart::Completed { .. } => true,
-            _ => false,
-        })
+        self.parts.iter().all(|o| matches!(o, RequestPart::Completed { .. }))
+    }
+
+    pub fn count_pending(&self) -> usize {
+        self.parts.iter().filter(|o| matches!(o, RequestPart::Pending {..})).count()
     }
 }
 

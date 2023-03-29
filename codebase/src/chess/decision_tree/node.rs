@@ -83,7 +83,7 @@ impl Node {
     #[inline]
     pub fn eval(&self) -> f32 {
         if self.info.is_opening {
-            self.pre_eval // Openings have a fixed evaluation TODO
+            self.pre_eval // Openings have a fixed evaluation TODO: reconsider
         } else {
             self.children_eval.unwrap_or(self.pre_eval)
         }

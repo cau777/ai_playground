@@ -8,6 +8,7 @@ use crate::utils::{ArrayDynF, GenericResult};
 use crate::nn::layers::filtering::convolution::ConvolutionConfig;
 use super::expand_dim_layer::ExpandDimConfig;
 use crate::nn::layers::filtering::max_pool::MaxPoolConfig;
+use crate::nn::layers::stored_array::StoredArray;
 
 /// Enum to represent the layers that create the model and its parameters
 #[derive(Clone, Debug)]
@@ -71,7 +72,8 @@ pub enum Layer {
     /// No extra axis is created
     Concat(concat_layer::ConcatConfig),
 
-    /// TODO: docs
+    /// Receives 2 inputs A and B, and outputs A - B
+    /// It's useful because it makes it easier for the model to produce negative values with ReLu layers
     TwoComplementsTransformer,
 }
 
@@ -83,7 +85,7 @@ pub struct InitData<'a> {
 }
 
 pub struct ForwardData<'a> {
-    pub inputs: ArrayDynF,
+    pub inputs: StoredArray,
     pub batch_config: &'a BatchConfig,
     pub assigner: &'a mut KeyAssigner,
 
@@ -91,7 +93,7 @@ pub struct ForwardData<'a> {
     pub storage: &'a GenericStorage,
 
     /// Temporary storage that will be fed to `backward()`.
-    pub forward_cache: &'a mut GenericStorage,
+    pub forward_cache: Option<&'a mut GenericStorage>,
 
     /// Temporary storage used to reuse computations from the previous iteration, if available 
     pub prev_iteration_cache: Option<&'a mut GenericStorage>,
@@ -135,7 +137,7 @@ pub struct TrainData<'a> {
 pub type GenericStorage = HashMap<String, Vec<ArrayDynF>>;
 
 pub type EmptyLayerResult = GenericResult<()>;
-pub type LayerResult = GenericResult<ArrayDynF>;
+pub type LayerResult = GenericResult<StoredArray>;
 
 pub trait LayerOps<T> {
     fn init(data: InitData, layer_config: &T) -> EmptyLayerResult;

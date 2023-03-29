@@ -19,6 +19,6 @@ pub struct ConstantLr {}
 
 impl LrCalcOps<ConstantLrConfig> for ConstantLr {
     fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> LayerResult {
-        Ok(target * config.lr)
+        Ok((target * config.lr).into())
     }
 }

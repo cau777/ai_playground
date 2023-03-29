@@ -13,13 +13,13 @@ impl LayerOps<ExpandDimConfig> for ExpandDimLayer {
     fn init(_: InitData, _: &ExpandDimConfig) -> EmptyLayerResult {Ok(())}
 
     fn forward(data: ForwardData, layer_config: &ExpandDimConfig) -> LayerResult {
-        let mut inputs = data.inputs;
+        let mut inputs = data.inputs.into_memory()?;
         inputs.insert_axis_inplace(Axis(layer_config.dim+1));
-        Ok(inputs)
+        Ok(inputs.into())
     }
 
     fn backward(data: BackwardData, layer_config: &ExpandDimConfig) -> LayerResult {
         let grad = data.grad;
-        Ok(grad.remove_axis(Axis(layer_config.dim+1)))
+        Ok(grad.remove_axis(Axis(layer_config.dim+1)).into())
     }
 }

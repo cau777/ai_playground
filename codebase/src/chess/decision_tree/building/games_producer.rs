@@ -160,8 +160,10 @@ impl<'a> GamesProducerWorker<'a> {
                     info: NodeExtraInfo { is_ending: false, is_opening: true },
                     cache: None,
                     // Openings are usually good for both sides
-                    // Add a small random value so the AI can choose from different openings
-                    eval: rng.gen_range((-SHIFT)..SHIFT),
+                    eval: if self.options.add_random_to_openings {
+                        // Add a small random value so the AI can choose from different openings
+                        rng.gen_range((-SHIFT)..SHIFT)
+                    } else { 0.0 },
                     index_in_owner: i,
                 })
             }
@@ -248,7 +250,6 @@ impl<'a> GamesProducerWorker<'a> {
     }
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {
-        // TODO: check of the compiler optimized this
         let max_depth = tree.nodes.iter()
             .filter(|o| o.children.is_some())
             .filter(|o| {
