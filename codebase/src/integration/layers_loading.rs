@@ -115,7 +115,6 @@ fn load_layer(element: &Element) -> Result<Layer> {
             }))
         }
         "Dense" => {
-            // TODO: Init mode
             let weights_lr = iter_elements(&element.children)
                 .find(|o| o.name == "WeightsLr")
                 .ok_or(XmlError::ElementNotFound("WeightsLr"))?;

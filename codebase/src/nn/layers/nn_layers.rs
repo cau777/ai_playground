@@ -72,7 +72,8 @@ pub enum Layer {
     /// No extra axis is created
     Concat(concat_layer::ConcatConfig),
 
-    /// TODO: docs
+    /// Receives 2 inputs A and B, and outputs A - B
+    /// It's useful because it makes it easier for the model to produce negative values with ReLu layers
     TwoComplementsTransformer,
 }
 

@@ -32,7 +32,6 @@ impl ShaderRunner2 {
         })
     }
 
-    // TODO: inline
     #[inline(never)]
     pub fn update_buffer_with_memory<T: Dimension>(
         &mut self, binding: ContextBinding, data: &ArrayF<T>,
@@ -231,6 +230,7 @@ impl ShaderRunner2 {
         drop(read);
         Ok(self)
     }
+
     #[inline(never)]
     pub fn update_buffer_with_stored_array(&mut self, binding: ContextBinding, data: &StoredArray,
                                            checksum: BufferChecksumMethod) -> GenericResult<&mut Self> {
@@ -241,6 +241,7 @@ impl ShaderRunner2 {
         Ok(self)
     }
 
+    #[inline(never)]
     pub fn update_buffer_with_val(&mut self, binding: ContextBinding, value: f32) -> GenericResult<&mut Self> {
         let read = self.gpu.contexts.read().unwrap();
         let objects = read.get(&self.context)

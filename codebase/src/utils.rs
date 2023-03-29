@@ -14,11 +14,6 @@ pub type Array4F = Array4<F>;
 pub type Array5F = Array5<F>;
 pub type ArrayDynF = Array<F, IxDyn>;
 
-// pub type ArrayView1F<'a> = ArrayView1<'a, f32>;
-// pub type ArrayView2F<'a> = ArrayView2<'a, f32>;
-// pub type ArrayView3F<'a> = ArrayView3<'a, f32>;
-// pub type ArrayView4F<'a> = ArrayView4<'a, f32>;
-
 pub trait ShapeAsArray<const D: usize> {
     fn shape_arr(&self) -> [usize; D];
 }

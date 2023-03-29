@@ -250,7 +250,6 @@ impl<'a> GamesProducerWorker<'a> {
     }
 
     fn choose_deepest_node(&self, tree: &DecisionTree) -> Option<usize> {
-        // TODO: check of the compiler optimized this
         let max_depth = tree.nodes.iter()
             .filter(|o| o.children.is_some())
             .filter(|o| {
