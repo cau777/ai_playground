@@ -77,9 +77,9 @@ impl NNController {
     }
 
     fn finish_method(&self) -> GenericResult<()> {
-        if let Some(gpu) = get_global_gpu() {
-            gpu.reset_fast_mem_alloc()?;
-        }
+        // if let Some(gpu) = get_global_gpu() {
+            // gpu.reset_fast_mem_alloc()?;
+        // }
         Ok(())
     }
 }

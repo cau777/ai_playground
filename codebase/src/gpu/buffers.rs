@@ -9,7 +9,7 @@ use crate::utils::{GenericResult, shape_length};
 #[inline(never)]
 pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<GpuBuffer> {
     let cpu_buffer = CpuAccessibleBuffer::from_iter(
-        &*gpu.fast_mem_alloc.read().unwrap(),
+        &gpu.std_mem_alloc,
         vulkano::buffer::BufferUsage {
             transfer_src: true,
             ..vulkano::buffer::BufferUsage::empty()
@@ -19,7 +19,7 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
     )?;
 
     let device_local_buffer = DeviceLocalBuffer::<[f32]>::array(
-        &*gpu.fast_mem_alloc.read().unwrap(),
+        &gpu.std_mem_alloc,
         cpu_buffer.len(),
         vulkano::buffer::BufferUsage {
             storage_buffer: true,
@@ -53,7 +53,7 @@ pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &Glob
 
     let cpu_buffer = unsafe {
         CpuAccessibleBuffer::<[f32]>::uninitialized_array(
-            &*gpu.fast_mem_alloc.read().unwrap(),
+            &gpu.std_mem_alloc,
             shape_len,
             vulkano::buffer::BufferUsage {
                 transfer_dst: true,
