@@ -285,13 +285,11 @@ impl ShaderRunner2 {
         let cmd = builder.build()?;
         gpu.exec_cmd(cmd)?.wait(None)?;
 
-        // Necessary to avoid memory leaks TODO: review
-        gpu.cmd_alloc.clear(gpu.queue.queue_family_index());
-        gpu.descriptor_alloc.clear_all();
-
         let read = gpu.contexts.read().unwrap();
-        // TODO: improve
-        Ok(read[&context].get_buffer(ContextBinding(0)).unwrap())
+        let out_buffer  = read[&context].get_buffer(ContextBinding(0))
+            .ok_or_else(|| anyhow::anyhow!("By convention, all shaders must have an output buffer bound to 0"))?;
+
+        Ok(out_buffer)
     }
 
     fn create_groups(total_times: [u32; 3], block_size: [u32; 3]) -> GenericResult<[u32; 3]> {

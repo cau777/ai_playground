@@ -145,8 +145,7 @@ impl TrainerScheduler {
                 .expect("Time went backwards");
 
             let export = self.controller.export();
-            // TODO
-            // *completed = Some((export, -(since_the_epoch.as_millis() as f64)));
+            *completed = Some((export, -(since_the_epoch.as_millis() as f64)));
         }
     }
 

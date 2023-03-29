@@ -20,6 +20,14 @@ use http::{StatusCode};
 use crate::client::ServerClient;
 use crate::env_config::EnvConfig;
 
+// #[cfg(not(target_env = "msvc"))]
+// use jemallocator::Jemalloc;
+//
+// #[cfg(not(target_env = "msvc"))]
+// #[global_allocator]
+// static GLOBAL: Jemalloc = Jemalloc;
+//
+
 // #[cfg(feature = "dhat-heap")]
 // #[global_allocator]
 // static ALLOC: dhat::Alloc = dhat::Alloc;
@@ -29,12 +37,21 @@ fn main() {
     // let _profiler = dhat::Profiler::builder().trim_backtraces(Some(50)).build();
     // profile_code();
     // return;
+    // let config = EnvConfig {
+    //     epochs_per_version: 120,
+    //     mounted_path: r"C:\Users\caua_\Projects\ai_playground\temp".to_owned(),
+    //     name: "chess".to_owned(),
+    //     versions_server_url: "http://127.0.0.1:8000".to_owned(),
+    //     profile: false,
+    //     versions: 1,
+    //     max_cache_size_kb: 10,
+    // };
 
-    let config = &EnvConfig::new();
+    let config = EnvConfig::new();
     if config.profile {
         profile_code();
     } else {
-        let client = Arc::new(ServerClient::new(config));
+        let client = Arc::new(ServerClient::new(&config));
 
         let name = &config.name;
         let model_config = client.load_model_config(name).unwrap();
@@ -47,8 +64,8 @@ fn main() {
         };
 
         match name.as_str() {
-            "digits" => digits::train(storage, model_config, config, &client),
-            "chess" => chess::train(storage, model_config, config, client),
+            "digits" => digits::train(storage, model_config, &config, &client),
+            "chess" => chess::train(storage, model_config, &config, client),
             _ => panic!("Invalid model name {}", name),
         }
     }
@@ -81,7 +98,7 @@ fn profile_code() {
         ],
         BuilderOptions {
             limits: LimiterFactors {
-                max_iterations: Some(200),
+                max_iterations: Some(400),
                 ..Default::default()
             },
             next_node_strategy: codebase::chess::decision_tree::building::NextNodeStrategy::Computed {
@@ -97,40 +114,4 @@ fn profile_code() {
     );
     let (tree, _) = builder.build(&controller);
     println!("tree_len = {}", tree[0].len());
-//     println!("After building");
-//     std::io::stdin().read_line(&mut String::new()).unwrap();
-//
-//     drop(builder);
-//     drop(tree);
-//     use codebase::gpu::gpu_data::GpuData;
-//     let NNController {cached_gpu, storage,..} = controller;
-//     let gpu = Arc::try_unwrap(Arc::try_unwrap(cached_gpu).ok().unwrap().into_inner().unwrap().unwrap().unwrap()).ok().unwrap();
-//     // println!("storage len {}", storage.len());
-//
-//     gpu.reset_fast_mem_alloc();
-//     let GpuData {device, queue, descriptor_alloc, cmd_alloc, cache, std_mem_alloc, fast_mem_alloc, pools, contexts}
-// =gpu;
-
-    //     = Arc::try_unwrap(Arc::try_unwrap(cached_gpu).ok().unwrap().into_inner().unwrap().unwrap().unwrap()).ok().unwrap();
-    //
-    //
-    // drop(storage);
-    // drop(pools);
-    // drop(cmd_alloc);
-    // drop(descriptor_alloc);
-    // drop(std_mem_alloc);
-    // drop(queue);
-    // drop(device);
-    // drop(contexts);
-    // drop(cache);
-    // println!("first dropped");
-    // std::io::stdin().read_line(&mut String::new()).unwrap();
-    //
-    // drop(fast_mem_alloc);
-    // println!("fast_mem_alloc dropped");
-    // std::io::stdin().read_line(&mut String::new()).unwrap();
-    //
-    // println!("second dropped");
-    // std::io::stdin().read_line(&mut String::new()).unwrap();
-
 }

@@ -6,9 +6,10 @@ use crate::ArrayDynF;
 use crate::gpu::gpu_data::GlobalGpu;
 use crate::utils::{GenericResult, shape_length};
 
+#[inline(never)]
 pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<GpuBuffer> {
     let cpu_buffer = CpuAccessibleBuffer::from_iter(
-        & *gpu.fast_mem_alloc.read().unwrap(),
+        &*gpu.fast_mem_alloc.read().unwrap(),
         vulkano::buffer::BufferUsage {
             transfer_src: true,
             ..vulkano::buffer::BufferUsage::empty()
@@ -18,7 +19,7 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
     )?;
 
     let device_local_buffer = DeviceLocalBuffer::<[f32]>::array(
-        & *gpu.fast_mem_alloc.read().unwrap(),
+        &*gpu.fast_mem_alloc.read().unwrap(),
         cpu_buffer.len(),
         vulkano::buffer::BufferUsage {
             storage_buffer: true,
@@ -45,13 +46,14 @@ pub fn upload_array_to_gpu(array: &ArrayDynF, gpu: &GlobalGpu) -> GenericResult<
 }
 
 
+#[inline(never)]
 pub fn download_array_from_gpu(buffer: &GpuBuffer, shape: Vec<usize>, gpu: &GlobalGpu) -> GenericResult<ArrayDynF> {
     let shape_len = shape_length(&shape) as u64;
     assert_eq!(buffer.size(), shape_len * std::mem::size_of::<f32>() as u64);
 
     let cpu_buffer = unsafe {
-        CpuAccessibleBuffer::uninitialized_array(
-            & *gpu.fast_mem_alloc.read().unwrap(),
+        CpuAccessibleBuffer::<[f32]>::uninitialized_array(
+            &*gpu.fast_mem_alloc.read().unwrap(),
             shape_len,
             vulkano::buffer::BufferUsage {
                 transfer_dst: true,

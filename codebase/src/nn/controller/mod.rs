@@ -84,13 +84,8 @@ impl NNController {
     }
 
     fn get_gpu(&self) -> Option<GlobalGpu> {
-        let mut gpu_age = self.cached_gpu_age.lock().unwrap();
-        *gpu_age += 1;
-
         if self.cached_gpu.read().unwrap().is_none()
-            || *gpu_age > 10_000
         {
-            *gpu_age = 0;
             let new_gpu = match GpuData::new_global() {
                 Ok(v) => Some(v),
                 Err(e) => {
