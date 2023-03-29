@@ -2,11 +2,11 @@
   "/*404": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/_...404_.0645cbb1.js"
+      "href": "/ai_playground/assets/_...404_.3ff4d319.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -14,21 +14,21 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HttpStatusCode.eb4ae8b0.js"
+      "href": "/ai_playground/assets/HttpStatusCode.e58fd1e5.js"
     }
   ],
   "/en": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/en.ff87cbb8.js"
+      "href": "/ai_playground/assets/en.4d769bf7.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -38,15 +38,15 @@
   "/en/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.0739c8df.js"
+      "href": "/ai_playground/assets/index.94b840e4.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HomePage.9ef5c52b.js"
+      "href": "/ai_playground/assets/HomePage.f6f9c69e.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -54,25 +54,25 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     }
   ],
   "/en/chess/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.412262bd.js"
+      "href": "/ai_playground/assets/index.489d9f80.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -80,33 +80,33 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPlayground.96f6105c.js"
+      "href": "/ai_playground/assets/ChessPlayground.7fe9b7bc.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     }
   ],
   "/en/digits/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.9f56cc35.js"
+      "href": "/ai_playground/assets/index.f01ede0e.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -114,29 +114,29 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/DigitsPlayground.fa3b5733.js"
+      "href": "/ai_playground/assets/DigitsPlayground.63a7ea22.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     }
   ],
   "/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.b38de44b.js"
+      "href": "/ai_playground/assets/index.8652be87.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -146,15 +146,15 @@
   "/pt": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/pt.e0ac6cd8.js"
+      "href": "/ai_playground/assets/pt.5b99c87c.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -164,15 +164,15 @@
   "/pt/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.0a788040.js"
+      "href": "/ai_playground/assets/index.450dc466.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HomePage.9ef5c52b.js"
+      "href": "/ai_playground/assets/HomePage.f6f9c69e.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -180,25 +180,25 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     }
   ],
   "/pt/chess/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.972a1d07.js"
+      "href": "/ai_playground/assets/index.b0f0a7bb.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -206,33 +206,33 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPlayground.96f6105c.js"
+      "href": "/ai_playground/assets/ChessPlayground.7fe9b7bc.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     }
   ],
   "/pt/digits/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.a4e74212.js"
+      "href": "/ai_playground/assets/index.b0634aaf.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -240,29 +240,29 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/DigitsPlayground.fa3b5733.js"
+      "href": "/ai_playground/assets/DigitsPlayground.63a7ea22.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     }
   ],
   "/ai_playground/*404": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/_...404_.5b70b58f.js"
+      "href": "/ai_playground/assets/_...404_.b488bcf5.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -270,21 +270,21 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HttpStatusCode.eb4ae8b0.js"
+      "href": "/ai_playground/assets/HttpStatusCode.e58fd1e5.js"
     }
   ],
   "/ai_playground/en": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/en.21e249fd.js"
+      "href": "/ai_playground/assets/en.20c65f8f.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -294,15 +294,15 @@
   "/ai_playground/en/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.d463d9c0.js"
+      "href": "/ai_playground/assets/index.e21f7766.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HomePage.9ef5c52b.js"
+      "href": "/ai_playground/assets/HomePage.f6f9c69e.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -310,25 +310,25 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     }
   ],
   "/ai_playground/en/chess/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.68408160.js"
+      "href": "/ai_playground/assets/index.7083acf2.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -336,33 +336,33 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPlayground.96f6105c.js"
+      "href": "/ai_playground/assets/ChessPlayground.7fe9b7bc.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     }
   ],
   "/ai_playground/en/digits/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.52ebc1ad.js"
+      "href": "/ai_playground/assets/index.e177b565.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -370,29 +370,29 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/DigitsPlayground.fa3b5733.js"
+      "href": "/ai_playground/assets/DigitsPlayground.63a7ea22.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     }
   ],
   "/ai_playground/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.bf139667.js"
+      "href": "/ai_playground/assets/index.45c48a48.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -402,15 +402,15 @@
   "/ai_playground/pt": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/pt.d5efb944.js"
+      "href": "/ai_playground/assets/pt.1ae31a4a.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -420,15 +420,15 @@
   "/ai_playground/pt/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.f06e6a2c.js"
+      "href": "/ai_playground/assets/index.ceb7a87f.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/HomePage.9ef5c52b.js"
+      "href": "/ai_playground/assets/HomePage.f6f9c69e.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -436,25 +436,25 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     }
   ],
   "/ai_playground/pt/chess/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.c892937a.js"
+      "href": "/ai_playground/assets/index.af2ad09d.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -462,33 +462,33 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPlayground.96f6105c.js"
+      "href": "/ai_playground/assets/ChessPlayground.7fe9b7bc.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/ChessPiece.69b4989b.js"
+      "href": "/ai_playground/assets/ChessPiece.7da94711.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     }
   ],
   "/ai_playground/pt/digits/": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/index.84a94335.js"
+      "href": "/ai_playground/assets/index.91be62ca.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
@@ -496,25 +496,25 @@
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/DigitsPlayground.fa3b5733.js"
+      "href": "/ai_playground/assets/DigitsPlayground.63a7ea22.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/BtnPrimary.f80c1392.js"
+      "href": "/ai_playground/assets/BtnPrimary.f173c028.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/LanguagesContext.65e45290.js"
+      "href": "/ai_playground/assets/LanguagesContext.231e6300.js"
     },
     {
       "type": "script",
-      "href": "/ai_playground/assets/NavControls.6b200e60.js"
+      "href": "/ai_playground/assets/NavControls.5d0fd961.js"
     }
   ],
   "entry-client": [
     {
       "type": "script",
-      "href": "/ai_playground/assets/entry-client.1f58f534.js"
+      "href": "/ai_playground/assets/entry-client.13f135e2.js"
     },
     {
       "type": "style",
