@@ -2,7 +2,7 @@ mod evaluating;
 mod training;
 mod testing;
 
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use crate::gpu::gpu_data::{GlobalGpu, GpuData};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
@@ -32,7 +32,6 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
-    cached_gpu_age: Mutex<u64>,
     cached_gpu: Arc<RwLock<Option<Option<GlobalGpu>>>>,
 }
 
@@ -54,7 +53,6 @@ impl NNController {
             storage,
             loss,
             cached_gpu: Arc::new(RwLock::new(None)),
-            cached_gpu_age: Mutex::new(0),
         })
     }
 
@@ -74,7 +72,6 @@ impl NNController {
             storage,
             loss,
             cached_gpu: Arc::new(RwLock::new(None)),
-            cached_gpu_age: Mutex::new(0),
         })
     }
 

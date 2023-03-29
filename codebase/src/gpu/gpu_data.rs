@@ -9,7 +9,6 @@ use vulkano::memory::allocator::{FastMemoryAllocator, StandardMemoryAllocator};
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::sync::{FenceSignalFuture, GpuFuture, NowFuture};
-use crate::gpu::pools::Pools;
 use crate::gpu::shader_context::{ShaderContextKey, ShaderContext};
 use crate::utils::GenericResult;
 
@@ -24,7 +23,6 @@ pub struct GpuData {
     pub cache: Option<Arc<PipelineCache>>,
     pub std_mem_alloc: Arc<StandardMemoryAllocator>,
     pub fast_mem_alloc: RwLock<FastMemoryAllocator>,
-    pub pools: Pools,
     pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>,
 }
 
@@ -89,7 +87,6 @@ impl GpuData {
             cache: PipelineCache::empty(device.clone()).map_err(|e| println!("{:?}", e)).ok(),
             fast_mem_alloc: RwLock::new(FastMemoryAllocator::new_default(device.clone())),
             device,
-            pools: Pools::new(memory_alloc.clone()),
             std_mem_alloc: memory_alloc,
             contexts: RwLock::new(HashMap::new()),
         })

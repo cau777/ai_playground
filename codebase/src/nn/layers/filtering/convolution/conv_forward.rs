@@ -243,10 +243,8 @@ mod tests {
     use crate::gpu::gpu_data::GpuData;
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
-    use crate::nn::layers::filtering::convolution::ConvolutionInitMode;
     use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
     use crate::nn::layers::filtering::convolution::test_values::*;
-    use crate::nn::layers::nn_layers::GenericStorage;
     use crate::nn::lr_calculators::constant_lr::ConstantLrConfig;
     use crate::nn::lr_calculators::lr_calculator::LrCalc;
     use crate::utils::arrays_almost_equal;

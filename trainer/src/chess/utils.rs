@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use bloomfilter::Bloom;
 use codebase::chess::board::Board;

@@ -1,9 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
-use bloomfilter::Bloom;
 use codebase::chess::board::Board;
-use codebase::chess::board_controller::board_hashable::BoardHashable;
 use codebase::chess::board_controller::BoardController;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
