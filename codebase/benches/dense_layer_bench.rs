@@ -25,7 +25,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
-    let gpu = GpuData::new_global().unwrap();
+    let gpu = get_global_gpu.unwrap();
 
     c.bench_function("dense 256x256 forward", |b| b.iter(|| {
         dense_layer::DenseLayer::forward(ForwardData {

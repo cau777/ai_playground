@@ -30,9 +30,9 @@ impl LayerOps<()> for ReluLayer {
         if matches!(inputs, StoredArray::GpuLocal {..}) {
             match forward_gpu(key, &inputs, gpu.unwrap()) {
                 Ok(v) => Ok(v),
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(debug_assertions)]
-                    eprintln!("{}", e);
+                    eprintln!("{}", _e);
                     Ok(forward_cpu(inputs.into_memory()?))
                 }
             }
@@ -78,7 +78,7 @@ fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu) -> GenericResul
 #[cfg(test)]
 mod tests {
     use crate::gpu::buffers::upload_array_to_gpu;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::utils::{Array3F, arrays_almost_equal};
     use super::*;
 
@@ -89,11 +89,11 @@ mod tests {
         let expected_array = Array3F::from_shape_vec((2, 2, 2),
                                                      vec![1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0]).unwrap().into_dyn();
 
-        let gpu = GpuData::new_global().unwrap();
+        let gpu = get_global_gpu().unwrap();
         let inputs = StoredArray::GpuLocal {data:  upload_array_to_gpu(&inputs, &gpu).unwrap(), shape: inputs.shape().to_vec(), gpu: gpu.clone()};
 
 
-        let output = forward_gpu("".to_owned(), &inputs, gpu)
+        let output = forward_gpu("test_forward_gpu".to_owned(), &inputs, gpu)
             .unwrap().into_memory().unwrap();
 
         assert!(arrays_almost_equal(&output, &expected_array));

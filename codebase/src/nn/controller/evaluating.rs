@@ -2,7 +2,7 @@
 use ndarray::{Axis, stack};
 use crate::ArrayDynF;
 use crate::gpu::buffers::upload_array_to_gpu;
-use crate::gpu::gpu_data::GlobalGpu;
+use crate::gpu::gpu_data::{get_global_gpu, GlobalGpu};
 use crate::nn::batch_config::BatchConfig;
 use crate::nn::controller::NNController;
 use crate::nn::key_assigner::KeyAssigner;
@@ -35,7 +35,7 @@ impl NNController {
     pub fn eval_batch(&self, inputs: ArrayDynF) -> GenericResult<ArrayDynF> {
         let mut assigner = KeyAssigner::new();
         let config = BatchConfig::new_not_train();
-        let gpu = self.get_gpu();
+        let gpu = get_global_gpu();
 
         let result = forward_layer(
             &self.main_layer,
@@ -57,7 +57,7 @@ impl NNController {
                            -> GenericResult<(ArrayDynF, GenericStorage)> {
         let mut assigner = KeyAssigner::new();
         let config = BatchConfig::new_not_train();
-        let gpu = self.get_gpu();
+        let gpu = get_global_gpu();
         let mut cache = prev_iteration_cache.unwrap_or_default();
 
         let result = forward_layer(

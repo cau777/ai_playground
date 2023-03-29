@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, physical::PhysicalDeviceType, Queue, QueueCreateInfo};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -26,11 +26,39 @@ pub struct GpuData {
     pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>,
 }
 
-impl GpuData {
-    pub fn new_global() -> GenericResult<GlobalGpu> {
-        Self::new().map(Arc::new)
-    }
+enum GpuStatus {
+    Unavailable,
+    Available(GlobalGpu),
+    Pending,
+}
 
+lazy_static::lazy_static! {
+    static ref GLOBAL_GPU: Arc<Mutex<GpuStatus>> = Arc::new(Mutex::new(GpuStatus::Pending));
+}
+
+pub fn get_global_gpu() -> Option<GlobalGpu> {
+    let mut current = GLOBAL_GPU.lock().unwrap();
+    match &mut *current {
+        GpuStatus::Available(gpu) => Some(gpu.clone()),
+        GpuStatus::Unavailable => None,
+        GpuStatus::Pending => {
+            match GpuData::new() {
+                Ok(val) => {
+                    let val = Arc::new(val);
+                    *current = GpuStatus::Available(val.clone());
+                    Some(val)
+                }
+                Err(e) => {
+                    eprintln!("Could not instantiate GPU: {:?}", e);
+                    *current = GpuStatus::Unavailable;
+                    None
+                }
+            }
+        }
+    }
+}
+
+impl GpuData {
     fn new() -> GenericResult<Self> {
         let library = VulkanLibrary::new()?;
         let instance = Instance::new(

@@ -92,7 +92,7 @@ mod tests {
     use ndarray_rand::RandomExt;
     use crate::ArrayDynF;
     use crate::gpu::buffers::upload_array_to_gpu;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::max_pool::tests::{create_forward_outputs, create_inputs};
@@ -126,7 +126,7 @@ mod tests {
         let expected = create_forward_outputs();
 
         fn action(inputs: ArrayDynF, size: usize, stride: usize) -> ArrayDynF {
-            let gpu = GpuData::new_global().unwrap();
+            let gpu = get_global_gpu().unwrap();
 
             forward(ForwardData {
                 gpu: Some(gpu.clone()),
@@ -152,13 +152,13 @@ mod tests {
             size: 2,
         };
 
-        let gpu = GpuData::new_global().unwrap();
+        let gpu = get_global_gpu().unwrap();
         let shape = inputs.shape().to_vec();
 
         let cpu_out = forward_cpu(inputs.clone(), config.size, config.stride, config.padding)
             .into_memory().unwrap();
         let gpu_out = forward_gpu(
-            "".to_owned(),
+            "test_cpu_gpu_equal".to_owned(),
             &StoredArray::GpuLocal { data: upload_array_to_gpu(&inputs.into_dyn(), &gpu).unwrap(), gpu: gpu.clone(), shape },
             gpu,
             &config

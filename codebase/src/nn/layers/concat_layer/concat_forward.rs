@@ -131,7 +131,7 @@ fn forward_cpu(results: Vec<StoredArray>, concat_dim: usize) -> GenericResult<St
 #[cfg(test)]
 mod tests {
     use crate::Array4F;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::utils::arrays_almost_equal;
     use super::*;
 
@@ -154,7 +154,7 @@ mod tests {
         ];
         let arrays: Vec<_> = arrays.into_iter().map(|o| o.into_dyn().into()).collect();
 
-        let gpu = GpuData::new_global().unwrap();
+        let gpu = get_global_gpu().unwrap();
         let expected = forward_cpu(arrays.clone(), 1)
             .unwrap().into_memory().unwrap();
 

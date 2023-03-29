@@ -2,8 +2,7 @@ mod evaluating;
 mod training;
 mod testing;
 
-use std::sync::{Arc, RwLock};
-use crate::gpu::gpu_data::{GlobalGpu, GpuData};
+use crate::gpu::gpu_data::{get_global_gpu};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
 use crate::nn::loss::loss_func::LossFunc;
@@ -32,7 +31,6 @@ pub struct NNController {
     main_layer: Layer,
     storage: GenericStorage,
     loss: LossFunc,
-    cached_gpu: Arc<RwLock<Option<Option<GlobalGpu>>>>,
 }
 
 impl NNController {
@@ -52,7 +50,6 @@ impl NNController {
             main_layer,
             storage,
             loss,
-            cached_gpu: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -71,7 +68,6 @@ impl NNController {
             main_layer,
             storage,
             loss,
-            cached_gpu: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -80,33 +76,8 @@ impl NNController {
         self.storage.clone()
     }
 
-    fn get_gpu(&self) -> Option<GlobalGpu> {
-        if self.cached_gpu.read().unwrap().is_none()
-        {
-            let new_gpu = match GpuData::new_global() {
-                Ok(v) => Some(v),
-                Err(e) => {
-                    eprintln!("{:?}", e);
-                    None
-                }
-            };
-
-            let mut prev =self.cached_gpu.write().unwrap();
-            if let Some(prev) = prev.as_ref() {
-                if let Some(prev ) = prev.as_ref() {
-                    prev.contexts.write().unwrap().clear();
-                    prev.cmd_alloc.clear(prev.queue.queue_family_index());
-                    prev.descriptor_alloc.clear_all();
-                }
-            }
-            *prev = Some(new_gpu);
-        }
-
-        self.cached_gpu.read().unwrap().clone().unwrap()
-    }
-
     fn finish_method(&self) -> GenericResult<()> {
-        if let Some(gpu) = self.get_gpu() {
+        if let Some(gpu) = get_global_gpu() {
             gpu.reset_fast_mem_alloc()?;
         }
         Ok(())

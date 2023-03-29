@@ -13,7 +13,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("main");
     group.measurement_time(Duration::from_secs(15));
 
-    let gpu = GpuData::new_global().unwrap();
+    let gpu = get_global_gpu.unwrap();
     let config = MaxPoolConfig {
         size: 2,
         stride: 2,

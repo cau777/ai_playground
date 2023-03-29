@@ -82,14 +82,14 @@ pub type CpuBuffer = Arc<CpuAccessibleBuffer<[f32]>>;
 
 #[cfg(test)]
 mod tests {
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::utils::Array1F;
     use super::*;
 
     #[test]
     fn test_download_array_from_gpu() {
         let arr = Array1F::from_shape_vec(20, (0..20).map(|o| o as f32).collect::<Vec<_>>()).unwrap().into_dyn();
-        let gpu = GpuData::new_global().unwrap();
+        let gpu = get_global_gpu().unwrap();
 
         let buffer = upload_array_to_gpu(&arr, &gpu).unwrap();
         download_array_from_gpu(&buffer, vec![20], &gpu).unwrap();

@@ -27,9 +27,9 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
     let result = match data.gpu {
         Some(gpu) => match gpu_forward_with_cache(key, inputs.clone(), &kernel, gpu, layer_config) {
             Ok(v) => v,
-            Err(e) => {
+            Err(_e) => {
                 #[cfg(debug_assertions)]
-                eprintln!("{}", e);
+                eprintln!("{}", _e);
                 cpu_forward(inputs, kernel, layer_config)?
             }
         }
@@ -240,7 +240,7 @@ mod tests {
     use ndarray_rand::rand::{Rng, thread_rng};
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
@@ -290,7 +290,7 @@ mod tests {
                 assigner: &mut KeyAssigner::new(),
                 batch_config: &BatchConfig::new_train(),
                 prev_iteration_cache: None,
-                gpu: Some(GpuData::new_global().unwrap()),
+                gpu: Some(get_global_gpu().unwrap()),
             },
             &config,
         ).unwrap();
@@ -333,7 +333,7 @@ mod tests {
             }
 
             let expected = cpu_forward(StoredArray::Memory { data: inputs.clone().into_dyn() }, kernels.clone(), &config).unwrap().into_memory().unwrap();
-            let actual = gpu_forward_with_cache("".to_owned(), StoredArray::Memory { data: inputs.into_dyn() }, &kernels, GpuData::new_global().unwrap(), &config)
+            let actual = gpu_forward_with_cache("test_gpu_cpu_equal_forward".to_owned(), StoredArray::Memory { data: inputs.into_dyn() }, &kernels, get_global_gpu().unwrap(), &config)
                 .unwrap().into_memory().unwrap();
 
             println!("{:?}\n---------------\n{:?}", actual, expected);

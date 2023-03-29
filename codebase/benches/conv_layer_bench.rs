@@ -30,7 +30,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         storage: &mut storage,
         assigner: &mut KeyAssigner::new(),
     }, &config).unwrap();
-    let gpu = GpuData::new_global().unwrap();
+    let gpu = get_global_gpu.unwrap();
 
 
     c.bench_function("conv 24x24~64 forward", |b| b.iter(|| {

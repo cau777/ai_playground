@@ -52,7 +52,7 @@ impl StoredArray {
 
 #[cfg(test)]
 mod tests {
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::utils::{Array3F, arrays_almost_equal};
     use super::*;
 
@@ -66,7 +66,7 @@ mod tests {
         let shape = initial_array.shape().to_vec();
 
         let stored = StoredArray::Memory { data: initial_array.clone() };
-        let gpu = GpuData::new_global().unwrap();
+        let gpu = get_global_gpu().unwrap();
         let buffer = stored.into_gpu_local(gpu.clone()).unwrap();
 
         let stored = StoredArray::GpuLocal { gpu, shape, data: buffer };

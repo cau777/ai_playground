@@ -37,9 +37,9 @@ pub fn backward(data: BackwardData, layer_config: &ConvolutionConfig) -> LayerRe
     let inputs_grad = match data.gpu {
         Some(gpu) => match gpu_inputs_grad(key, &inputs, &grad, &kernel, gpu, layer_config) {
             Ok(v) => v,
-            Err(e) => {
+            Err(_e) => {
                 #[cfg(debug_assertions)]
-                eprintln!("{}", e);
+                eprintln!("{}", _e);
                 cpu_inputs_grad(inputs, grad, kernel, layer_config)
             }
         }
@@ -191,7 +191,7 @@ mod tests {
     use ndarray_rand::rand_distr::Normal;
     use ndarray_rand::RandomExt;
     use crate::ArrayDynF;
-    use crate::gpu::gpu_data::GpuData;
+    use crate::gpu::gpu_data::{get_global_gpu};
     use crate::nn::batch_config::BatchConfig;
     use crate::nn::key_assigner::KeyAssigner;
     use crate::nn::layers::filtering::convolution::ConvolutionInitMode::HeNormal;
@@ -266,7 +266,7 @@ mod tests {
         let kernel = Array4F::random((config.out_channels, config.in_channels, config.kernel_size, config.kernel_size), &dist);
 
         let expected = cpu_inputs_grad(inputs.clone(), grad.clone(), kernel.clone(), &config);
-        let actual = gpu_inputs_grad(String::new(), &inputs, &grad, &kernel, GpuData::new_global().unwrap(), &config).unwrap();
+        let actual = gpu_inputs_grad(String::new(), &inputs, &grad, &kernel, get_global_gpu().unwrap(), &config).unwrap();
         println!("{:?}\n---------\n{:?}", actual, expected);
         assert!(arrays_almost_equal(&expected, &actual));
     }
