@@ -6,6 +6,6 @@ import ssg from "solid-start-static";
 export default defineConfig({
   plugins: [solid({
     adapter: ssg({}),
-    prerenderRoutes: ["/en/digits", "/pt/digits"]
+    prerenderRoutes: ["/en/digits", "/pt/digits"],
   })],
 });

@@ -10,5 +10,5 @@ export default defineConfig({
     base: "/ai_playground/",
     build: {
         minify: "esbuild",
-    }
+    },
 });
