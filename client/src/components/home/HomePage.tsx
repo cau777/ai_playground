@@ -18,7 +18,7 @@ export const HomePage: Component = () => {
         },
         {
             href: "/chess",
-            title: chessT.title + " (WIP)",
+            title: `${chessT.title} (${homeT.statusEarlyDev})`,
             icon: <ChessPageIcon></ChessPageIcon>,
         }
     ];

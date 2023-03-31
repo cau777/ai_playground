@@ -39,6 +39,7 @@ export default {
         "description": "Esse é um grande projeto que estou desenvolvendo em meu tempo livre. " +
             "Ele visa explorar algumas capacidades de IA em vários projetos interativos. " +
             "Para isso, estou escrevendo uma biblioteca de Deep Learning em Rust, praticamente do zero. " +
-            "Todo o código se encontra open-source no meu "
+            "Todo o código se encontra open-source no meu ",
+        "statusEarlyDev": "Fase inicial",
     }
 }
