@@ -1,3 +1,4 @@
+use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::{Array1F};
 
 use super::nn_layers::{LayerOps, LayerResult, EmptyLayerResult, ForwardData, BackwardData};
@@ -28,8 +29,16 @@ impl LayerOps<()> for FlattenLayer {
             forward_cache.insert(key, vec![shape_array.into_dyn()]);
         }
 
-        let inputs = inputs.into_memory()?;
-        Ok(inputs.into_shape(new_shape)?.into_dyn().into())
+        let result = match inputs {
+            StoredArray::GpuLocal {data, gpu, ..} => {
+                StoredArray::GpuLocal {data, gpu, shape: new_shape.to_vec()}
+            }
+            StoredArray::Memory {data} => {
+                StoredArray::Memory {data: data.into_shape(new_shape)?.into_dyn()}
+            }
+        };
+
+        Ok(result)
     }
 
     fn backward(data: BackwardData, _: &()) -> LayerResult {

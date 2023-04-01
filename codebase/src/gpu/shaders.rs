@@ -53,3 +53,12 @@ pub mod max_pool_forward {
         path: "./src/gpu/shaders/max_pool_forward.glsl"
     }
 }
+
+pub mod dense_forward {
+    pub const BLOCK_SIZE: [u32; 3] = [8, 4, 1];
+
+    vulkano_shaders::shader! {
+        ty: "compute",
+        path: "./src/gpu/shaders/dense_forward.glsl"
+    }
+}
