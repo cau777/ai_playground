@@ -145,7 +145,7 @@ impl DecisionTreesBuilder {
                         .filter(|o| o.info.is_ending)
                         .count();
 
-                    caches[i].remove_excess(&tree, &self.options.next_node_strategy);
+                    caches[i].remove_excess();
                 }
             }
 

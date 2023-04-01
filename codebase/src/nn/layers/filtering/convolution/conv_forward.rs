@@ -50,7 +50,7 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
 
             let result = match prev_values {
                 Some([prev_inputs, prev_result]) => {
-                    cpu_forward_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
+                    cpu_forward_with_cache(inputs, prev_inputs, prev_result, kernel, layer_config)?
                 }
                 None => {
                     cpu_forward(inputs, kernel, layer_config)?
@@ -95,8 +95,8 @@ pub fn cpu_forward(inputs: StoredArray, kernel: ArrayDynF, layer_config: &Convol
     Ok(StoredArray::Memory { data: stack(Axis(0), &views)?.into_dyn() })
 }
 
-pub fn cpu_forward_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_results: ArrayDynF, kernel: ArrayDynF,
-                         layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
+pub fn cpu_forward_with_cache(inputs: StoredArray, prev_inputs: ArrayDynF, prev_results: ArrayDynF, kernel: ArrayDynF,
+                              layer_config: &ConvolutionConfig) -> GenericResult<StoredArray> {
     let kernel = kernel.into_dimensionality()?;
     let ConvolutionConfig { stride, kernel_size, out_channels, .. } = layer_config;
     let inputs = inputs.into_memory()?.into_dimensionality()?;
