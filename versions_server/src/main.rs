@@ -31,6 +31,7 @@ pub type LoadedModelsDep = EndpointDict<Arc<RwLock<LoadedModel>>>;
 async fn main() {
     println!("Running");
     let config = Arc::new(EnvConfig::new());
+    // There's one instance of the FileManager and one for the LoadedModel for each model name
     let file_managers = EndpointDict::new(
         Arc::new(RwLock::new(FileManager::new("digits", config.clone()).unwrap())),
         Arc::new(RwLock::new(FileManager::new("chess", config.clone()).unwrap())),
@@ -57,7 +58,10 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::bytes())
         .and(with_file_managers(&file_managers))
-        .and_then(rest_handlers::post_trainable);
+        .and_then(rest_handlers::post_trainable)
+        .recover(|err| {
+
+        });
 
     let get_trainable_route = path!(String / "trainable")
         .and(warp::get())

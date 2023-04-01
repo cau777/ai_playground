@@ -1,4 +1,4 @@
-use codebase::chess::board_controller::BoardController;
+use codebase::chess::board_controller::GameController;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
@@ -26,7 +26,7 @@ pub async fn decide_and_apply(file_manager: FileManagerDep, loaded: LoadedModelD
     Ok(())
 }
 
-async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller: BoardController,
+async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller: GameController,
                 config: &EnvConfig) -> Res<Movement> {
     let file_manager = file_manager.read().await;
 
@@ -61,6 +61,8 @@ async fn decide(file_manager: FileManagerDep, loaded: LoadedModelDep, controller
 
     #[cfg(debug_assertions)]
     {
+        // For debug purposes only
+        // Saved the decision tree as an svg locally to be analyzed
         use std::io::Write;
         std::fs::OpenOptions::new().write(true).create(true).open(
             format!("../out/{}.svg", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards").as_secs()

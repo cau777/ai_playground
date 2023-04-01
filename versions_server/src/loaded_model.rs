@@ -2,6 +2,7 @@ use codebase::nn::controller::NNController;
 use codebase::utils::GenericResult;
 use crate::{FileManager, LoadedModelDep};
 
+/// Simple cache structure to avoid loading the same model multiple times
 #[derive(Default)]
 pub struct LoadedModel {
     version: u32,
@@ -21,6 +22,7 @@ impl LoadedModel {
     }
 }
 
+/// Load the model with target version from the disk if it's not already cached
 pub async fn assert_model_loaded(loaded_model_dep: &LoadedModelDep, target: u32, file_manager: &FileManager) -> GenericResult<()> {
     let curr_version = {
         loaded_model_dep.read().await.version

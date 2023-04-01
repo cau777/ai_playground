@@ -107,10 +107,12 @@ impl FileManager {
         file.write_all(bytes)
     }
 
+    /// Find the most recent version
     pub fn most_recent(&self) -> u32 {
         self.versions.iter().map(|o| o.id).max().unwrap_or(0)
     }
 
+    /// Find the version with the lowest loss
     pub fn best(&self) -> u32 {
         self.versions.iter().min_by(|a, b| a.meta.loss.total_cmp(&b.meta.loss))
             .map(|o| o.id).unwrap_or(0)
@@ -135,10 +137,4 @@ impl FileManager {
     fn open_config(&self, options: &mut OpenOptions) -> io::Result<File> {
         options.open(format!("{}/config.xml", self.base_path))
     }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_add() {}
 }

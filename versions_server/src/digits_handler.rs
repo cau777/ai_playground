@@ -4,6 +4,7 @@ use crate::{FileManagerDep, LoadedModelDep, StatusCode};
 use crate::loaded_model::assert_model_loaded;
 use crate::utils::{data_err_proc, EndpointResult};
 
+/// Return the predicted possibilities for each digit based on the user-supplied pixeks
 pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: LoadedModelDep) -> EndpointResult<impl Reply> {
     {
         // Code block to free write lock asap
@@ -17,6 +18,7 @@ pub async fn post_eval(body: Vec<u8>, file_manager: FileManagerDep, loaded: Load
 
     let loaded = loaded.read().await;
     let controller = loaded.get_loaded().unwrap();
+    // Transform values from 0-255 to 0.0-1.0
     let pixels = body.into_iter().map(|o| (o as f32) / 255.0).collect();
 
     let inputs = match Array2F::from_shape_vec((28, 28), pixels) {

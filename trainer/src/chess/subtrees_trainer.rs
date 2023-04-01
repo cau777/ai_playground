@@ -1,7 +1,7 @@
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
-use codebase::chess::board_controller::BoardController;
+use codebase::chess::board_controller::GameController;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder, LimiterFactors, NextNodeStrategy};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
@@ -48,7 +48,7 @@ impl SubtreesTrainer {
 
     fn get_subtrees(&self, controller: &NNController, limits: LimiterFactors, random_node_chance: f64)
         -> Vec<(DecisionTree, TreeCursor)> {
-        const SUBTREE_COUNT: usize = 10; // TODO: analyze
+        const SUBTREE_COUNT: usize = 16; // TODO: analyze
         let tree = vec![DecisionTree::new(true)];
         let cursor = vec![self.create_cursor()];
         let options = BuilderOptions {
@@ -207,8 +207,8 @@ impl SubtreesTrainer {
     }
 
     fn create_cursor(&self) -> TreeCursor {
-        let mut controller = BoardController::new_start();
-        controller.add_openings_tree(self.opening_tree.clone());
+        let mut controller = GameController::new_start();
+        controller.set_openings_book(self.opening_tree.clone());
         TreeCursor::new(controller)
     }
 }

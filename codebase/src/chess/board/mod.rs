@@ -10,6 +10,8 @@ use crate::chess::side_dict::SideDict;
 use crate::chess::utils::{BoardArray};
 use crate::utils::Array3F;
 
+/// Like a snapshot of the game in a specific moment. Contains almost all information necessary
+/// to play a position, except for the 50-move rule and3-fold-repetitions
 #[derive(Eq, PartialEq, Clone)]
 pub struct Board {
     pub pieces: BoardArray<BoardPiece>,
@@ -18,6 +20,7 @@ pub struct Board {
 }
 
 impl Board {
+    /// Return the default board configuration
     pub fn new() -> Self {
         use PieceType::*;
         use BoardPiece as bp;
@@ -39,6 +42,9 @@ impl Board {
         }
     }
 
+    /// Return an array of dimensions 6x8x8. This shape means that, in each square
+    /// there's an array with a space for each piece type (6). It's all zeros, except for the index
+    /// of the piece occupying that square.
     pub fn to_array(&self) -> Array3F {
         let mut result = Array3F::zeros((6, 8, 8));
 
@@ -51,6 +57,8 @@ impl Board {
             }
         }
 
+        // Add a hit in the array that castling there is allowed
+        // This is done by putting 0.5 in the channel of the king and the position of the rook
         if self.castle_rights[true].king_side {
             result[(5, 0, 7)] = 0.5;
         }
@@ -63,7 +71,9 @@ impl Board {
         if self.castle_rights[false].queen_side {
             result[(5, 7, 0)] = -0.5;
         }
-        result
+
+        // Add a small value to avoid absolute zeros
+        result + 0.00001
     }
 }
 

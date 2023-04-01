@@ -5,7 +5,7 @@ use codebase::nn::lr_calculators::constant_lr::ConstantLrConfig;
 use codebase::nn::lr_calculators::lr_calculator::LrCalc;
 use codebase::chess::decision_tree::{building, DecisionTree};
 use criterion::*;
-use codebase::chess::board_controller::BoardController;
+use codebase::chess::board_controller::GameController;
 use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::nn::controller::NNController;
@@ -52,7 +52,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function("optimized2", |b| b.iter(|| {
             let builder = building::DecisionTreesBuilder::new(
                 vec![DecisionTree::new(true)],
-                vec![TreeCursor::new(BoardController::new_start())],
+                vec![TreeCursor::new(GameController::new_start())],
                 BuilderOptions {
                     limits: LimiterFactors {
                         max_iterations: Some(10),
@@ -76,7 +76,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function("optimized2-nocache", |b| b.iter(|| {
             let builder = building::DecisionTreesBuilder::new(
                 vec![DecisionTree::new(true)],
-                vec![TreeCursor::new(BoardController::new_start())],
+                vec![TreeCursor::new(GameController::new_start())],
                 BuilderOptions {
                     limits: LimiterFactors {
                         max_iterations: Some(10),

@@ -6,24 +6,7 @@ use warp::http::{StatusCode};
 use crate::{FileManagersDep};
 use crate::utils::{EndpointResult, stderr_proc};
 
-pub async fn post_trainable(name: String, body: warp::hyper::body::Bytes, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
-    let file_manager = match file_managers.get_from_name(&name) {
-        Some(v) => v,
-        None => return Ok(StatusCode::NOT_FOUND)
-    };
-
-    match deserialize_version(&body) {
-        Ok((storage, loss)) => {
-            let mut file_manager = file_manager.write().await;
-            match file_manager.add(&storage, loss) {
-                Ok(_) => Ok(StatusCode::OK),
-                Err(e) => stderr_proc(e)
-            }
-        }
-        Err(e) => stderr_proc(e)
-    }
-}
-
+/// Returns the trainable parameters of a specific model
 pub async fn get_trainable(name: String, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
     let file_manager = match file_managers.get_from_name(&name) {
         Some(v) => v,
@@ -44,6 +27,26 @@ pub async fn get_trainable(name: String, file_managers: FileManagersDep) -> Endp
     }
 }
 
+/// Adds the trainable parameters supplied by the user as a new version of the model
+pub async fn post_trainable(name: String, body: warp::hyper::body::Bytes, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
+    let file_manager = match file_managers.get_from_name(&name) {
+        Some(v) => v,
+        None => return Ok(StatusCode::NOT_FOUND)
+    };
+
+    match deserialize_version(&body) {
+        Ok((storage, loss)) => {
+            let mut file_manager = file_manager.write().await;
+            match file_manager.add(&storage, loss) {
+                Ok(_) => Ok(StatusCode::OK),
+                Err(e) => stderr_proc(e)
+            }
+        }
+        Err(e) => stderr_proc(e)
+    }
+}
+
+/// Returns the config for a specific model
 pub async fn get_config(name: String, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
     let file_manager = match file_managers.get_from_name(&name) {
         Some(v) => v,
@@ -57,6 +60,7 @@ pub async fn get_config(name: String, file_managers: FileManagersDep) -> Endpoin
     }
 }
 
+/// Replaces the config for a specific model with the one provided by the user, if it's valid
 pub async fn post_config(name: String, body: warp::hyper::body::Bytes, file_managers: FileManagersDep) -> EndpointResult<impl Reply> {
     let file_manager = match file_managers.get_from_name(&name) {
         Some(v) => v,

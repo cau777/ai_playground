@@ -1,5 +1,5 @@
 use crate::chess::board::castle_rights::CastleRights;
-use crate::chess::board_controller::{BoardController, BoardInfo};
+use crate::chess::board_controller::{GameController, BoardInfo};
 use crate::chess::coord::Coord;
 use crate::chess::movement::Movement;
 use crate::chess::pieces::board_piece::BoardPiece;
@@ -17,7 +17,7 @@ fn set_and_update(info: &mut BoardInfo, coord: Coord, piece: BoardPiece) {
     }
 }
 
-impl BoardController {
+impl GameController {
     /// Warning: This method assumes the move is VALID
     pub fn apply_move(&mut self, m: Movement) {
         let mut info = self.current_info().clone();
@@ -107,7 +107,7 @@ mod tests {
         _ P _ _ _ _ _ _\
         _ _ _ _ _ _ _ _");
 
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::new(Coord::from_notation("B2"), Coord::from_notation("B4")));
 
         assert_same_board_pieces(controller.current(), "\
@@ -136,7 +136,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ N _ _ _ _ _ _");
 
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         assert_eq!(controller.current_info().piece_counts, SideDict::new(PieceDict::new([0, 1, 0, 0, 0, 0]), PieceDict::new([1, 0, 0, 0, 0, 0])));
 
         controller.apply_move(Movement::from_notations("B1", "C3"));
@@ -167,7 +167,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         R N _ _ K _ _ _");
 
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("H7", "H8"));
 
         assert_eq!(controller.current_info().piece_counts, SideDict::new(PieceDict::new([0, 1, 0, 1, 1, 1]), PieceDict::new([0, 1, 0, 1, 0, 1])));
@@ -194,7 +194,7 @@ mod tests {
         _ _ P _ _ _ _ _\
         _ _ _ _ _ _ _ _");
 
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("C2", "C4"));
         controller.apply_move(Movement::from_notations("D4", "C3"));
 
@@ -221,7 +221,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ P _ _ _ _ _\
         R _ _ _ K _ _ R");
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("E1", "G1"));
         println!("{}", controller.current());
         assert_same_board_pieces(controller.current(), "\
@@ -246,7 +246,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ P _ _ _ _ _\
         _ _ _ _ _ _ _ _");
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("E8", "C8"));
         println!("{}", controller.current());
         assert_same_board_pieces(controller.current(), "\
@@ -271,7 +271,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ P _ _ _ _ _\
         R _ _ _ K _ _ R");
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("A1", "C1"));
         assert!(!controller.current().castle_rights[true].queen_side);
         assert!(controller.current().castle_rights[true].king_side);
@@ -288,7 +288,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ _ P _ _ _ _ _\
         R _ _ _ K _ _ R");
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("E1", "D1"));
         assert!(!controller.current().castle_rights[true].queen_side);
         assert!(!controller.current().castle_rights[true].king_side);
@@ -306,7 +306,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         _ N _ _ _ _ _ _");
 
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         controller.apply_move(Movement::from_notations("B1", "C3"));
 
         assert_same_board_pieces(controller.current(), "\

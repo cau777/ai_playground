@@ -8,6 +8,7 @@ pub struct SerializedGame {
     pub opening: String,
 }
 
+/// Return all the relevant information about a board to be sent to the user
 pub async fn serialize_game(pool: &ChessGamesPoolDep, id: &str) -> Option<SerializedGame> {
     let pool = pool.read().await;
     let controller = pool.get_controller(id);
@@ -28,6 +29,7 @@ pub async fn serialize_game(pool: &ChessGamesPoolDep, id: &str) -> Option<Serial
 }
 
 pub fn game_state_to_string(state: GameResult) -> String {
+    // These strings area also used for translation in the client side
     match state {
         GameResult::Undefined => "gameResultUndefined",
         GameResult::Draw(reason) => match reason {

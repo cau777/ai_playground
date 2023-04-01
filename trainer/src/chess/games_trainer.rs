@@ -1,7 +1,7 @@
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use codebase::chess::board::Board;
-use codebase::chess::board_controller::BoardController;
+use codebase::chess::board_controller::GameController;
 use codebase::chess::decision_tree::building::{BuilderOptions, DecisionTreesBuilder};
 use codebase::chess::decision_tree::cursor::TreeCursor;
 use codebase::chess::decision_tree::DecisionTree;
@@ -182,8 +182,8 @@ impl GamesTrainer {
     }
     
     fn create_cursor(&self) -> TreeCursor {
-        let mut controller = BoardController::new_start();
-        controller.add_openings_tree(self.opening_tree.clone());
+        let mut controller = GameController::new_start();
+        controller.set_openings_book(self.opening_tree.clone());
         TreeCursor::new(controller)
     }
 }

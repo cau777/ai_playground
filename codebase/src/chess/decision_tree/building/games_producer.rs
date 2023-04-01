@@ -3,7 +3,7 @@ use std::ops::RangeFrom;
 use std::sync::{Arc, RwLock};
 use ndarray_rand::rand::{Rng, thread_rng};
 use ndarray_rand::rand::rngs::ThreadRng;
-use crate::chess::board_controller::BoardController;
+use crate::chess::board_controller::GameController;
 use crate::chess::decision_tree::building::{BuilderOptions, compute_next_node_score, NextNodeStrategy};
 use crate::chess::decision_tree::building::request::{Request, RequestPart};
 use crate::chess::decision_tree::cursor::TreeCursor;
@@ -172,7 +172,7 @@ impl<'a> GamesProducerWorker<'a> {
         result
     }
 
-    fn handle_game_result(&self, controller: &BoardController, m: Movement, game_result: GameResult,
+    fn handle_game_result(&self, controller: &GameController, m: Movement, game_result: GameResult,
                           owner: &Request, index_in_owner: usize) -> RequestPart {
         (self.options.on_game_result)((game_result.clone(), owner.game_index));
 
@@ -311,7 +311,7 @@ impl<'a> GamesProducerWorker<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::chess::board_controller::BoardController;
+    use crate::chess::board_controller::GameController;
     use crate::chess::movement::Movement;
     use crate::chess::openings::openings_tree::OpeningsTree;
     use super::*;
@@ -467,9 +467,9 @@ mod tests {
 
         for _ in 0..count {
             initial_trees.push(DecisionTree::new(true));
-            let mut controller = BoardController::new_start();
+            let mut controller = GameController::new_start();
             if !openings.is_empty() {
-                controller.add_openings_tree(Arc::new(OpeningsTree::load_from_string(openings).unwrap()));
+                controller.set_openings_book(Arc::new(OpeningsTree::load_from_string(openings).unwrap()));
             }
             initial_cursors.push(TreeCursor::new(controller));
         }

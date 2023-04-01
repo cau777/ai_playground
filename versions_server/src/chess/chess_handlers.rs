@@ -24,6 +24,7 @@ struct StartResponse {
     opening: String,
 }
 
+/// Initiates a new game and return the current board and the game_id to be sent in future requests
 pub async fn post_start(body: StartRequest, file_manager: FileManagerDep, loaded: LoadedModelDep,
                         pool: ChessGamesPoolDep, config: EnvConfigDep) -> EndpointResult<impl Reply> {
     let id = {
@@ -77,6 +78,7 @@ struct MoveResponse {
     opening: String,
 }
 
+/// Apply a move of the player and one if the AI
 pub async fn post_move(body: MoveRequest, file_manager: FileManagerDep, loaded: LoadedModelDep,
                        pool: ChessGamesPoolDep, config: EnvConfigDep) -> EndpointResult<impl Reply> {
     let movement = match Movement::try_from_notations(&body.from, &body.to) {

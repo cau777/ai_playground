@@ -1,4 +1,4 @@
-use crate::chess::board_controller::BoardController;
+use crate::chess::board_controller::GameController;
 use crate::chess::game_result::{DrawReason, GameResult, WinReason};
 use crate::chess::movement::Movement;
 use crate::chess::pieces::piece_dict::PieceDict;
@@ -18,7 +18,7 @@ fn is_insufficient_material(counts: &PieceDict<u8>) -> bool {
     }
 }
 
-impl BoardController {
+impl GameController {
     pub fn get_game_result(&self, possible_moves: &Vec<Movement>) -> GameResult {
         let side = self.side_to_play();
         let info = self.current_info();

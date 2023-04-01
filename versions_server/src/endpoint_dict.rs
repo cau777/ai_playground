@@ -1,3 +1,4 @@
+/// Utility struct that stores a value for each model name
 #[derive(Clone)]
 pub struct EndpointDict<T: Clone> {
     pub digits: T,

@@ -1,22 +1,22 @@
 use std::cmp::Ordering;
-use crate::chess::board_controller::BoardController;
+use crate::chess::board_controller::GameController;
 use crate::chess::decision_tree::node::Node;
 
 #[derive(Clone)]
 pub struct TreeCursor {
     current: usize,
-    controller: BoardController,
+    controller: GameController,
 }
 
 impl TreeCursor {
-    pub fn new(controller: BoardController) -> Self {
+    pub fn new(controller: GameController) -> Self {
         Self {
             controller,
             current: 0,
         }
     }
 
-    pub fn get_controller(&self) -> &BoardController {
+    pub fn get_controller(&self) -> &GameController {
         &self.controller
     }
 
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_go_to_common_point() {
         let nodes = &build_tree();
-        let mut cursor = TreeCursor::new(BoardController::new_start());
+        let mut cursor = TreeCursor::new(GameController::new_start());
         cursor.go_to(7, nodes);
         cursor.go_to_common_point(8, nodes);
         assert_eq!(cursor.current, 4);
@@ -131,7 +131,7 @@ mod tests {
     fn test_go_to() {
         let nodes = &build_tree();
 
-        let mut cursor = TreeCursor::new(BoardController::new_start());
+        let mut cursor = TreeCursor::new(GameController::new_start());
         cursor.go_to(7, nodes);
         assert_eq!(&cursor.controller.current().pieces, &Board::from_literal("\
         r n b q k b n r

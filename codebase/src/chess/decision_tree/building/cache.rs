@@ -6,12 +6,14 @@ use crate::nn::layers::nn_layers::GenericStorage;
 
 #[derive(Clone)]
 pub struct Cache {
-    pub count: usize,
+    count: usize,
     buffer: HashMap<usize, GenericStorage>,
-    pub current_bytes: u64,
+    current_bytes: u64,
     max_bytes: u64,
-    pub last_searched: usize,
-    current: usize,
+
+    last_searched: usize,
+    // The node index that the next inserted cache will refer to
+    current_index: usize,
 }
 
 impl Cache {
@@ -22,12 +24,8 @@ impl Cache {
             max_bytes,
             current_bytes: 0,
             last_searched: 0,
-            current: 1,
+            current_index: 1,
         }
-    }
-
-    pub fn len(&self) -> usize {
-        self.buffer.len()
     }
 
     pub fn get(&self, index: usize) -> Option<&GenericStorage> {
@@ -38,10 +36,10 @@ impl Cache {
         if let Some(value) = value {
             self.count += 1;
             self.current_bytes += Self::count_bytes(&value);
-            self.buffer.insert(self.current, value);
+            self.buffer.insert(self.current_index, value);
         }
 
-        self.current += 1;
+        self.current_index += 1;
     }
 
     pub fn remove(&mut self, index: usize) {

@@ -1,4 +1,4 @@
-use crate::chess::board_controller::BoardController;
+use crate::chess::board_controller::GameController;
 use crate::chess::coord::Coord;
 use crate::chess::movement::Movement;
 use crate::chess::pieces::ops::{piece_can_move_to, piece_find_possible_moves};
@@ -20,7 +20,7 @@ fn get_king_side_path(side: bool) -> [Coord; 2] {
     }
 }
 
-impl BoardController {
+impl GameController {
     pub fn get_possible_moves(&self, side: bool) -> Vec<Movement> {
         let mut result = Vec::new();
         let board = self.current();
@@ -114,7 +114,7 @@ mod tests {
         _ P _ _ _ _ _ _\
         Q _ P K _ _ _ _\
         _ N B _ _ _ _ _");
-        let controller = BoardController::new_from_single(board);
+        let controller = GameController::new_from_single(board);
         let result = HashSet::from_iter(controller.get_possible_moves(true).into_iter());
         let expected = HashSet::from([
             ["A2", "A1"], ["A2", "B2"], ["A2", "A3"],
@@ -150,7 +150,7 @@ mod tests {
         _ N _ Q _ _ _ P\
         P P P P P P P _\
         R _ _ _ K _ _ R");
-        let mut controller = BoardController::new_from_single(board);
+        let mut controller = GameController::new_from_single(board);
         // Move rook to remove king side castle rights
         controller.apply_move(Movement::from_notations("H1", "H2"));
 
@@ -174,7 +174,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         P P P K _ P P P\
         R N B Q _ B N R");
-        let controller = BoardController::new_from_single(board);
+        let controller = GameController::new_from_single(board);
         assert!(!controller.is_in_check(true));
         assert!(!controller.is_in_check(false));
 
@@ -187,7 +187,7 @@ mod tests {
         _ _ _ _ _ _ _ _\
         P P P K _ P P P\
         R N B Q _ B N R");
-        let controller = BoardController::new_from_single(board);
+        let controller = GameController::new_from_single(board);
         assert!(controller.is_in_check(true));
         assert!(!controller.is_in_check(false));
     }

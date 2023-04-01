@@ -37,15 +37,15 @@ fn main() {
     // let _profiler = dhat::Profiler::builder().trim_backtraces(Some(50)).build();
     // profile_code();
     // return;
-    // let config = EnvConfig {
-    //     epochs_per_version: 120,
-    //     mounted_path: r"C:\Users\caua_\Projects\ai_playground\temp".to_owned(),
-    //     name: "chess".to_owned(),
-    //     versions_server_url: "http://127.0.0.1:8000".to_owned(),
-    //     profile: false,
-    //     versions: 1,
-    //     max_cache_size_kb: 10,
-    // };
+    /* let config = EnvConfig {
+         epochs_per_version: 120,
+         mounted_path: r"C:\Users\caua_\Projects\ai_playground\temp".to_owned(),
+         name: "chess".to_owned(),
+         versions_server_url: "http://127.0.0.1:8000".to_owned(),
+         profile: false,
+         versions: 1,
+         max_cache_size_kb: 10,
+     };*/
 
     let config = EnvConfig::new();
     if config.profile {
@@ -94,7 +94,7 @@ fn profile_code() {
             DecisionTree::new(true),
         ],
         vec![
-            TreeCursor::new(codebase::chess::board_controller::BoardController::new_start()),
+            TreeCursor::new(codebase::chess::board_controller::GameController::new_start()),
         ],
         BuilderOptions {
             limits: LimiterFactors {

@@ -247,7 +247,7 @@ impl DecisionTreesBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::chess::board_controller::BoardController;
+    use crate::chess::board_controller::GameController;
     use crate::chess::decision_tree::building::limiting_factors::LimiterFactors;
     use crate::nn::layers::{dense_layer, sequential_layer};
     use crate::nn::layers::debug_layer::{DebugAction, DebugLayerConfig};
@@ -262,7 +262,7 @@ mod tests {
     fn test_debug() {
         let builder = DecisionTreesBuilder::new(
             vec![DecisionTree::new(true)],
-            vec![TreeCursor::new(BoardController::new_start())],
+            vec![TreeCursor::new(GameController::new_start())],
             BuilderOptions {
                 next_node_strategy: NextNodeStrategy::Deepest,
                 limits: LimiterFactors {

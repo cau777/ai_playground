@@ -3,6 +3,12 @@ use std::iter::zip;
 use ndarray::{Axis, stack};
 use crate::nn::layers::nn_layers::GenericStorage;
 use crate::utils::ArrayDynF;
+// TODO: find better solution
+
+pub fn get_from_storage2<'a>(storage: &'a GenericStorage, key: &str) -> [&'a ArrayDynF; 2] {
+    let data = storage.get(key).unwrap();
+    [&data[0], &data[1]]
+}
 
 pub fn clone_from_storage1(storage: &GenericStorage, key: &str) -> [ArrayDynF; 1] {
     let data = storage.get(key).unwrap();

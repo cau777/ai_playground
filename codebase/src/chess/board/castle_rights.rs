@@ -1,3 +1,4 @@
+/// Stores whether a side can castle king and/or queen side
 #[derive(Eq, PartialEq, Clone)]
 pub struct CastleRights {
     pub queen_side: bool,

@@ -40,7 +40,6 @@ impl TrainerScheduler {
     pub fn train_versions(&mut self, count: u32, config: &EnvConfig, client: Arc<ServerClient>) {
         let mut queue = Vec::new();
         let mut all_metrics = Vec::new();
-        queue.push(TrainingStrategy::KeyPositions);
         let mut completed: Option<(_, _)> = None;
         let client = Arc::new(client);
 
@@ -154,6 +153,7 @@ impl TrainerScheduler {
     }
 
     fn choose_next(metrics: &[GameMetrics], version: u32) -> TrainingStrategy {
+        return TrainingStrategy::KeyPositions;
         if metrics.len() < 10 {
             return TrainingStrategy::FullGames;
         }
@@ -166,14 +166,10 @@ impl TrainerScheduler {
         avg_metrics.branches.scale(factor);
         avg_metrics.explored_nodes.scale(factor);
 
-        let win_rate = avg_metrics.branches.white_win_rate + avg_metrics.branches.black_win_rate;
-        let unbalanced_win_rate = (avg_metrics.branches.white_win_rate - avg_metrics.branches.black_win_rate).abs() / win_rate > 0.3;
-        let low_confidence = avg_metrics.explored_nodes.avg_confidence < 0.7;
-
-        if version % 10 == 0 && (unbalanced_win_rate || low_confidence) {
-            TrainingStrategy::OpponentsResponses
-        } else if avg_metrics.branches.aborted_rate > 0.1 {
+        if avg_metrics.branches.aborted_rate > 0.1 {
             TrainingStrategy::Endgames
+        } else if version % 4 == 0 {
+            TrainingStrategy::KeyPositions
         } else {
             TrainingStrategy::FullGames
         }
