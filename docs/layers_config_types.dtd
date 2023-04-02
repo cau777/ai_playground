@@ -1,6 +1,13 @@
 <?xml version="1.0"?>
 <!DOCTYPE AIModel [
-        <!ELEMENT AiModel (Sequential|Concat|Dense|Convolution|MaxPool|Debug|Relu|Sigmoid|Tanh|Flatten|ExpandDim|Dropout|TwoComplementsTransformer)>
+        <!ELEMENT AiModel (LossFunc,Layer)>
+
+        <!ELEMENT LossFunc (Mse,CrossEntropy)>
+        <!ELEMENT Mse EMPTY>
+        <!ELEMENT CrossEntropy EMPTY>
+
+        <!ELEMENT Layer (Sequential|Concat|Dense|Convolution|MaxPool|Debug|Relu|Sigmoid|Tanh|Flatten|ExpandDim|Dropout|TwoComplementsTransformer)>
+
         <!ELEMENT Sequential (Sequential*,Concat*,Dense*,Convolution*,MaxPool*,Debug*,Relu*,Sigmoid*,Tanh*,Flatten*,ExpandDim*,Dropout*,TwoComplementsTransformer*)>
         <!ELEMENT Concat (Sequential*,Concat*,Dense*,Convolution*,MaxPool*,Debug*,Relu*,Sigmoid*,Tanh*,Flatten*,ExpandDim*,Dropout*,TwoComplementsTransformer*)>
 
