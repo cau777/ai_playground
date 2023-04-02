@@ -15,20 +15,22 @@ to speed up computations. It's built almost from scratch and uses [ndarray](http
 n-dimensional arrays and [vulkano](https://github.com/vulkano-rs/vulkano) for GPU integration. It uses a more functional
 approach (with centralized storage of parameters in a map), supporting:
 
-* Convolution layer
+* **Convolution** layer
   * Selective caching (used to skip almost 85% of the calculations)
-* Max pool layer
-* Dense layer
+* **Max** pool layer
+* **Dense** layer
 * Dropout layer
 * Other utility layers
-* ReLu, Tanh and Sigmoid activation functions
+* **ReLu**, Tanh and Sigmoid activation functions
 * Cross entropy and Mse loss functions
 * Adam learning optimizer
+
+The ones in bold are **GPU-accelerated**
 
 A trained AI model can be represented in 3 files:
 1) A binary file containing all parameters
 2) A JSON file containing some info
-3) A simple XML file defining the structure. For example:
+3) A simple XML file defining the structure. All the types are defined [here](https://github.com/cau777/ai_playground/blob/master/docs/layers_config_types.dtd). For example:
 
 ```xml
 <AIModel>
@@ -52,7 +54,7 @@ Most of the time, changing the structure (adding or removing layers) does not lo
 
 ### /client
 
-A single page app built using React and Vite to allow users to interact with the playground in any device. It's hosted
+A single page app built using SolidJs and Vite to allow users to interact with the playground in any device. It's hosted
 in GitHub Pages and supports translations to English and Portuguese.
 
 ![Digit recognition page](https://github.com/cau777/ai_playground/blob/master/docs/screenshots/digits_page.png)
