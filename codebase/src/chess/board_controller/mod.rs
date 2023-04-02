@@ -12,9 +12,7 @@ use crate::chess::coord::Coord;
 use crate::chess::movement::Movement;
 use crate::chess::openings::openings_tree::OpeningsTree;
 use crate::chess::pieces::piece_dict::PieceDict;
-use crate::chess::pieces::piece_type::PieceType;
 use crate::chess::side_dict::SideDict;
-use crate::chess::utils::CoordIndexed;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 struct BoardInfo {

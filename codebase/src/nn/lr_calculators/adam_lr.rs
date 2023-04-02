@@ -19,7 +19,10 @@ impl Default for AdamConfig {
     }
 }
 
-pub struct AdamLrCalc {}
+/// Adam is an algorithm for first-order gradient-based optimization of stochastic
+/// functions, based on adaptive estimates of lower-order moments.
+/// It's one of the best for training with gradient descent, because it's hyperparameter-resistant
+pub struct AdamLrCalc;
 
 impl LrCalcOps<AdamConfig> for AdamLrCalc {
     fn apply(target: ArrayDynF, data: LrCalcData, config: &AdamConfig) -> LayerResult {

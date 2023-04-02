@@ -26,7 +26,13 @@ pub enum DenseLayerInit {
     Random(),
 }
 
-pub struct DenseLayer {}
+/// Dense Layer: perform matrix multiplication between the input and a weights matrix, and add
+/// a biases matrix.
+/// ### Trainable
+/// * Weights
+/// * Biases
+/// **GPU compatible**
+pub struct DenseLayer;
 
 fn gen_name(config: &DenseConfig) -> String {
     format!("dense_{}_{}", config.in_values, config.out_values)

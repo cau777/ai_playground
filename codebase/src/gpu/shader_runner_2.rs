@@ -11,6 +11,8 @@ use crate::gpu::shader_context::{ContextBinding, ContextSharedBuffer, ShaderCont
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::{ArrayF, GenericResult};
 
+/// Provides abstractions for command buffer creation, buffer transfer, and shader execution.
+/// Follows the builder pattern for some methods
 pub struct ShaderRunner2 {
     context: ShaderContextKey,
     gpu: GlobalGpu,

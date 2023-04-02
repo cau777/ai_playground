@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use crate::chess::board_controller::GameController;
 use crate::chess::decision_tree::node::Node;
 
+/// Struct to traverse DecisionTree and obtain GameController instances at any point
 #[derive(Clone)]
 pub struct TreeCursor {
     current: usize,

@@ -9,6 +9,8 @@ use crate::nn::layers::nn_layers::*;
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::{Array1F, GenericResult, shape_length};
 
+/// Feed the same inputs for each layer and concatenates the result along a given axis.
+/// **GPU compatible**
 pub fn forward(data: ForwardData, layer_config: &ConcatConfig) -> LayerResult {
     let mut results: Vec<StoredArray> = Vec::with_capacity(layer_config.layers.len());
     let mut splits = Vec::with_capacity(layer_config.layers.len());

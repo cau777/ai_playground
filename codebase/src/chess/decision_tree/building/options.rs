@@ -13,9 +13,13 @@ pub struct BuilderOptions {
     pub add_random_to_openings: bool,
 }
 
+/// Determines how the next node to explore will be chosen
 pub enum NextNodeStrategy {
+    /// Try to follow the best moves path
     BestNode,
+    /// The deepest node in the tree
     Deepest,
+    /// Computes a value for each node based on those properties
     Computed { depth_delta_exp: f64, eval_delta_exp: f64},
 }
 

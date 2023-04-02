@@ -69,6 +69,7 @@ impl std::error::Error for StorageDeserError {}
 
 pub type DeserResult<T> = Result<T, StorageDeserError>;
 
+/// Represents a training dataset as an array of inputs and an array of expected values (or labelS).
 #[derive(Debug)]
 pub struct Pairs {
     pub inputs: ArrayDynF,
@@ -76,6 +77,7 @@ pub struct Pairs {
 }
 
 impl Pairs {
+    /// Get a random subset of input/expected pairs
     pub fn pick_rand(&self, count: usize, rng: &mut impl rand::RngCore) -> Pairs {
         let total = self.inputs.shape()[0];
         let mut picker = RandomPicker::new(total);

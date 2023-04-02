@@ -15,7 +15,8 @@ impl Default for ConstantLrConfig {
     }
 }
 
-pub struct ConstantLr {}
+/// The simples possible "optimizer". It just multiplies the gradients by a small constant.
+pub struct ConstantLr;
 
 impl LrCalcOps<ConstantLrConfig> for ConstantLr {
     fn apply(target: ArrayDynF, _: LrCalcData, config: &ConstantLrConfig) -> LayerResult {

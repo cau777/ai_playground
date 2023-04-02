@@ -12,14 +12,12 @@ crate_type = ["rlib"]
 ndarray = { version = "0.15.6", features = ["rayon"] }
 ndarray-rand = "0.14.0"
 getrandom = "0.2.7"
-flate2 = "1.0.24"
 xmltree = "0.10.3"
 vulkano = "0.32.0"
 vulkano-shaders = "0.32.0"
 lazy_static = "1.4.0"
 nohash-hasher = "0.2.0"
 anyhow = { version="1.0.69", features=["backtrace"] }
-#rayon = "1.5.3"
 
 [[bench]]
 name = "building_bench"

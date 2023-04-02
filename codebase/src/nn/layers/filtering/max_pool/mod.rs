@@ -1,12 +1,7 @@
 mod max_pool_forward;
 mod max_pool_backward;
 
-use ndarray::s;
-use crate::Array4F;
-use crate::nn::generic_storage::remove_from_storage1;
-use crate::nn::layers::filtering::{pad4d, remove_padding_4d};
-use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
-use crate::utils::get_dims_after_filter_4;
+use crate::nn::layers::nn_layers::*;
 
 #[derive(Clone, Debug)]
 pub struct MaxPoolConfig {
@@ -15,6 +10,11 @@ pub struct MaxPoolConfig {
     pub padding: usize,
 }
 
+/// Apply MAX operation with 2D filters, That means passing a filter through the last
+/// 2 dimension of the input (usually height and width). In position of the filter, the maximum
+/// value of those input values is computed. Requires a 4 dimensional input (one being the batch).
+/// Use for reducing the size of arrays after **Convolution**.
+/// https://deepai.org/machine-learning-glossary-and-terms/max-pooling
 pub struct MaxPoolLayer;
 
 fn gen_name() -> String {

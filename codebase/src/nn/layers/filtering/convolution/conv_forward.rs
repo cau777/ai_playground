@@ -57,6 +57,7 @@ pub fn forward(data: ForwardData, layer_config: &ConvolutionConfig) -> LayerResu
                 }
             };
 
+            // Cache inputs and results
             if let Some(inputs_to_cache) = inputs_to_cache {
                 prev_iteration_cache.unwrap()
                     .insert(key, vec![inputs_to_cache, result.to_memory()?]);

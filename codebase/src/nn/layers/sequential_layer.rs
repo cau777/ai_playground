@@ -5,7 +5,9 @@ pub struct SequentialConfig {
     pub layers: Vec<Layer>,
 }
 
-pub struct SequentialLayer {}
+/// Simply executes the layers in sequential order, passing the output of a layer as the input
+/// of the next layer. Will probably be the **root** of the model.
+pub struct SequentialLayer;
 
 impl LayerOps<SequentialConfig> for SequentialLayer {
     fn init(data: InitData, layer_config: &SequentialConfig) -> EmptyLayerResult {

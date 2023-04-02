@@ -8,6 +8,7 @@ use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::{Array1F, Array2F, GenericResult, shape_length};
 use crate::gpu::{BufferChecksumMethod, shaders};
 
+/// Perform matrix multiplication between the input and a weights matrix, and add a biases matrix.
 pub fn forward(data: ForwardData, layer_config: &DenseConfig) -> LayerResult {
     let ForwardData {
         assigner,

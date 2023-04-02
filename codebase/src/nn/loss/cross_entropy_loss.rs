@@ -3,7 +3,11 @@ use std::iter::zip;
 use crate::nn::loss::loss_func::LossFuncOps;
 use crate::utils::{Array1F, Array2F, ArrayDynF};
 
-pub struct CrossEntropyLoss {}
+/// This layer is a combination of the Softmax function and the Cross entropy loss, because these
+/// almost always go along and have a really simple gradient together.
+/// Cross-entropy loss, or log loss, measures the performance of a classification model whose output is a probability value between 0 and 1.
+/// Good for classification models.
+pub struct CrossEntropyLoss;
 
 fn softmax(array: Array2F) -> Array2F {
     let max = array
@@ -11,6 +15,9 @@ fn softmax(array: Array2F) -> Array2F {
         .copied()
         .max_by(|a, b| a.partial_cmp(b).expect("Tried to compare NaN values"))
         .unwrap_or(0.0);
+
+    // First subtract the biggest value, this is done to avoid exploding values
+    // After apply the exp function to every element
     let mut e = (array - max).mapv_into(f32::exp);
 
     // In-place operation that divide each value of a batch by the sum of that batch
@@ -28,13 +35,14 @@ impl LossFuncOps for CrossEntropyLoss {
 
         let prob = softmax(actual);
         let iter = zip(expected.outer_iter(), prob.outer_iter()).map(|(expected, actual)| {
+            // Because expected is a one-hot encoded vector, find the highest value (1) to be the expected label
             let label = expected
                 .iter()
                 .enumerate()
-                .reduce(|acc, val| if val.1 > acc.1 { val } else { acc })
+                .max_by(|a, b| a.1.partial_cmp(b.1).expect("Tried to compare NaN values"))
                 .map(|o| o.0)
                 .unwrap_or(0); // Get the index of the highest value
-            -actual[label].ln()
+            -f32::ln(actual[label])
         });
         Array1F::from_iter(iter).into_dyn()
     }

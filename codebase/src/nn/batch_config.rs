@@ -1,6 +1,5 @@
 /// Simple struct that contains some information about the current batch
 pub struct BatchConfig {
-    // pub max_batch_size: usize,
     pub is_training: bool,
 }
 

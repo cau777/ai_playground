@@ -28,6 +28,13 @@ pub enum ConvolutionInitMode {
     HeNormal(),
 }
 
+/// Apply the convolution operation with 2D filters. That means passing a filter through the last
+/// 2 dimension of the input (usually height and width). In position of the filter, the sum of the
+/// product of those input values and the kernel is computed. Requires a 4 dimensional input (one being
+/// the batch).
+/// ### Trainable
+/// * Kernel
+/// https://en.wikipedia.org/wiki/Convolutional_neural_network
 pub struct ConvolutionLayer;
 
 fn gen_name(config: &ConvolutionConfig) -> String {

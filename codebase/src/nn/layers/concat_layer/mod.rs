@@ -3,6 +3,8 @@ mod concat_backward;
 
 use crate::nn::layers::nn_layers::*;
 
+/// Feed the same input to all its immediate children and concatenate the result.
+/// No extra axis is created
 pub struct ConcatLayer;
 
 #[derive(Clone, Debug)]

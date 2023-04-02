@@ -4,6 +4,7 @@ use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::concat_layer::{ConcatConfig, gen_name};
 use crate::nn::layers::nn_layers::*;
 
+/// Feed the corresponding slices of the gradient to each layer, and add the outputs
 pub fn backward(data: BackwardData, layer_config: &ConcatConfig) -> LayerResult {
     let key = data.assigner.get_key(gen_name(layer_config));
     let [cache] = remove_from_storage1(data.forward_cache, &key);
@@ -29,7 +30,6 @@ pub fn backward(data: BackwardData, layer_config: &ConcatConfig) -> LayerResult 
             forward_cache: data.forward_cache,
             backward_cache: data.backward_cache,
         })?.into_memory()?;
-        // println!("conv_back {:?}", layer_result.shape());
 
         result = Some(match result {
             Some(v) => v + layer_result,

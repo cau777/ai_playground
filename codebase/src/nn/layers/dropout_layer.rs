@@ -2,6 +2,8 @@ use ndarray_rand::RandomExt;
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::utils::Array1F;
 
+/// Randomly nullifies a percentage of the inputs. Useful for avoiding overfitting.
+/// https://machinelearningmastery.com/dropout-for-regularizing-deep-neural-networks/
 pub struct DropoutLayer;
 
 #[derive(Clone, Debug)]
@@ -47,6 +49,7 @@ impl LayerOps<DropoutConfig> for DropoutLayer {
         let key = assigner.get_key(gen_name(layer_config));
         match forward_cache[&key].as_slice() {
             [dropout] => {
+                // Nullifies the gradient from inputs that were dropped out
                 Ok((grad * dropout).into())
             }
             _ => {

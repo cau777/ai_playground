@@ -1,4 +1,6 @@
-use ndarray_rand::rand::Rng;
+pub use node::NodeExtraInfo;
+
+use crate::chess::decision_tree::cursor::TreeCursor;
 use crate::chess::decision_tree::best_path_iterator::BestPathIterator;
 use crate::chess::decision_tree::node::Node;
 use crate::chess::movement::Movement;
@@ -9,8 +11,6 @@ pub mod cursor;
 mod svg_export;
 pub mod building;
 
-pub use node::NodeExtraInfo;
-use crate::chess::decision_tree::cursor::TreeCursor;
 
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
@@ -22,6 +22,7 @@ impl DecisionTree {
     pub fn new(start_side: bool) -> Self {
         Self {
             start_side,
+            // Empty first node
             nodes: vec![Node::new(0, Movement::default(), 0.0, 0, None, NodeExtraInfo::default())],
         }
     }
@@ -32,12 +33,14 @@ impl DecisionTree {
         let new_cursor = TreeCursor::new(controller);
         let mut new_tree = Self {
             start_side: self.get_side_at(index),
+            // Empty first node
             nodes: vec![Node::new(0, Movement::default(), 0.0, 0, None, NodeExtraInfo::default())],
         };
 
         let mut stack: Vec<(usize, usize)> = Vec::new();
         stack.push((index, 0));
 
+        // Add every node from the old_tree to the new_tree
         while !stack.is_empty() {
             let (old_index, new_index) = stack.pop().unwrap();
 
@@ -68,11 +71,6 @@ impl DecisionTree {
             .map(|o| &self.nodes[o].movement)
     }
 
-    pub fn best_path_iter(&self, yield_root: bool) -> impl Iterator<Item=&Node> {
-        BestPathIterator::new(&self.nodes, self.start_side, yield_root)
-            .map(|o| &self.nodes[o])
-    }
-
     pub fn submit_node_children(&mut self, parent: usize, positions_and_evals: &[(Movement, f32, NodeExtraInfo)]) -> usize {
         let depth = self.nodes[parent].depth + 1;
         let nodes: Vec<_> = positions_and_evals.iter()
@@ -82,7 +80,7 @@ impl DecisionTree {
             })
             .map(|node| {
                 self.nodes.push(node);
-                self.nodes.len() - 1
+                self.nodes.len() - 1 // Index of the added node
             })
             .collect();
 
@@ -105,10 +103,6 @@ impl DecisionTree {
 
     pub fn is_ending_at(&self, index: usize) -> bool {
         self.nodes[index].info.is_ending
-    }
-
-    pub fn move_cursor(&self, c: &mut TreeCursor, target: usize) {
-        c.go_to(target, &self.nodes)
     }
 
     pub fn get_best_path_variant(&self) -> Option<usize> {
@@ -137,27 +131,6 @@ impl DecisionTree {
             .map(|(_, n)| *n)
     }
 
-    pub fn get_best_path_random_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
-        BestPathIterator::new(&self.nodes, self.start_side, true)
-            .filter_map(|o| self.nodes[o].get_ordered_children(self.start_side))
-            .flat_map(|o|
-                o.filter(|o| {
-                    let node = &self.nodes[**o];
-                    node.children.is_none() && !node.info.is_ending
-                })
-            )
-            .copied()
-            .max_by_key(|_| rand.gen_range(0..10_000_000))
-    }
-
-    pub fn get_random_unexplored_node(&self, rand: &mut impl ndarray_rand::rand::RngCore) -> Option<usize> {
-        self.nodes.iter()
-            .enumerate()
-            .filter(|(_, o)| o.children.is_none() && !o.info.is_ending)
-            .map(|(i, _)| i)
-            .max_by_key(|_| rand.gen_range(0..10_000_000))
-    }
-
     fn path_to_root(&self, mut index: usize) -> Vec<usize> {
         let mut result = Vec::with_capacity(self.nodes[index].depth + 1);
 
@@ -176,11 +149,6 @@ impl DecisionTree {
 
     pub fn get_depth_at(&self, index: usize) -> usize {
         self.nodes[index].depth
-    }
-
-    pub fn get_continuation_at(&self, index: usize) -> Option<usize> {
-        self.nodes[index].get_ordered_children(self.start_side)
-            .and_then(|mut o| o.next()).copied()
     }
 }
 

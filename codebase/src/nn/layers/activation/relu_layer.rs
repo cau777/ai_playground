@@ -9,6 +9,9 @@ use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::shape_length;
 use crate::utils::GenericResult;
 
+/// Apply the Rectified Linear Unit (ReLu) activation function. That means:
+/// * For x >= 0: x
+/// * For x < 0: 0
 pub(crate) struct ReluLayer;
 
 fn gen_name() -> String {
@@ -18,11 +21,13 @@ fn gen_name() -> String {
 impl LayerOps<()> for ReluLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult { Ok(()) }
 
+    /// Simply replace numbers < 0 with 0.
+    /// **GPU compatible**
     fn forward(data: ForwardData, _: &()) -> LayerResult {
         let ForwardData { inputs, assigner, gpu, forward_cache, .. } = data;
         let key = assigner.get_key(gen_name());
 
-        if let Some(forward_cache) = forward_cache{
+        if let Some(forward_cache) = forward_cache {
             forward_cache.insert(key.clone(), vec![inputs.to_memory()?]);
         }
 
@@ -41,6 +46,7 @@ impl LayerOps<()> for ReluLayer {
         }
     }
 
+    /// Simply replace gradient with 0 for inputs < 0
     fn backward(data: BackwardData, _: &()) -> LayerResult {
         let BackwardData { assigner, forward_cache, grad, .. } = data;
         let key = assigner.get_key(gen_name());
@@ -57,7 +63,7 @@ fn forward_cpu(inputs: ArrayDynF) -> StoredArray {
 }
 
 fn forward_gpu(id: String, inputs: &StoredArray, gpu: GlobalGpu) -> GenericResult<StoredArray> {
-    let shape= inputs.shape().to_vec();
+    let shape = inputs.shape().to_vec();
     let key = (id, "forward".to_owned());
 
     ShaderContext::register(&key, gpu.clone(), &[BufferConfig::floats(shape_length(&shape))], |mut b| {
@@ -90,7 +96,7 @@ mod tests {
                                                      vec![1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0]).unwrap().into_dyn();
 
         let gpu = get_global_gpu().unwrap();
-        let inputs = StoredArray::GpuLocal {data:  upload_array_to_gpu(&inputs, &gpu).unwrap(), shape: inputs.shape().to_vec(), gpu: gpu.clone()};
+        let inputs = StoredArray::GpuLocal { data: upload_array_to_gpu(&inputs, &gpu).unwrap(), shape: inputs.shape().to_vec(), gpu: gpu.clone() };
 
 
         let output = forward_gpu("test_forward_gpu".to_owned(), &inputs, gpu)

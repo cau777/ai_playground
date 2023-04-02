@@ -85,8 +85,8 @@ fn create_text(positions: &Positions, nodes: &[Node]) -> String {
 }
 
 impl DecisionTree {
+    /// Create a visual representation of the tree and save it as an SVG string
     pub fn to_svg(&self) -> String {
-        // let mut ordered_nodes = Vec::with_capacity(self.nodes.len());
         let mut positions = vec![Default::default(); self.nodes.len()];
 
         let mut current_col = 0;

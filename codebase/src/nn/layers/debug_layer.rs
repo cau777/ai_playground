@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 
+/// Can be used to print information about the values passing through it
 pub struct DebugLayer;
 
 lazy_static! {

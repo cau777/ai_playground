@@ -71,17 +71,22 @@ impl SubtreesTrainer {
 
         tree.nodes.iter()
             .enumerate()
+            // Ignore leaf nodes
             .filter(|(_, o)| o.children.is_some())
+            // Ignore openings
             .filter(|(_, o)| !o.info.is_opening)
             .map(|(i, o)| {
-                // Negate to reverse sorting
-                (i, -f32::abs(o.pre_eval - o.eval()))
+                // Calculate the abs difference between the preliminary evaluation and after
+                // further evaluation of the node's children.
+                // The logic behind this is to train positions that the AI is struggling, so it's more
+                // consistent and don't waste time training common position in every cycle
+                (i, f32::abs(o.pre_eval - o.eval()))
             })
-            .sorted_by(|a, b| a.1.total_cmp(&b.1))
+            // Reverse sorting
+            .sorted_by(|a, b| b.1.total_cmp(&a.1))
             .map(|(i, _)| i)
             .take(SUBTREE_COUNT)
             .map(|i| {
-                println!("{}", i);
                 tree.create_subtree(&mut cursor, i)
             })
             .collect()
@@ -94,6 +99,7 @@ impl SubtreesTrainer {
 
         let metrics = Arc::new(Mutex::new(GameMetrics::default()));
 
+        // Further analyze the selected subtrees, trying to find a concrete result (i.e. checkmate)
         let (trees, mut cursors) = {
             let metrics = metrics.clone();
 
@@ -130,8 +136,6 @@ impl SubtreesTrainer {
             let builder = DecisionTreesBuilder::new(trees, cursors, options);
             builder.build(controller)
         };
-
-        // println!("\n{}\n", trees[0].to_svg());
 
         let mut metrics = metrics.lock().unwrap();
         for ending in trees.iter().flat_map(|o| &o.nodes).filter(|o| o.info.is_ending) {
@@ -170,6 +174,7 @@ impl SubtreesTrainer {
             let tree = &trees[i];
 
             let c = &mut cursors[i];
+            // Confidence is a measure of how precise the preliminary evaluation of a position is
             let confidence = calc_nodes_confidence_2(tree);
             let total_confidence = confidence.iter()
                 .flatten()
@@ -200,6 +205,7 @@ impl SubtreesTrainer {
             result_to_dedup.extend(nodes);
         }
 
+        // Just to save some computations, remove duplicates (happens more often than you'd think)
         let result = dedupe(result_to_dedup);
         (result, metrics.clone())
     }

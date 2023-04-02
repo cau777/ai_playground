@@ -3,6 +3,8 @@ use crate::utils::{Array1F};
 
 use super::nn_layers::{LayerOps, LayerResult, EmptyLayerResult, ForwardData, BackwardData};
 
+/// Flattens all dimensions except the batch. The result will always be a 2D array. Useful for
+/// passing **Convolution** results into **Dense** layers.
 pub struct FlattenLayer;
 
 fn gen_name() -> String {

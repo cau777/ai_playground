@@ -10,6 +10,7 @@ use crate::nn::layers::nn_layers::{forward_layer, ForwardData, GenericStorage};
 use crate::nn::layers::stored_array::StoredArray;
 use crate::utils::GenericResult;
 
+/// Upload inputs to the GPU if it's available
 fn prepare_inputs(inputs: ArrayDynF, gpu: Option<GlobalGpu>) -> GenericResult<StoredArray> {
     Ok(match gpu {
         Some(gpu) => {

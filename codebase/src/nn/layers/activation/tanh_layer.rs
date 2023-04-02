@@ -2,7 +2,9 @@ use crate::nn::generic_storage::remove_from_storage1;
 use crate::nn::layers::nn_layers::{BackwardData, EmptyLayerResult, ForwardData, InitData, LayerOps, LayerResult};
 use crate::nn::layers::stored_array::StoredArray;
 
-pub struct TanhLayer {}
+/// Apply the activation function TanH. Better than Sigmoid for handling negative values.
+/// https://pt.wikipedia.org/wiki/Tangente_hiperb%C3%B3lica
+pub struct TanhLayer;
 
 fn gen_name() -> String {
     "tanh".to_owned()
@@ -11,6 +13,7 @@ fn gen_name() -> String {
 impl LayerOps<()> for TanhLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult { Ok(()) }
 
+    /// Apply the f32::tanh function
     fn forward(data: ForwardData, _: &()) -> LayerResult {
         let ForwardData { inputs, assigner, forward_cache, .. } = data;
         let inputs = inputs.into_memory()?;
@@ -24,6 +27,8 @@ impl LayerOps<()> for TanhLayer {
         Ok(StoredArray::Memory {data: result})
     }
 
+    /// The gradient of tanh is:
+    /// 1 - tanh(x)²
     fn backward(data: BackwardData, _: &()) -> LayerResult {
         let BackwardData { assigner, forward_cache, grad, .. } = data;
         let key = assigner.get_key(gen_name());

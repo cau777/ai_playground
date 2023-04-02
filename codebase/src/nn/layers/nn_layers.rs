@@ -37,7 +37,7 @@ pub enum Layer {
     /// * For x < 0: 0
     Relu,
 
-    /// Just executes the callback functions and passes the data unchanged. Useful for debugging NaNs.
+    /// Can be used to print information about the values passing through it
     Debug(debug_layer::DebugLayerConfig),
 
     /// Apply the convolution operation with 2D filters. That means passing a filter through the last

@@ -2,7 +2,9 @@ use ndarray::Axis;
 
 use super::nn_layers::{ForwardData, LayerOps, InitData, EmptyLayerResult, LayerResult, BackwardData};
 
-pub struct ExpandDimLayer{}
+/// Adds a new axis of length 1 in the specified place. By default, it ignores Batch dimension (which is always
+/// the first), so adding an axis in 1 would result: (Batch, Dim_1, 1, Dim_2, Dim_3).
+pub struct ExpandDimLayer;
 
 #[derive(Clone, Debug)]
 pub struct ExpandDimConfig {

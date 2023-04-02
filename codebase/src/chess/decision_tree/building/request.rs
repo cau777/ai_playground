@@ -21,18 +21,6 @@ impl Request {
     }
 }
 
-// impl PartialEq for Request {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.uuid == other.uuid
-//     }
-// }
-//
-// impl Hash for Request {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         state.write_isize(self.uuid as isize)
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub enum RequestPart {
     Completed {

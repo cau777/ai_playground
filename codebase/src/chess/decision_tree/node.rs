@@ -6,7 +6,6 @@ pub struct Node {
     pub movement: Movement,
     pub pre_eval: f32,
     pub children_eval: Option<f32>,
-    // pub eval: f32,
     pub depth: usize,
     pub info: NodeExtraInfo,
 
@@ -56,6 +55,7 @@ impl Node {
         })
     }
 
+    // Reorder children and reassign children_eval
     pub fn refresh_children(&mut self, all_nodes: &[Node], start_side: bool) {
         let side = self.get_current_side(start_side);
         if let Some(children) = self.children.as_mut() {

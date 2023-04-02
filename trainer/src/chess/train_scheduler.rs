@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::thread;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use codebase::chess::decision_tree::building::{BuilderOptions, LimiterFactors, NextNodeStrategy};
 use codebase::integration::layers_loading::ModelXmlConfig;
 use codebase::nn::controller::NNController;
@@ -32,6 +32,7 @@ impl TrainerScheduler {
         for version in 0..count {
             println!("Start {}", version + 1);
 
+            let start = Instant::now();
             let prev_completed = completed;
             completed = None;
 
@@ -44,6 +45,8 @@ impl TrainerScheduler {
 
             all_metrics.push(self.train_cycle(config, &mut completed, version));
 
+            let elapsed = start.elapsed().as_millis();
+            println!("   in {}ms ({} cycles/s)", elapsed, 1000.0 / elapsed as f64);
             upload_thread.join().unwrap();
         }
     }

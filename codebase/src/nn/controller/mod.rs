@@ -2,7 +2,6 @@ mod evaluating;
 mod training;
 mod testing;
 
-use crate::gpu::gpu_data::{get_global_gpu};
 use crate::nn::key_assigner::KeyAssigner;
 use crate::nn::layers::nn_layers::*;
 use crate::nn::loss::loss_func::LossFunc;

@@ -1,5 +1,6 @@
 use crate::chess::decision_tree::node::Node;
 
+/// Iterator that follows the best moves
 pub struct BestPathIterator<'a> {
     current: Option<usize>,
     nodes: &'a Vec<Node>,

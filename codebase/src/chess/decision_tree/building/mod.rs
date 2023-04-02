@@ -27,8 +27,9 @@ use crate::nn::layers::nn_layers::GenericStorage;
 
 type OnGameResultFn = Box<dyn Fn((GameResult, usize))>;
 
+/// Arbitrary function to create a tendency for values to stay between -2.0 and 2.0
 fn scale_output(x: f32) -> f32 {
-    if x < 2.0 && x > -2.0 {
+    if x > -2.0 && x < 2.0 {
         x
     } else {
         4.5 / (1.0 + f32::exp(-1.4 * x)) - 2.25
@@ -51,8 +52,10 @@ impl DecisionTreesBuilder {
     }
 
     pub fn build(&self, controller: &NNController) -> (Vec<DecisionTree>, Vec<TreeCursor>) {
+        // RefCells are necessary for borrowing rules
         let trees: Vec<_> = self.initial_trees.iter().cloned().map(RefCell::new).collect();
         let cursors: Vec<_> = self.initial_cursors.iter().cloned().map(RefCell::new).collect();
+
         let mut producer = GamesProducer::new(&self.initial_trees, &self.initial_cursors,
                                               &trees, &cursors, &self.options);
         let mut caches = vec![Cache::new(self.options.max_cache_bytes / (trees.len() as u64)); self.initial_trees.len()];
@@ -60,8 +63,8 @@ impl DecisionTreesBuilder {
         let mut requests = RequestStorage::new();
 
         let mut current_factors = CurrentLimitingFactors::default();
+        // This flag doesn't make the loop stop immediately, but stop producing requests
         let mut should_break = false;
-        let mut comb = (0, 0);
 
         loop {
             should_break |= !self.options.limits.should_continue(current_factors.clone());
@@ -78,20 +81,19 @@ impl DecisionTreesBuilder {
             let parts = Self::take_parts(&requests, self.options.batch_size);
 
             if !parts.is_empty() {
-                let inputs: Vec<_> = parts.iter()
-                    .map(|o| {
-                        if let RequestPart::Pending { array, .. } = o { array.view() } else { panic!("RequestPart should be Pending") }
-                    })
-                    .collect();
+                // Stack all the arrays of the selected parts
+                let inputs: Vec<_> = parts.iter().map(|o| {
+                    if let RequestPart::Pending { array, .. } = o {
+                        array.view()
+                    } else {
+                        panic!("RequestPart should be Pending")
+                    }
+                }).collect();
                 let inputs = stack(Axis(0), &inputs).unwrap();
 
-                let combined = Self::prepare_cache(&mut caches, &parts, &requests);
-                match &combined {
-                    Some(_) => comb.0 += 1,
-                    None => comb.1 += 1,
-                }
+                let combined_cache = Self::prepare_cache(&mut caches, &parts, &requests);
 
-                let (output, storage) = controller.eval_with_cache(inputs, combined).unwrap();
+                let (output, storage) = controller.eval_with_cache(inputs, combined_cache).unwrap();
                 let split = split_storages(storage, parts.len())
                     .expect("Should split cache");
 
@@ -119,6 +121,7 @@ impl DecisionTreesBuilder {
                         }
                     }).collect();
 
+                // Set the completed parts in the Request
                 for c in completed_requests {
                     let index_in_owner = c.index_in_owner();
                     let target = requests.get_mut(c.owner());
@@ -154,7 +157,6 @@ impl DecisionTreesBuilder {
             }
         }
 
-        // println!("Some={} None={}, len={:?}, count={:?}, ls={:?}, size={:?}", comb.0, comb.1, caches[0].len(), caches[0].count, caches[0].last_searched, caches[0].current_bytes);
         (trees.into_iter().map(|o| o.into_inner()).collect(),
          cursors.into_iter().map(|o| o.into_inner()).collect())
     }
@@ -162,8 +164,8 @@ impl DecisionTreesBuilder {
     fn prepare_cache(caches: &mut [Cache], parts: &[&RequestPart], requests: &RequestStorage) -> Option<GenericStorage> {
         let storages: Vec<_> = parts.iter()
             .map(|o| o.owner())
-            .map(|o| {
-                let o = requests.get(o);
+            .map(|i| {
+                let o = requests.get(i);
                 caches[o.game_index].get(o.node_index)
             })
             .collect();
@@ -174,6 +176,7 @@ impl DecisionTreesBuilder {
             return None;
         }
 
+        // Create an empty array to be used for replacement in the nodes whose cache was deleted
         let replacement = storages.iter()
             .filter_map(|&o| o.cloned())
             .map(|mut o| {
@@ -193,6 +196,8 @@ impl DecisionTreesBuilder {
         combine_storages(&replaced)
     }
 
+    /// Create new requests to keep the count of requests PARTS grater than the batch size.
+    /// So, in every batch, there are enough parts to fill a batch.
     fn fill_requests(&self, requests: &mut RequestStorage, producer: &mut GamesProducer) -> Result<(), BuildingError> {
         let mut parts_len: usize = requests.iter().map(|o| o.count_pending()).sum();
 
@@ -209,6 +214,7 @@ impl DecisionTreesBuilder {
         Ok(())
     }
 
+    /// Take the specified number of PENDING parts
     fn take_parts(requests: &RequestStorage, count: usize) -> Vec<&RequestPart> {
         requests.iter()
             .flat_map(|o| &o.parts)
@@ -217,6 +223,7 @@ impl DecisionTreesBuilder {
             .collect()
     }
 
+    /// Find completed request to remove and process results
     fn remove_completed(&self, requests: RequestStorage, trees: &[RefCell<DecisionTree>],
                         caches: &mut [Cache]) -> RequestStorage {
         let mut new_requests = RequestStorage::with_capacity(requests.len());
@@ -224,7 +231,7 @@ impl DecisionTreesBuilder {
         for req in requests.into_iter() {
             if !req.is_completed() {
                 new_requests.push(req);
-                continue;  // TODO: break?
+                continue;
             }
 
             let mut tree = trees[req.game_index].borrow_mut();

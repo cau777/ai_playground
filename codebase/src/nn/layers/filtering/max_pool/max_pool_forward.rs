@@ -42,6 +42,7 @@ fn forward_cpu(inputs: Array4F, size: usize, stride: usize, padding: usize) -> S
     Array4F::from_shape_fn((batch_size, channels, new_height, new_width), |(b, c, h, w)| {
         let h_offset = h * stride;
         let w_offset = w * stride;
+        // Slice is the area that the filter encompasses
         let area = inputs.slice(s![b, c, h_offset..(h_offset + size), w_offset..(w_offset + size)]);
         area.into_iter().copied().reduce(f32::max).unwrap_or(0.0)
     }).into_dyn().into()

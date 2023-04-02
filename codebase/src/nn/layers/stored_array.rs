@@ -4,6 +4,7 @@ use crate::gpu::gpu_data::GlobalGpu;
 use crate::utils::shape_length;
 use crate::utils::GenericResult;
 
+/// Provides a layer of abstraction to where the array lives, in the CPU or in the GPU
 #[derive(Clone)]
 pub enum StoredArray {
     Memory { data: ArrayDynF },

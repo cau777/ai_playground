@@ -70,21 +70,6 @@ impl OpeningsTree {
         Ok(Self { nodes })
     }
 
-    // fn set_total_children(nodes: &mut [OpeningNode], index: usize) -> usize {
-    //     let node = &nodes[index];
-    //
-    //     if node.children.is_empty() {
-    //         1
-    //     } else {
-    //         let mut result = 0;
-    //         for &c in &node.children {
-    //             result += Self::set_total_children(nodes, c);
-    //         }
-    //         nodes[index].total_children_count = result;
-    //         result
-    //     }
-    // }
-
     pub fn get_opening_name(&self, node_index: usize) -> &str {
         let mut option = self.nodes.get(node_index);
         while let Some(node) = option {

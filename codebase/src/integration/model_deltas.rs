@@ -2,6 +2,8 @@ use std::ops::{SubAssign, AddAssign};
 
 use crate::nn::layers::nn_layers::GenericStorage;
 
+/// Computes the difference between the initial storage and a storage storage.
+/// Stores those deltas in the second storage.
 pub fn export_deltas(initial: &GenericStorage, result: &mut GenericStorage) {
     for (key, value) in result.iter_mut() {
         for (index, arr) in value.iter_mut().enumerate() {
@@ -16,6 +18,7 @@ pub fn export_deltas(initial: &GenericStorage, result: &mut GenericStorage) {
     }
 }
 
+/// The opposite of export_deltas. Applies a storage with deltas.
 pub fn import_deltas(current: &mut GenericStorage, deltas: GenericStorage) {
     for (key, value) in deltas.into_iter() {
         if !current.contains_key(&key) {

@@ -3,6 +3,8 @@ use crate::utils::{Array2F};
 
 pub struct TwoComplementsTransformerLayer;
 
+/// Receives 2 inputs A and B, and outputs A - B
+/// It's useful because it makes it easier for the model to produce negative values with ReLu layers
 impl LayerOps<()> for TwoComplementsTransformerLayer {
     fn init(_: InitData, _: &()) -> EmptyLayerResult {
         Ok(())

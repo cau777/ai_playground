@@ -5,7 +5,10 @@ use crate::nn::layers::dense_layer::{DenseConfig, gen_name};
 use crate::nn::layers::nn_layers::*;
 use crate::utils::{Array2F, GetBatchSize};
 
-pub  fn backward(data: BackwardData, layer_config: &DenseConfig) -> LayerResult {
+/// Calculates the weights' error by performing matrix multiplication between the gradient and the inputs.
+/// Calculates the biases' error as a mean of the gradient.
+/// Outputs the matrix multiplication between the gradient and the weights.
+pub fn backward(data: BackwardData, layer_config: &DenseConfig) -> LayerResult {
     let BackwardData {
         assigner,
         storage,

@@ -22,7 +22,6 @@ pub struct GpuData {
     pub cmd_alloc: StandardCommandBufferAllocator,
     pub cache: Option<Arc<PipelineCache>>,
     pub std_mem_alloc: Arc<StandardMemoryAllocator>,
-    pub fast_mem_alloc: RwLock<FastMemoryAllocator>,
     pub contexts: RwLock<HashMap<ShaderContextKey, ShaderContext>>,
 }
 
@@ -32,6 +31,7 @@ enum GpuStatus {
     Pending,
 }
 
+// The GPU instance is stored globally because it's too expensive to recreate
 lazy_static::lazy_static! {
     static ref GLOBAL_GPU: Arc<Mutex<GpuStatus>> = Arc::new(Mutex::new(GpuStatus::Pending));
 }
@@ -109,11 +109,9 @@ impl GpuData {
 
         Ok(Self {
             queue: queues.next().ok_or_else(||anyhow::anyhow!("Should create 1 queue"))?,
-            // memory_alloc: StandardMemoryAllocator::new_default(device.clone()),
             descriptor_alloc: StandardDescriptorSetAllocator::new(device.clone()),
             cmd_alloc: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
             cache: PipelineCache::empty(device.clone()).map_err(|e| println!("{:?}", e)).ok(),
-            fast_mem_alloc: RwLock::new(FastMemoryAllocator::new_default(device.clone())),
             device,
             std_mem_alloc: memory_alloc,
             contexts: RwLock::new(HashMap::new()),
@@ -124,10 +122,5 @@ impl GpuData {
         Ok(vulkano::sync::now(self.device.clone())
             .then_execute(self.queue.clone(), cmd)?
             .then_signal_fence_and_flush()?)
-    }
-
-    pub fn reset_fast_mem_alloc(&self) -> GenericResult<()> {
-        *self.fast_mem_alloc.write().unwrap() = FastMemoryAllocator::new_default(self.device.clone());
-        Ok(())
     }
 }
