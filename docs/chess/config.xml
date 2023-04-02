@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!DOCTYPE AIModel SYSTEM "https://raw.githubusercontent.com/cau777/ai_playground/master/docs/layers_config_types.dtd">
+
 <AIModel>
     <LossFunc><Mse/></LossFunc>
 
@@ -41,8 +43,11 @@
                 </Sequential>
             </Concat>
 
-            <MaxPool size="2" stride="2" padding="0"/>
+            <Convolution in_channels="128" out_channels="32" kernel_size="1" stride="1" padding="0">
+                <KernelsLr><Adam/></KernelsLr>
+            </Convolution>
 
+            <Relu/>
             <Flatten/>
 
             <Dense in_values="2048" out_values="128">

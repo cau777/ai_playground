@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!DOCTYPE AIModel SYSTEM "https://raw.githubusercontent.com/cau777/ai_playground/master/docs/layers_config_types.dtd">
+
 <AIModel>
     <LossFunc><CrossEntropy/></LossFunc>
 
