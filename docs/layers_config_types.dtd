@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!DOCTYPE AIModel [
+        <!ELEMENT AiModel (Sequential|Concat|Dense|Convolution|MaxPool|Debug|Relu|Sigmoid|Tanh|Flatten|ExpandDim|Dropout|TwoComplementsTransformer)>
+        <!ELEMENT Sequential (Sequential*,Concat*,Dense*,Convolution*,MaxPool*,Debug*,Relu*,Sigmoid*,Tanh*,Flatten*,ExpandDim*,Dropout*,TwoComplementsTransformer*)>
+        <!ELEMENT Concat (Sequential*,Concat*,Dense*,Convolution*,MaxPool*,Debug*,Relu*,Sigmoid*,Tanh*,Flatten*,ExpandDim*,Dropout*,TwoComplementsTransformer*)>
+
+        <!ELEMENT WeightsLr (Constant|Adam)>
+        <!ELEMENT BiasesLr (Constant|Adam)>
+        <!ELEMENT KernelsLr (Constant|Adam)>
+
+        <!ELEMENT Constant EMPTY>
+        <!ATTLIST Constant lr CDATA "0.05">
+
+        <!ELEMENT Adam EMPTY>
+        <!ATTLIST Adam alpha CDATA "0.001">
+        <!ATTLIST Adam decay1 CDATA "0.9">
+        <!ATTLIST Adam decay2 CDATA "0.999">
+
+        <!ELEMENT Dense (WeightsLr,BiasesLr)>
+        <!ATTLIST Dense in_values CDATA #REQUIRED>
+        <!ATTLIST Dense out_values CDATA #REQUIRED>
+
+        <!ELEMENT Convolution (KernelsLr)>
+        <!ATTLIST Convolution in_channels CDATA #REQUIRED>
+        <!ATTLIST Convolution out_channels CDATA #REQUIRED>
+        <!ATTLIST Convolution kernel_size CDATA #REQUIRED>
+        <!ATTLIST Convolution stride CDATA #REQUIRED>
+        <!ATTLIST Convolution padding CDATA #REQUIRED>
+
+        <!ELEMENT MaxPool EMPTY>
+        <!ATTLIST MaxPool size CDATA #REQUIRED>
+        <!ATTLIST MaxPool stride CDATA #REQUIRED>
+        <!ATTLIST MaxPool padding CDATA #REQUIRED>
+
+        <!ELEMENT Debug EMPTY>
+        <!ATTLIST Debug tag CDATA #REQUIRED>
+        <!ATTLIST Debug action (print_shape|print_time|print_elapsed|print_array) #REQUIRED>
+        
+        <!ELEMENT Relu EMPTY>
+        <!ELEMENT Sigmoid EMPTY>
+        <!ELEMENT Tanh EMPTY>
+        <!ELEMENT Flatten EMPTY>
+
+        <!ELEMENT ExpandDim EMPTY>
+        <!ATTLIST ExpandDim dim CDATA #REQUIRED>
+
+        <!ELEMENT Dropout EMPTY>
+        <!ATTLIST Dropout drop CDATA #REQUIRED>
+
+        <!ELEMENT TwoComplementsTransformer EMPTY>
+        ]>
