@@ -7,11 +7,9 @@
 A chess game is modeled as a tree, where each node is a move and stores the evaluation of the position and some extra information. 
 Evaluations are just numbers ranging mainly from -1.0 to 1.0, where high values mean positions that are better for white. The process of playing games is just a loop that chooses a node on the tree and evaluates it further. That means evaluating its children using the AI model and sorting them. In that case, the evaluation of the parent node is no longer relevant, instead, the evaluation of the best (depending on the side that is playing) continuation is used.
 
-There are three different modes of training:
-1) Building game trees by choosing nodes that lead to concrete endings (wins/draws). It is the main form of training.
-2) Building game trees focusing on exploring the best lines. It achieves few concrete game results, but it improves the consistency of a node's evaluation and the evaluation of its continuations.
-However, using this mode too often results in most positions having the same evaluation.
-3) Training endgames: training checkmate positions so that the AI knows what to aim for. This is only necessary at the beginning of the training process but greatly speeds up the process.
+The training process is focused on **key positions**. These are positions where the preliminary evaluation of the AI and
+the evaluation after exploring that position further differ significantly. You can think like moves that "surprised" the AI.
+After found, these key positions are analyzed in depth to try finding concrete result (i.e. checkmate).
 
 ### Model
 
