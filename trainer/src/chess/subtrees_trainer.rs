@@ -92,8 +92,6 @@ impl SubtreesTrainer {
         let zipped = self.get_subtrees(controller, options.limits.clone(), options.random_node_chance);
         let (trees, cursors): (Vec<_>, Vec<_>) = zipped.into_iter().unzip();
 
-        // println!("\n{}\n", trees[0].to_svg());
-
         let metrics = Arc::new(Mutex::new(GameMetrics::default()));
 
         let (trees, mut cursors) = {
