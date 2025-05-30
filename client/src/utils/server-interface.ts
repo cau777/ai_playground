@@ -2,7 +2,7 @@ import axios from "axios";
 
 const ServerUrl = import.meta.env.DEV
     ? "http://localhost:8000"
-    : "https://ai-playground-server.livelybay-b5b6ca38.brazilsouth.azurecontainerapps.io";
+    : "https://aipg-versions-server-oqqcf.ondigitalocean.app/";
 
 export async function digits_eval(array: number[]) {
     let response = await axios.post<number[]>(ServerUrl + "/digits/eval", array, {
