@@ -1,0 +1,1 @@
+import{H as o}from"./HomePage.b2722783.js";import{c as r}from"./entry-client.788e06e5.js";import"./NavControls.66917ca3.js";import"./LanguagesContext.82e58784.js";import"./ChessPiece.9bed4891.js";function i(){return r(o,{})}export{i as default};
