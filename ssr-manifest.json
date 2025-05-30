@@ -54,147 +54,147 @@
   "src/utils/server-interface.ts": [],
   "src/entry-client.tsx": [],
   "src/routes/[...404].tsx": [
-    "/ai_playground/assets/_...404_.53a690ee.js"
+    "/ai_playground/assets/_...404_.c11e0f6c.js"
   ],
   "node_modules/solid-start/server/components/HttpStatusCode.tsx": [
-    "/ai_playground/assets/HttpStatusCode.81427931.js"
+    "/ai_playground/assets/HttpStatusCode.f6e7ee75.js"
   ],
   "src/routes/en.tsx": [
-    "/ai_playground/assets/en.3da5f129.js"
+    "/ai_playground/assets/en.3205a24d.js"
   ],
   "src/i18n/en/translation.ts": [
-    "/ai_playground/assets/LanguagesContext.bf29a0dc.js"
+    "/ai_playground/assets/LanguagesContext.a908c724.js"
   ],
   "src/i18n/pt-BR/translation.ts": [
-    "/ai_playground/assets/LanguagesContext.bf29a0dc.js"
+    "/ai_playground/assets/LanguagesContext.a908c724.js"
   ],
   "src/components/LanguagesContext.tsx": [
-    "/ai_playground/assets/LanguagesContext.bf29a0dc.js"
+    "/ai_playground/assets/LanguagesContext.a908c724.js"
   ],
   "src/routes/en/index.tsx": [
-    "/ai_playground/assets/index.4db6424c.js"
+    "/ai_playground/assets/index.cb94880a.js"
   ],
   "src/components/icons/DigitsPageIcon.tsx": [
-    "/ai_playground/assets/HomePage.0a344479.js"
+    "/ai_playground/assets/HomePage.ad804bee.js"
   ],
   "src/components/icons/ChessPageIcon.tsx": [
-    "/ai_playground/assets/HomePage.0a344479.js"
+    "/ai_playground/assets/HomePage.ad804bee.js"
   ],
   "src/components/home/HomePage.tsx": [
-    "/ai_playground/assets/HomePage.0a344479.js"
+    "/ai_playground/assets/HomePage.ad804bee.js"
   ],
   "src/components/NavControls.tsx": [
-    "/ai_playground/assets/NavControls.3ae2038e.js"
+    "/ai_playground/assets/NavControls.fe784304.js"
   ],
   "src/components/chess/ChessPiece.tsx": [
-    "/ai_playground/assets/ChessPiece.a1ac088d.js"
+    "/ai_playground/assets/ChessPiece.fd6402b7.js"
   ],
   "src/routes/en/chess/index.tsx": [
-    "/ai_playground/assets/index.db2e0f5d.js"
+    "/ai_playground/assets/index.619889fa.js"
   ],
   "src/components/chess/PossibleMoveIndicator.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/ChessBoard.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/board_state.ts": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/Select.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/RadioLikeButtons.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/NewGameMenu.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/GameInfo.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/ChessPlay.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/chess/ChessPlayground.tsx": [
-    "/ai_playground/assets/ChessPlayground.b9766d66.js"
+    "/ai_playground/assets/ChessPlayground.a4cc2d85.js"
   ],
   "src/components/PlaygroundContainer.tsx": [
-    "/ai_playground/assets/BtnPrimary.8102e0d6.js"
+    "/ai_playground/assets/BtnPrimary.8abdea67.js"
   ],
   "src/components/BtnPrimary.tsx": [
-    "/ai_playground/assets/BtnPrimary.8102e0d6.js"
+    "/ai_playground/assets/BtnPrimary.8abdea67.js"
   ],
   "src/routes/en/digits/index.tsx": [
-    "/ai_playground/assets/index.ccec2cfd.js"
+    "/ai_playground/assets/index.97193ab3.js"
   ],
   "src/components/icons/ClearIcon.tsx": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "src/components/digits/Canvas.tsx": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "node_modules/@kurkle/color/dist/color.esm.js": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "node_modules/chart.js/dist/chunks/helpers.segment.js": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "node_modules/chart.js/dist/chart.js": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "src/utils/chart-setup.ts": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "src/components/digits/DigitsResultsGraph.tsx": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "src/components/digits/DigitsPlayground.tsx": [
-    "/ai_playground/assets/DigitsPlayground.5a1f3efd.js"
+    "/ai_playground/assets/DigitsPlayground.05482d0e.js"
   ],
   "src/routes/index.tsx": [
-    "/ai_playground/assets/index.84eadde3.js"
+    "/ai_playground/assets/index.236bdb06.js"
   ],
   "src/routes/pt.tsx": [
-    "/ai_playground/assets/pt.cfedfb51.js"
+    "/ai_playground/assets/pt.d84451c1.js"
   ],
   "src/routes/pt/index.tsx": [
-    "/ai_playground/assets/index.5ad879e8.js"
+    "/ai_playground/assets/index.fc16d4c1.js"
   ],
   "src/routes/pt/chess/index.tsx": [
-    "/ai_playground/assets/index.50bfe490.js"
+    "/ai_playground/assets/index.eec6aae8.js"
   ],
   "src/routes/pt/digits/index.tsx": [
-    "/ai_playground/assets/index.49feef9a.js"
+    "/ai_playground/assets/index.939b09a6.js"
   ],
   "src/routes/ai_playground/[...404].tsx": [
-    "/ai_playground/assets/_...404_.4a0b3656.js"
+    "/ai_playground/assets/_...404_.98b0f2cf.js"
   ],
   "src/routes/ai_playground/en.tsx": [
-    "/ai_playground/assets/en.5b75385e.js"
+    "/ai_playground/assets/en.591e3222.js"
   ],
   "src/routes/ai_playground/en/index.tsx": [
-    "/ai_playground/assets/index.804e8754.js"
+    "/ai_playground/assets/index.59063ef1.js"
   ],
   "src/routes/ai_playground/en/chess/index.tsx": [
-    "/ai_playground/assets/index.54b3b27e.js"
+    "/ai_playground/assets/index.18b3ef6e.js"
   ],
   "src/routes/ai_playground/en/digits/index.tsx": [
-    "/ai_playground/assets/index.6e67ce7e.js"
+    "/ai_playground/assets/index.55cb3a39.js"
   ],
   "src/routes/ai_playground/index.tsx": [
-    "/ai_playground/assets/index.077ad24b.js"
+    "/ai_playground/assets/index.aca1ce90.js"
   ],
   "src/routes/ai_playground/pt.tsx": [
-    "/ai_playground/assets/pt.083472c2.js"
+    "/ai_playground/assets/pt.16bdcbf0.js"
   ],
   "src/routes/ai_playground/pt/index.tsx": [
-    "/ai_playground/assets/index.8729e492.js"
+    "/ai_playground/assets/index.04fb6490.js"
   ],
   "src/routes/ai_playground/pt/chess/index.tsx": [
-    "/ai_playground/assets/index.247a6619.js"
+    "/ai_playground/assets/index.485b48a3.js"
   ],
   "src/routes/ai_playground/pt/digits/index.tsx": [
-    "/ai_playground/assets/index.cd6255f9.js"
+    "/ai_playground/assets/index.5e230c58.js"
   ]
 }
