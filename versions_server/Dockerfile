@@ -9,7 +9,7 @@ RUN apt-get update
 RUN apt-get -y install cmake
 
 WORKDIR /app/codebase
-COPY ./codebase/Cargo.toml .
+COPY ../codebase/Cargo.toml .
 # Removes benchmarks from dependencies
 RUN sed -i 's|\[\[bench.*||g' Cargo.toml &&  \
     sed -i 's|name = ".*_bench"||g' Cargo.toml &&  \
@@ -19,7 +19,7 @@ RUN sed -i 's|\[\[bench.*||g' Cargo.toml &&  \
 RUN mkdir src && echo "// dummy file" > src/lib.rs && cargo build --release && rm src/lib.rs
 
 WORKDIR /app/final
-COPY versions_server/Cargo.toml .
+COPY ./Cargo.toml .
 # Removes codebase from dependencies
 RUN sed -i 's|codebase = .*||g' Cargo.toml
 # Download and compile server dependencies
