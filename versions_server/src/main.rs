@@ -40,7 +40,7 @@ async fn main() {
         Arc::new(RwLock::new(LoadedModel::new())),
         Arc::new(RwLock::new(LoadedModel::new())),
     );
-    let chess_games_pool = Arc::new(RwLock::new(ChessGamesPool::new(&config)));
+    // let chess_games_pool = Arc::new(RwLock::new(ChessGamesPool::new(&config)));
     println!("Finished loading");
 
     let cors = warp::cors()
@@ -88,23 +88,23 @@ async fn main() {
         .and_then(digits_handler::post_eval);
 
     // Chess routes
-    let chess_start_route = path!("chess" / "start")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(with_file_manager(&file_managers.chess))
-        .and(with_loaded_model(&loaded_models.chess))
-        .and(with_chess_games_pool(&chess_games_pool))
-        .and(with_env_config(&config))
-        .and_then(chess::chess_handlers::post_start);
-
-    let chess_move_route = path!("chess" / "move")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(with_file_manager(&file_managers.chess))
-        .and(with_loaded_model(&loaded_models.chess))
-        .and(with_chess_games_pool(&chess_games_pool))
-        .and(with_env_config(&config))
-        .and_then(chess::chess_handlers::post_move);
+    // let chess_start_route = path!("chess" / "start")
+    //     .and(warp::post())
+    //     .and(warp::body::json())
+    //     .and(with_file_manager(&file_managers.chess))
+    //     .and(with_loaded_model(&loaded_models.chess))
+    //     .and(with_chess_games_pool(&chess_games_pool))
+    //     .and(with_env_config(&config))
+    //     .and_then(chess::chess_handlers::post_start);
+    // 
+    // let chess_move_route = path!("chess" / "move")
+    //     .and(warp::post())
+    //     .and(warp::body::json())
+    //     .and(with_file_manager(&file_managers.chess))
+    //     .and(with_loaded_model(&loaded_models.chess))
+    //     .and(with_chess_games_pool(&chess_games_pool))
+    //     .and(with_env_config(&config))
+    //     .and_then(chess::chess_handlers::post_move);
 
     let routes = wake_up_route
         .or(post_trainable_route)
@@ -114,8 +114,8 @@ async fn main() {
 
         .or(digits_eval_route)
 
-        .or(chess_start_route)
-        .or(chess_move_route)
+        // .or(chess_start_route)
+        // .or(chess_move_route)
 
         .with(cors);
 

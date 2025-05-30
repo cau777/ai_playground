@@ -1,4 +1,4 @@
-FROM rust:1.87.0 as builder
+FROM rust:1.87.0-bullseye as builder
 WORKDIR /app
 
 RUN mkdir codebase
