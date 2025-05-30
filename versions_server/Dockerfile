@@ -47,6 +47,8 @@ ENV KEEP_VERSIONS="101"
 
 RUN mkdir /app/files
 RUN chmod -R 777 /app/files
+RUN mkdir /app/files/digits
+COPY ./docs/digits/config.xml /app/files/digits
 EXPOSE 443
 CMD ["./versions_server"]
 #ENTRYPOINT ["tail", "-f", "/dev/null"]

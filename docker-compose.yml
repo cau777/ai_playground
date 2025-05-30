@@ -5,5 +5,5 @@ services:
       context: .
       dockerfile: ./versions_server/Dockerfile
     ports:
-      - "8000:80"
+      - "8000:443"
     image: cau777/aipg-versions-controller
