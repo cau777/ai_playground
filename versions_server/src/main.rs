@@ -58,10 +58,10 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::bytes())
         .and(with_file_managers(&file_managers))
-        .and_then(rest_handlers::post_trainable)
-        .recover(|err| {
-
-        });
+        .and_then(rest_handlers::post_trainable);
+        // .recover(|err| {
+        // 
+        // });
 
     let get_trainable_route = path!(String / "trainable")
         .and(warp::get())
