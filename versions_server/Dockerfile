@@ -27,11 +27,11 @@ RUN mkdir src && echo "fn main(){}" > src/main.rs && cargo build --release && rm
 
 # Copy the rest of the files
 WORKDIR /app/codebase
-COPY ./codebase/src ./src
+COPY ../codebase/src ./src
 
 WORKDIR /app/final
-COPY versions_server/Cargo.toml .
-COPY versions_server/src ./src
+COPY ./Cargo.toml .
+COPY ./src ./src
 RUN cargo build --release
 
 FROM debian:bullseye-slim as runner
