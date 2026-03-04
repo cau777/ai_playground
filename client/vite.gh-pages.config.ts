@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [solid({
         adapter: ssg({})
     })],
-    base: "/ai_playground/",
+    // base: "/ai_playground/",
     build: {
         minify: "esbuild",
     },
